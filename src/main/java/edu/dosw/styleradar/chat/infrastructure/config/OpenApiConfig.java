@@ -13,7 +13,7 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI chatOpenApi() {
         return new OpenAPI()
-                .info(new Info().title("StyleRadar · ms-chat")
+                .info(new Info().title("StyleRadar · GJ-Chat-Service")
                         .description("Chat entre comprador y vendedor de prendas de segunda mano")
                         .version("0.1.0"))
                 .components(new Components().addSecuritySchemes("bearerAuth",

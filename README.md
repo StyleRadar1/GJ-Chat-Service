@@ -1,16 +1,83 @@
-# ms-chat · StyleRadar
+# GJ-Chat-Service · StyleRadar
 
-Microservicio de chat de StyleRadar (paquete **P3: Chat/Notificaciones**, curso DOSW). Permite que un comprador converse con el vendedor de una prenda de segunda mano para coordinar la entrega.
+[![CI QA](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg)](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml)
+![Java 17](https://img.shields.io/badge/Java-17-orange) ![Spring Boot 3.2](https://img.shields.io/badge/Spring%20Boot-3.2-green) ![Cobertura](https://img.shields.io/badge/JaCoCo%20dominio%2Baplicaci%C3%B3n-100%25-brightgreen)
+
+> Microservicio de **chat** de StyleRadar, curso DOSW 2026-2, equipo **Guatoque Jiraguas (GJ)**. Documentación técnica completa en [`docs/SR_GJ_DocumentoTecnico_v1.md`](docs/SR_GJ_DocumentoTecnico_v1.md) y análisis de tecnologías en [`docs/SR_GJ_AnalisisTecnologias_v1.md`](docs/SR_GJ_AnalisisTecnologias_v1.md).
+
+## 1. Nombre del servicio y su bounded context
+
+**GJ-Chat-Service** es dueño del bounded context **Mensajería (Chat)**: las conversaciones privadas entre el comprador y el vendedor de una prenda de segunda mano, y los mensajes con que coordinan la entrega.
 
 | Dato | Valor |
 | --- | --- |
+| Requerimientos | SR-RF-40 (iniciar chat con el vendedor) y SR-RF-41 (coordinar la entrega por chat) |
+| Paquete del curso | P3: Chat / Notificaciones |
 | Puerto | **8089** |
-| Requerimientos | SR-RF-40 (iniciar chat con el vendedor), SR-RF-41 (coordinar la entrega por chat) |
-| Base de datos | PostgreSQL propia (`chat_db`), esquema con Flyway |
-| Tecnología | Java 17, Spring Boot 3.2, Spring Data JPA, OpenFeign, MapStruct, JJWT |
-| Arquitectura | Hexagonal (puertos y adaptadores), según la guía oficial del curso |
+| Dueño de | `Conversacion`, `Mensaje` |
+| No es dueño de | Publicaciones de segunda mano (las consulta por API) ni usuarios (los toma del JWT) |
 
-## Endpoints
+## 2. Equipo y responsables
+
+| Rol | Integrante |
+| --- | --- |
+| Responsable del servicio (Backend) | Santiago Andrés García Almario |
+| Integrantes del equipo GJ | _Completar con los integrantes del equipo_ |
+
+## 3. Arquitectura hexagonal con su diagrama
+
+Las dependencias apuntan hacia adentro: el **dominio** no conoce Spring, JPA ni HTTP; los **casos de uso** dependen solo de puertos (interfaces); la **infraestructura** implementa esos puertos.
+
+```mermaid
+flowchart LR
+    subgraph IN["Adaptadores de entrada"]
+        REST["ChatController<br/>REST /api/v1"]
+        AMQP["amqp/ (Sprint 2)"]
+        WS["websocket/ (Sprint 3)"]
+    end
+    subgraph APP["Aplicación"]
+        UC1["IniciarConversacionUseCaseImpl"]
+        UC2["ConsultarMisConversacionesUseCaseImpl"]
+        UC3["ConsultarMensajesUseCaseImpl"]
+        UC4["EnviarMensajeUseCaseImpl"]
+    end
+    subgraph DOM["Dominio (sin frameworks)"]
+        PIN["port/in<br/>4 casos de uso «interface»"]
+        MOD["Conversacion · Mensaje<br/>TextoMensaje (VO) · PublicacionResumen"]
+        POUT["port/out<br/>ConversacionRepositoryPort<br/>MensajeRepositoryPort<br/>PublicacionConsultaPort"]
+    end
+    subgraph OUT["Adaptadores de salida"]
+        JPA["persistence/<br/>JPA + Flyway"]
+        FEIGN["external/<br/>Feign → segunda mano"]
+        JWT["security/<br/>JwtTokenAdapter"]
+    end
+    DB[("PostgreSQL<br/>chat_db")]
+    SM["Servicio de publicaciones<br/>(monolito → ms-segunda-vida-donaciones)"]
+
+    REST --> PIN
+    PIN -. implementa .-> UC1 & UC2 & UC3 & UC4
+    UC1 & UC2 & UC3 & UC4 --> MOD
+    UC1 & UC2 & UC3 & UC4 --> POUT
+    POUT -. implementa .-> JPA & FEIGN
+    JPA --> DB
+    FEIGN --> SM
+    REST -. autenticación .-> JWT
+```
+
+```
+src/main/java/edu/dosw/styleradar/chat/
+├── domain/          model/ · event/ · exception/ · port/in · port/out
+├── application/     usecase/ (*UseCaseImpl) · dto/request|response|event · mapper/in|out (MapStruct)
+└── infrastructure/  adapter/in/rest (+doc) · adapter/in/amqp · adapter/in/websocket
+                     adapter/out/persistence · adapter/out/external · adapter/out/security · adapter/out/messaging
+                     config/ (BeanConfig, SecurityConfig, FeignConfig, OpenApiConfig) · exception/ (RFC 7807)
+```
+
+Los casos de uso no llevan `@Service`: se registran a mano en `BeanConfig`. El controlador solo conoce las interfaces de `port/in`.
+
+## 4. Endpoints y enlace a Swagger
+
+**Swagger UI:** `http://localhost:8089/swagger-ui.html` (local) · OpenAPI: `/v3/api-docs`. Cada endpoint trae descripción, ejemplos de request y response y los códigos de error con ejemplo en formato RFC 7807.
 
 Todos exigen `Authorization: Bearer <JWT>` y el rol `COMPRADOR`.
 
@@ -21,9 +88,7 @@ Todos exigen `Authorization: Bearer <JWT>` y el rol `COMPRADOR`.
 | GET | `/api/v1/conversaciones/{id}/mensajes` | Mensajes de la conversación en orden de envío. Solo participantes. | 200, 401, 403, 404 |
 | POST | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres. | 201, 400, 401, 403, 404, 422, 503 |
 
-Públicos: `/actuator/health`, `/swagger-ui.html` y `/v3/api-docs`.
-
-Los errores usan el formato **RFC 7807** (`application/problem+json`):
+Ejemplo de error (`application/problem+json`):
 
 ```json
 {
@@ -31,107 +96,131 @@ Los errores usan el formato **RFC 7807** (`application/problem+json`):
   "title": "Regla de negocio incumplida",
   "status": 422,
   "detail": "No puede iniciar un chat sobre su propia publicación",
-  "instance": "/api/v1/segunda-mano/10/conversaciones",
-  "timestamp": "2026-11-01T15:00:00Z"
+  "instance": "/api/v1/segunda-mano/10/conversaciones"
 }
 ```
 
-## Arquitectura
+## 5. Eventos que publica y consume
 
+En el Sprint 1 el servicio todavía no usa el broker: los paquetes `adapter/in/amqp`, `adapter/out/messaging` y `domain/event` ya existen y se llenan en el Sprint 2.
+
+| Evento | Dirección | Publicador → consumidor | Para qué | Sprint |
+| --- | --- | --- | --- | --- |
+| `MensajeEnviado` | Publica | GJ-Chat-Service → ms-notificaciones | Avisar al destinatario en la campana | 2 |
+| `PublicacionRetirada` | Consume | ms-segunda-vida-donaciones → GJ-Chat-Service | Cerrar las conversaciones de esa publicación | 2 |
+
+Broker: RabbitMQ con topic exchange. Mientras no llega el evento, el cierre se detecta consultando la publicación al enviar cada mensaje.
+
+## 6. Tecnologías y dependencias
+
+| Capa | Tecnología | Versión |
+| --- | --- | --- |
+| Lenguaje | Java (Eclipse Temurin) | 17 |
+| Framework | Spring Boot (Web, Security, Data JPA, Validation, Actuator) | 3.2.12 |
+| Comunicación entre servicios | Spring Cloud OpenFeign | 2023.0.5 |
+| Base de datos y migraciones | PostgreSQL 15 + Flyway | — |
+| Seguridad | JJWT (HS256) | 0.12.6 |
+| Mappers | MapStruct · Lombok | 1.6.3 · 1.18.36 |
+| Documentación | springdoc-openapi (Swagger UI) | 2.5.0 |
+| Pruebas | JUnit 5, Mockito, Spring Boot Test, Testcontainers | — |
+| Calidad | JaCoCo (≥ 85 %) · Checkstyle (Google Java Style) | 0.8.12 · 3.6.0 |
+
+Todas las versiones están fijas en el `pom.xml`. Justificación de cada decisión en el [análisis de tecnologías](docs/SR_GJ_AnalisisTecnologias_v1.md).
+
+## 7. Cómo ejecutar local y con Docker
+
+**Local** (necesita Java 17 y un PostgreSQL):
+
+```bash
+export JWT_SECRET_BASE64=<misma llave del servicio de identidad>
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
-src/main/java/edu/dosw/styleradar/chat/
-├── domain/                     Núcleo puro: sin Spring ni JPA
-│   ├── model/                  Conversacion, Mensaje, TextoMensaje (VO), PublicacionResumen
-│   ├── event/                  Eventos de dominio (Sprint 2: MensajeEnviadoEvent)
-│   ├── exception/              Excepciones de negocio
-│   └── port/
-│       ├── in/                 Casos de uso (interfaces)
-│       └── out/                Repositorios y consulta de publicaciones (interfaces)
-├── application/
-│   ├── usecase/                *UseCaseImpl (sin @Service: se registran en BeanConfig)
-│   ├── dto/request|response|event
-│   └── mapper/in|out           MapStruct
-└── infrastructure/
-    ├── adapter/in/rest/        ChatController + doc/ChatApi (OpenAPI)
-    ├── adapter/in/amqp/        Sprint 2: eventos de RabbitMQ
-    ├── adapter/in/websocket/   Sprint 3: chat en tiempo real (STOMP)
-    ├── adapter/out/persistence/  Entidades JPA, Spring Data y adaptadores
-    ├── adapter/out/external/   Cliente Feign del servicio de publicaciones
-    ├── adapter/out/security/   Validación del JWT
-    ├── adapter/out/messaging/  Sprint 2: publicador de eventos
-    ├── config/                 BeanConfig, SecurityConfig, FeignConfig, OpenApiConfig
-    └── exception/              GlobalExceptionHandler (RFC 7807)
+
+**Docker Compose** (levanta PostgreSQL y el servicio con un solo comando):
+
+```bash
+cp .env.example .env        # y poner la llave JWT real
+docker compose up --build
 ```
 
-Las pruebas en `src/test` son un espejo de esa estructura:
+**Prueba rápida con cURL**:
 
-- **Dominio:** JUnit 5.
-- **Casos de uso:** Mockito, sin contexto de Spring.
-- **Infraestructura:** slices de Spring e integración con PostgreSQL real en Testcontainers.
+```bash
+TOKEN="<jwt del login>"
+curl -X POST http://localhost:8089/api/v1/segunda-mano/1/conversaciones -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:8089/api/v1/conversaciones/1/mensajes \
+     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"texto":"¿Sigue disponible?"}'
+```
 
-### Dependencias con otros microservicios
+## 8. Variables de entorno
 
-- **Publicaciones de segunda mano.** Al iniciar un chat y al enviar un mensaje, el servicio consulta la publicación con Feign (`GET /api/v1/segunda-mano/{id}`) y reenvía el JWT del usuario. En el Sprint 1 apunta al monolito; después apuntará a `ms-segunda-vida-donaciones` (puerto 8093) cambiando solo `SEGUNDA_MANO_URL`.
-- **Identidad.** El servicio no consulta usuarios: valida el JWT con la misma llave HS256 con la que lo firma el servicio de identidad.
-
-## Configuración
+Los secretos nunca se suben: solo existe `.env.example`.
 
 | Variable | Descripción | Valor por defecto |
 | --- | --- | --- |
 | `SERVER_PORT` | Puerto del servicio | `8089` |
 | `DB_URL` | URL JDBC de PostgreSQL | `jdbc:postgresql://localhost:5432/chat_db` |
 | `DB_USERNAME` / `DB_PASSWORD` | Credenciales de la base | `chat` / `chat` |
-| `JWT_SECRET_BASE64` | **Obligatoria.** La misma llave Base64 (≥ 256 bits) con la que se firman los tokens | — |
-| `JWT_ROL_POR_DEFECTO` | Rol que se asume si el token no trae el claim `roles` | `COMPRADOR` |
+| `JWT_SECRET_BASE64` | **Obligatoria.** Llave Base64 (≥ 256 bits) igual a la del servicio de identidad | — |
+| `JWT_ROL_POR_DEFECTO` | Rol asumido si el token no trae el claim `roles` | `COMPRADOR` |
 | `SEGUNDA_MANO_URL` | URL base del servicio de publicaciones | `http://localhost:8080` |
 | `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` / `SEGUNDA_MANO_READ_TIMEOUT_MS` | Tiempos límite de Feign | `3000` / `5000` |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por coma | vacío |
 
-## Cómo correrlo
-
-**Pruebas y cobertura** (las pruebas de integración necesitan Docker; sin Docker se omiten):
+## 9. Pruebas y cobertura
 
 ```bash
-mvn clean verify
+mvn clean verify                  # pruebas + verificación JaCoCo ≥ 85 %
 # Reporte: target/site/jacoco/index.html
 ```
 
-**Con Docker Compose** (PostgreSQL + servicio):
+`src/test` es espejo de `src/main`:
 
-```bash
-cp .env.example .env      # y poner la llave JWT real en JWT_SECRET_BASE64
-docker compose up --build
-```
-
-**Prueba rápida con cURL** (con un token emitido por el login del monolito):
-
-```bash
-TOKEN="<jwt>"
-curl -X POST http://localhost:8089/api/v1/segunda-mano/1/conversaciones -H "Authorization: Bearer $TOKEN"
-curl -X POST http://localhost:8089/api/v1/conversaciones/1/mensajes \
-     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -d '{"texto":"¿Sigue disponible?"}'
-curl http://localhost:8089/api/v1/conversaciones/1/mensajes -H "Authorization: Bearer $TOKEN"
-```
-
-Swagger: http://localhost:8089/swagger-ui.html
-
-## CI/CD
-
-| Pipeline | Cuándo corre | Qué hace |
+| Nivel | Herramienta | Qué cubre |
 | --- | --- | --- |
-| `ci-qa.yml` | Push a `main`, `develop` o `feature/**`, y pull requests | Compila, corre las pruebas y exige 85 % de cobertura. En `main`, si `DEPLOY_ENABLED` está activo, publica la imagen y despliega en Azure QA. |
-| `ci-prod.yml` | Tag `v*.*.*` | Lo mismo, con aprobación manual en el ambiente `production`. |
+| Unitaria · dominio | JUnit 5 | Reglas de `Conversacion`, `Mensaje`, `TextoMensaje`, `PublicacionResumen` |
+| Unitaria · caso de uso | Mockito (sin Spring) | Los 4 `*UseCaseImpl`, incluidos los casos negativos |
+| API | `@WebMvcTest` + MockMvc | Endpoints, seguridad (401/403), validación (400) y errores RFC 7807 |
+| Adaptadores | JUnit 5 + Mockito | Cliente Feign y validación del JWT |
+| Integración · persistencia | Testcontainers (PostgreSQL 15) + Flyway | Flujo completo del chat y concurrencia al crear conversaciones |
 
-Para activar el despliegue en QA:
+Cobertura de líneas en dominio y aplicación: **100 %** (mínimo exigido: 85 %).
 
-1. Crear en Azure un App Service para contenedores y una base PostgreSQL para `ms-chat`.
-2. En el repositorio, cargar estos secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` (la misma llave del monolito en QA) y `SEGUNDA_MANO_URL_QA` (por ejemplo `https://styleradar-backend-qa.azurewebsites.net`).
-3. Crear la variable de repositorio `DEPLOY_ENABLED` con el valor `true`.
+## 10. CI/CD con el badge del pipeline
 
-## Limitaciones conocidas (Sprint 1)
+[![CI QA](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg)](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml)
 
-- **El token del monolito no trae roles**, solo el id del usuario. Mientras el servicio de identidad no agregue el claim `roles`, se asume `COMPRADOR` para cualquier token válido. Con el claim, el rol se aplica de verdad.
-- **No se revisa si la cuenta está bloqueada**, porque el servicio no tiene acceso a la base de usuarios. Se resolverá con el evento de cambio de estado de cuenta, o con tokens de corta duración.
-- **El cierre del chat por publicación retirada** se detecta consultando la publicación al enviar un mensaje. En el Sprint 2 se reemplaza por el evento `PublicacionRetirada`.
-- **El chat no es en tiempo real.** El WebSocket llega en el Sprint 3.
+| Pipeline | Cuándo corre | Etapas |
+| --- | --- | --- |
+| `ci-qa.yml` | Push a `master`, `develop` o `feature/**` y PR | Build → pruebas (unitarias + integración) → cobertura JaCoCo → análisis estático Checkstyle → imagen Docker. En `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
+| `ci-prod.yml` | Tag `v*.*.*` | Pruebas → imagen de versión → despliegue en Azure PROD con aprobación manual. |
+
+Para activar el despliegue: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` y `SEGUNDA_MANO_URL_QA`, y crear la variable `DEPLOY_ENABLED=true`.
+
+## 11. Ramas y cómo contribuir
+
+```mermaid
+%%{init: { 'gitGraph': { 'mainBranchName': 'master' } } }%%
+gitGraph
+    commit id: "scaffolding"
+    branch develop
+    checkout develop
+    branch feature/HU-01
+    commit id: "HU-01"
+    checkout develop
+    merge feature/HU-01 id: "PR revisado"
+    checkout master
+    merge develop id: "CMV v0.1.0"
+```
+
+- Dos ramas fijas: **`master`** y **`develop`**. Nunca se hacen commits directos en ellas.
+- Cada cambio sale de `develop` en una rama `feature/scaffolding` o `feature/HU-xx` y vuelve a `develop` por **Pull Request con revisión** y pipeline en verde.
+- Al pasar de `develop` a `master` se crea el **CMV** con un tag `v*.*.*`.
+- Mensajes de commit en español e imperativo, por ejemplo `Agrega validación del texto del mensaje`.
+
+## 12. Enlace a la épica en Jira
+
+**Épica:** _GJ-Chat-Service_ → _pegar aquí el enlace de la épica en Jira_
+
+Historias del Sprint 1: HU-01 Iniciar chat con el vendedor (SR-RF-40) · HU-02 Coordinar la entrega por chat (SR-RF-41) · HU-03 Ver mis conversaciones (SR-RF-41) · HT-01 Servicio de chat independiente.
