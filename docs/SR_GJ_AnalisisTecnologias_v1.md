@@ -1,6 +1,20 @@
-# SR_GJ_AnalisisTecnologias_v1 · GJ-Chat-Service
+<div align="center">
 
-**STYLE RADAR · Análisis de tecnologías · DOSW 2026-2**
+  <a href="https://github.com/StyleRadar1">
+    <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/logo/styleradar-logo.svg" width="300" alt="StyleRadar Logo Oficial" />
+  </a>
+
+  <h1>STYLE<font color="#5600EF">RADAR</font> &nbsp;·&nbsp; <code>SR_GJ_AnalisisTecnologias_v1</code></h1>
+
+  <p align="center">
+    <img src="https://img.shields.io/badge/MICROSERVICIO-ms--chat-12063A?style=for-the-badge" alt="Servicio" />
+    <img src="https://img.shields.io/badge/JAVA-17-5600EF?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java" />
+    <img src="https://img.shields.io/badge/SPRING_BOOT-3.2.12-16A34A?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Boot" />
+  </p>
+
+  <p align="center"><em>Análisis de tecnologías de ms-chat · DOSW 2026-2</em></p>
+
+</div>
 
 | Campo | Valor |
 | --- | --- |
@@ -11,7 +25,9 @@
 
 ---
 
-## 01 · Contexto y drivers
+<a id="01-contexto-y-drivers"></a>
+
+## <img src="https://img.shields.io/badge/01-5600EF?style=for-the-badge" height="20" align="absmiddle" /> CONTEXTO Y DRIVERS
 
 El chat permite que comprador y vendedor de una prenda de segunda mano coordinen la entrega (SR-RF-40 y SR-RF-41). Antes vivía dentro del monolito; se separa para que pueda evolucionar a tiempo real (WebSocket) y escalar sin afectar el catálogo.
 
@@ -28,7 +44,9 @@ El chat permite que comprador y vendedor de una prenda de segunda mano coordinen
 
 ---
 
-## 02 · Metodología
+<a id="02-metodología"></a>
+
+## <img src="https://img.shields.io/badge/02-5600EF?style=for-the-badge" height="20" align="absmiddle" /> METODOLOGÍA
 
 Cada decisión se evalúa con cinco criterios ponderados (escala 1 a 5). El total es la suma de calificación × peso.
 
@@ -42,7 +60,9 @@ Cada decisión se evalúa con cinco criterios ponderados (escala 1 a 5). El tota
 
 ---
 
-## 03 · Decisiones por capa (ADR)
+<a id="03-decisiones-por-capa-adr"></a>
+
+## <img src="https://img.shields.io/badge/03-5600EF?style=for-the-badge" height="20" align="absmiddle" /> DECISIONES POR CAPA (ADR)
 
 ### ADR-01 · Lenguaje y framework
 
@@ -86,7 +106,7 @@ Cada decisión se evalúa con cinco criterios ponderados (escala 1 a 5). El tota
 | C5 (15 %) | 5 | 5 | 5 | 5 |
 | **Total** | **4.80** | 4.40 | 3.90 | 2.50 |
 
-**Decisión:** REST con Feign solo cuando se necesita una respuesta inmediata (validar la publicación al iniciar el chat) y eventos en RabbitMQ para lo demás (`MensajeEnviado`, `PublicacionRetirada`) desde el Sprint 2.
+**Decisión:** REST con Feign solo cuando se necesita una respuesta inmediata (validar la publicación al iniciar el chat) y eventos en RabbitMQ para lo demás (`MensajeEnviadoEvent`, `PrendaSegundaManoVendidaEvent` y, si se aprueba, `PrendaSegundaManoRetiradaEvent`) desde el Sprint 2. Contratos en [`SR_GJ_ContratosEventos_v1.md`](SR_GJ_ContratosEventos_v1.md).
 **Por qué:** iniciar un chat no puede esperar a que llegue un evento; avisar a notificaciones o cerrar el chat sí puede, y con eventos el chat no depende de que el otro servicio esté arriba.
 **Por qué no RMI:** el cliente es un navegador, que no habla RMI; además no pasa por el gateway HTTP y obliga a abrir puertos por usuario.
 
@@ -116,7 +136,9 @@ Cada decisión se evalúa con cinco criterios ponderados (escala 1 a 5). El tota
 
 ---
 
-## 04 · Costos (fase académica)
+<a id="04-costos-fase-académica"></a>
+
+## <img src="https://img.shields.io/badge/04-5600EF?style=for-the-badge" height="20" align="absmiddle" /> COSTOS (FASE ACADÉMICA)
 
 | Componente | Opción | Costo estimado |
 | --- | --- | --- |
@@ -129,7 +151,9 @@ Para no multiplicar costos con 13 servicios, se recomienda compartir el plan de 
 
 ---
 
-## 05 · Riesgos y mitigación
+<a id="05-riesgos-y-mitigación"></a>
+
+## <img src="https://img.shields.io/badge/05-5600EF?style=for-the-badge" height="20" align="absmiddle" /> RIESGOS Y MITIGACIÓN
 
 | ID | Riesgo | Prob. / Imp. | Mitigación |
 | --- | --- | --- | --- |
@@ -140,12 +164,16 @@ Para no multiplicar costos con 13 servicios, se recomienda compartir el plan de 
 
 ---
 
-## 06 · Fila del servicio en la matriz del curso
+<a id="06-fila-del-servicio-en-la-matriz-del-curso"></a>
+
+## <img src="https://img.shields.io/badge/06-5600EF?style=for-the-badge" height="20" align="absmiddle" /> FILA DEL SERVICIO EN LA MATRIZ DEL CURSO
 
 | Servicio | Equipo | ¿BD? | Tipo de BD | Framework | Broker | Puerto |
 | --- | --- | --- | --- | --- | --- | --- |
-| GJ-Chat-Service | Guatoque Jiraguas (GJ) | Sí | Relacional · PostgreSQL 15 (`chat_db`) | Spring Boot 3.2 · Java 17 | RabbitMQ (publica `MensajeEnviado`, consume `PublicacionRetirada`) | 8089 |
+| GJ-Chat-Service | Guatoque Jiraguas (GJ) | Sí | Relacional · PostgreSQL 15 (`chat_db`) | Spring Boot 3.2 · Java 17 | RabbitMQ (publica `MensajeEnviadoEvent`, consume `PrendaSegundaManoVendidaEvent`) | 8089 |
 
-## 07 · Conclusión
+<a id="07-conclusión"></a>
+
+## <img src="https://img.shields.io/badge/07-5600EF?style=for-the-badge" height="20" align="absmiddle" /> CONCLUSIÓN
 
 El stack elegido permite migrar el chat del monolito sin reescribir sus reglas, cumplir la arquitectura hexagonal y los requisitos de calidad del curso, y dejar listo el camino para eventos (Sprint 2) y tiempo real (Sprint 3).

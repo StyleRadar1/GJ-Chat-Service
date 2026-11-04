@@ -1,36 +1,56 @@
-# SR_GJ_DocumentoTecnico_v1 · GJ-Chat-Service
+<div align="center">
 
-**STYLE RADAR · Documento técnico de arquitectura · DOSW 2026-2**
+  <a href="https://github.com/StyleRadar1">
+    <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/logo/styleradar-logo.svg" width="300" alt="StyleRadar Logo Oficial" />
+  </a>
+
+  <h1>STYLE<font color="#5600EF">RADAR</font> &nbsp;·&nbsp; <code>SR_GJ_DocumentoTecnico_v1</code></h1>
+
+  <p align="center">
+    <img src="https://img.shields.io/badge/MICROSERVICIO-ms--chat-12063A?style=for-the-badge" alt="Servicio" />
+    <img src="https://img.shields.io/badge/PUERTO_OFICIAL-8089-5600EF?style=for-the-badge" alt="Puerto" />
+    <img src="https://img.shields.io/badge/ARQUITECTURA-HEXAGONAL-16A34A?style=for-the-badge" alt="Hexagonal" />
+  </p>
+
+  <p align="center"><em>Documento técnico de arquitectura de ms-chat · DOSW 2026-2</em></p>
+
+</div>
 
 | Campo | Valor |
 | --- | --- |
 | Microservicio | GJ-Chat-Service (`gj-chat-service`, puerto 8089) |
 | Dominio / Paquete | P3: Chat / Notificaciones · bounded context **Mensajería** |
 | Equipo | Guatoque Jiraguas (GJ) · Responsable: Santiago Andrés García Almario |
-| Versión · Fecha | v1.0 · 3 de noviembre de 2026 (Sprint 1) |
+| Versión · Fecha | v1.1 · 3 de noviembre de 2026 (Sprint 1) |
 
 > **Regla de oro:** cada diagrama va con su explicación y justificación. Los diagramas están en Mermaid dentro de este archivo, así que quedan versionados junto al código y GitHub los dibuja directamente.
 
 ---
 
-## 00 · Contenido y control de cambios
+<a id="00-contenido-y-control-de-cambios"></a>
+
+## <img src="https://img.shields.io/badge/00-5600EF?style=for-the-badge" height="20" align="absmiddle" /> CONTENIDO Y CONTROL DE CAMBIOS
 
 | Versión | Fecha | Autor / Rol | Cambio | Estado |
 | --- | --- | --- | --- | --- |
 | v0.1 | 01/11/2026 | Santiago García (Backend) | Scaffolding hexagonal, dominio y casos de uso migrados del monolito | Borrador |
 | v1.0 | 03/11/2026 | Santiago García (Backend) | Diagramas específicos, contratos OpenAPI, pruebas y CI/CD | Entregado Sprint 1 |
+| v1.1 | 03/11/2026 | Santiago García (Backend) | Formato de la plantilla oficial, diagrama de secuencia con la llamada Feign y eventos con los nombres de la matriz del curso | Entregado Sprint 1 |
 
 | Recurso | Ubicación |
 | --- | --- |
 | Repositorio | `GJ-Chat-Service` (organización del proyecto en GitHub) |
 | Swagger UI | `http://localhost:8089/swagger-ui.html` · OpenAPI en `/v3/api-docs` |
 | Pipeline | `.github/workflows/ci-qa.yml` y `ci-prod.yml` |
+| Contratos de eventos | [`SR_GJ_ContratosEventos_v1.md`](SR_GJ_ContratosEventos_v1.md) |
 | Esquema de base de datos | `src/main/resources/db/migration/V1__init_schema.sql` |
-| Tablero Jira | _Pegar el enlace de la épica GJ-Chat-Service_ |
+| Tablero Jira | Épica `GJ-1 · ms-chat` · _pegar el enlace de la épica_ |
 
 ---
 
-## 01 · Microservicios y tecnologías (fila de este servicio)
+<a id="01-microservicios-y-tecnologías-fila-de-este-servicio"></a>
+
+## <img src="https://img.shields.io/badge/01-5600EF?style=for-the-badge" height="20" align="absmiddle" /> MICROSERVICIOS Y TECNOLOGÍAS (FILA DE ESTE SERVICIO)
 
 | Servicio | Equipo | ¿BD? | Tipo de BD | Framework | Broker |
 | --- | --- | --- | --- | --- | --- |
@@ -40,7 +60,9 @@
 
 ---
 
-## 02 · Diagramas generales (vista del curso, desde este servicio)
+<a id="02-diagramas-generales-vista-del-curso-desde-este-servicio"></a>
+
+## <img src="https://img.shields.io/badge/02-5600EF?style=for-the-badge" height="20" align="absmiddle" /> DIAGRAMAS GENERALES (VISTA DEL CURSO, DESDE ESTE SERVICIO)
 
 Los diagramas generales completos los hace todo el curso. Aquí se muestra cómo encaja GJ-Chat-Service en ellos.
 
@@ -48,8 +70,8 @@ Los diagramas generales completos los hace todo el curso. Aquí se muestra cómo
 
 ```mermaid
 flowchart LR
-    C["👤 Comprador"] -->|"inicia chat, envía mensajes"| SR
-    V["👤 Vendedor (usuario de segunda mano)"] -->|"responde, coordina entrega"| SR
+    C["Comprador"] -->|"inicia chat, envía mensajes"| SR
+    V["Vendedor (usuario de segunda mano)"] -->|"responde, coordina entrega"| SR
     SR["Sistema StyleRadar"]
     SR -->|"mapa"| MB["Mapbox"]
     SR -->|"probador virtual"| FA["FASHN AI"]
@@ -66,12 +88,12 @@ flowchart LR
     GW -->|"/api/v1/conversaciones/**<br/>/api/v1/usuarios/me/conversaciones<br/>/api/v1/segunda-mano/{id}/conversaciones"| CHAT["GJ-Chat-Service :8089"]
     CHAT --> DB[("chat_db<br/>PostgreSQL")]
     CHAT -->|"Feign · GET publicación"| SM["Servicio de publicaciones<br/>(Sprint 1: monolito)"]
-    CHAT -. "MensajeEnviado (Sprint 2)" .-> MQ{{"RabbitMQ"}}
-    MQ -. "PublicacionRetirada (Sprint 2)" .-> CHAT
+    CHAT -. "MensajeEnviadoEvent (Sprint 2)" .-> MQ{{"RabbitMQ<br/>styleradar.events"}}
+    MQ -. "PrendaSegundaManoVendidaEvent<br/>PrendaSegundaManoRetiradaEvent (Sprint 2)" .-> CHAT
     MQ -.-> NOT["ms-notificaciones :8088"]
 ```
 
-El frontend nunca llama al chat directamente: entra por el **API Gateway**, que valida el JWT y enruta. El chat tiene **su propia base de datos** y no lee la de ningún otro servicio. Lo único que necesita de otro contexto (el estado y el dueño de una publicación) lo pide por **REST con Feign**, porque necesita la respuesta en ese momento para decidir si deja iniciar el chat. Las notificaciones y el cierre por publicación retirada no necesitan respuesta inmediata, por eso irán por **eventos en RabbitMQ**: así el chat no depende de que ms-notificaciones esté arriba.
+El frontend nunca llama al chat directamente: entra por el **API Gateway**, que valida el JWT y enruta. El chat tiene **su propia base de datos** y no lee la de ningún otro servicio. Lo único que necesita de otro contexto (el estado y el dueño de una publicación) lo pide por **REST con Feign**, porque necesita la respuesta en ese momento para decidir si deja iniciar el chat. Las notificaciones y el cierre de la conversación cuando la prenda se vende o se retira no necesitan respuesta inmediata, por eso irán por **eventos en RabbitMQ**: así el chat no depende de que ms-notificaciones esté arriba.
 
 ### 2.3 Despliegue
 
@@ -95,7 +117,9 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 
 ---
 
-## 03 · Contexto y alcance del servicio
+<a id="03-contexto-y-alcance-del-servicio"></a>
+
+## <img src="https://img.shields.io/badge/03-5600EF?style=for-the-badge" height="20" align="absmiddle" /> CONTEXTO Y ALCANCE DEL SERVICIO
 
 | HU / RF | Historia de usuario | Criterio de aceptación principal | Estado |
 | --- | --- | --- | --- |
@@ -107,15 +131,17 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 | Servicio relacionado | Relación | Canal | Propósito |
 | --- | --- | --- | --- |
 | API Gateway | Upstream | HTTP/REST | Recibe las peticiones con el JWT |
-| Servicio de publicaciones (monolito → ms-segunda-vida-donaciones) | Downstream | REST (Feign) | Validar estado y dueño de la publicación |
+| Servicio de publicaciones de segunda mano (Sprint 1: monolito; después: paquete Catálogo) | Downstream | REST (Feign) y eventos (Sprint 2) | Validar estado y dueño de la publicación; cerrar el chat cuando se vende o se retira |
 | Servicio de identidad | Emisor del JWT | Llave HS256 compartida | Autenticar sin consultar la base de usuarios |
-| ms-notificaciones | Downstream | RabbitMQ (Sprint 2) | Avisar mensajes nuevos |
+| ms-notificaciones | Downstream | RabbitMQ (Sprint 2) | Avisar mensajes nuevos (`MensajeEnviadoEvent`) |
 
 > **Aislamiento de dominio:** el servicio no accede a la base de ningún otro. Publicaciones y usuarios se guardan solo como ids (`publicacionId`, `compradorId`, `vendedorId`, `autorId`).
 
 ---
 
-## 04 · Arquitectura hexagonal específica
+<a id="04-arquitectura-hexagonal-específica"></a>
+
+## <img src="https://img.shields.io/badge/04-5600EF?style=for-the-badge" height="20" align="absmiddle" /> ARQUITECTURA HEXAGONAL ESPECÍFICA
 
 ```mermaid
 flowchart LR
@@ -166,11 +192,65 @@ flowchart LR
 
 **Flujo de una petición (enviar mensaje):** `POST /api/v1/conversaciones/7/mensajes` → `JwtAuthenticationFilter` (usuario 1 desde el JWT) → `ChatController` convierte el JSON a `TextoMensaje` con `MensajeDtoInMapper` → `EnviarMensajeUseCase.enviar(1, 7, texto)` → `EnviarMensajeUseCaseImpl` busca la conversación por `ConversacionRepositoryPort`, verifica que el usuario participe y, si sigue abierta, consulta la publicación por `PublicacionConsultaPort` → `Conversacion.escribir(...)` aplica las reglas y crea el `Mensaje` → `MensajeRepositoryPort.guardar` → `MensajeRepositoryAdapter` lo convierte a `MensajeJpaEntity` y lo persiste → la respuesta vuelve como `MensajeResponse` (201).
 
-**Justificación.** Separar así permite cambiar de dónde sale la publicación (hoy el monolito, después ms-segunda-vida-donaciones, o un evento) cambiando solo un adaptador, y probar todas las reglas con JUnit y Mockito sin levantar Spring ni una base de datos.
+**Justificación.** Separar así permite cambiar de dónde sale la publicación (hoy el monolito, después el servicio de Catálogo, o un evento) cambiando solo un adaptador, y probar todas las reglas con JUnit y Mockito sin levantar Spring ni una base de datos.
+
+### Diagrama de secuencia · enviar un mensaje (actualiza la secuencia 7.5 con la llamada Feign)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Comprador o vendedor
+    participant GW as API Gateway
+    participant F as JwtAuthenticationFilter
+    participant C as ChatController
+    participant UC as EnviarMensajeUseCaseImpl
+    participant CR as ConversacionRepositoryPort<br/>(JPA)
+    participant PC as PublicacionConsultaPort<br/>(Feign)
+    participant SM as Servicio de publicaciones<br/>de segunda mano
+    participant MR as MensajeRepositoryPort<br/>(JPA)
+
+    U->>GW: POST /api/v1/conversaciones/7/mensajes<br/>Bearer JWT · {"texto": "..."}
+    GW->>F: reenvía la petición con el JWT
+    F->>F: valida firma HS256 y saca el usuario (id 1)
+    F->>C: petición autenticada
+    C->>C: valida el JSON y crea TextoMensaje
+    C->>UC: enviar(1, 7, texto)
+    UC->>CR: buscarPorId(7)
+    CR-->>UC: Conversacion (ABIERTA)
+    UC->>UC: verificarParticipante(1)
+    UC->>PC: consultar(publicacionId = 10)
+    PC->>SM: GET /api/v1/segunda-mano/10<br/>Authorization reenviado · timeout 3 s / 5 s
+    alt el servicio responde
+        SM-->>PC: 200 {estado, vendedorId, ...}
+        PC-->>UC: PublicacionResumen
+    else no responde o falla
+        SM--xPC: timeout / 5xx
+        PC-->>C: ServicioExternoNoDisponibleException
+        C-->>U: 503 problem+json
+    end
+    alt la publicación fue retirada
+        UC->>UC: conversacion.cerrar()
+        UC->>CR: guardar(conversacion CERRADA)
+        UC-->>C: ConversacionCerradaException
+        C-->>U: 422 problem+json
+    else sigue disponible
+        UC->>UC: conversacion.escribir(1, texto, ahora)
+        UC->>MR: guardar(mensaje)
+        MR-->>UC: Mensaje con id 20
+        UC-->>C: Mensaje
+        C-->>U: 201 MensajeResponse
+    end
+```
+
+**Explicación.** El diagrama recorre el caso de uso de SR-RF-41 de punta a punta. La autenticación ocurre una sola vez, en el filtro; el controlador y el caso de uso reciben el id del usuario ya validado. El cambio frente a la secuencia 7.5 del monolito son los pasos 10 y 11: como la publicación ya no vive en la misma base, el caso de uso la pide por `PublicacionConsultaPort`, y el adaptador Feign hace la llamada HTTP al servicio dueño, reenviando el mismo JWT y con tiempos límite de 3 s para conectar y 5 s para leer.
+
+**Justificación.** La llamada es síncrona porque el chat necesita saber en ese momento si la publicación sigue disponible antes de guardar el mensaje. Si el servicio de publicaciones no responde, el chat devuelve un `503` claro en lugar de quedarse esperando. En el Sprint 2 esta consulta se reemplaza por los eventos de [`SR_GJ_ContratosEventos_v1.md`](SR_GJ_ContratosEventos_v1.md): el chat cerrará la conversación al recibir el evento y ya no tendrá que llamar al otro servicio en cada mensaje.
 
 ---
 
-## 05 · Modelo de dominio y diagrama de clases
+<a id="05-modelo-de-dominio-y-diagrama-de-clases"></a>
+
+## <img src="https://img.shields.io/badge/05-5600EF?style=for-the-badge" height="20" align="absmiddle" /> MODELO DE DOMINIO Y DIAGRAMA DE CLASES
 
 ```mermaid
 classDiagram
@@ -238,7 +318,9 @@ classDiagram
 
 ---
 
-## 06 · Modelo de base de datos
+<a id="06-modelo-de-base-de-datos"></a>
+
+## <img src="https://img.shields.io/badge/06-5600EF?style=for-the-badge" height="20" align="absmiddle" /> MODELO DE BASE DE DATOS
 
 ```mermaid
 erDiagram
@@ -273,7 +355,9 @@ erDiagram
 
 ---
 
-## 07 · Contratos de API REST y eventos
+<a id="07-contratos-de-api-rest-y-eventos"></a>
+
+## <img src="https://img.shields.io/badge/07-5600EF?style=for-the-badge" height="20" align="absmiddle" /> CONTRATOS DE API REST Y EVENTOS
 
 | Método | Ruta | Descripción | Rol | HTTP |
 | --- | --- | --- | --- | --- |
@@ -284,14 +368,19 @@ erDiagram
 
 | Evento | Dirección | Exchange · routing key | Payload resumido | Sprint |
 | --- | --- | --- | --- | --- |
-| `MensajeEnviado` | Publica | `sr.chat.topic` → `mensaje.enviado` | `{ "conversacionId": 7, "autorId": 1, "destinatarioId": 2, "fechaEnvio": "…" }` | 2 |
-| `PublicacionRetirada` | Consume | `sr.segunda-mano.topic` → `publicacion.retirada` | `{ "publicacionId": 10, "fecha": "…" }` | 2 |
+| `MensajeEnviadoEvent` | Publica | `styleradar.events` → `chat.mensaje.enviado` | `{ "mensajeId": 20, "conversacionId": 7, "autorId": 1, "destinatarioId": 2, "fechaEnvio": "…" }` | 2 |
+| `PrendaSegundaManoVendidaEvent` | Consume | `styleradar.events` → `segunda-mano.prenda.vendida` | `{ "publicacionId": 10, "vendedorId": 2, "compradorId": 1, "fechaVenta": "…" }` | 2 |
+| `PrendaSegundaManoRetiradaEvent` *(propuesto)* | Consume | `styleradar.events` → `segunda-mano.prenda.retirada` | `{ "publicacionId": 10, "vendedorId": 2, "fechaRetiro": "…" }` | 2 |
+
+Los campos completos, el sobre común (`eventId`, `version`, `correlationId`…), las reglas de idempotencia y la tabla de aprobación están en [`SR_GJ_ContratosEventos_v1.md`](SR_GJ_ContratosEventos_v1.md).
 
 **Errores RFC 7807:** todas las respuestas de error son `application/problem+json` con `type`, `title`, `status`, `detail`, `instance` y `timestamp`. Los errores de validación agregan `errores` por campo. Cada código tiene su ejemplo en Swagger.
 
 ---
 
-## 08 · Pruebas y calidad
+<a id="08-pruebas-y-calidad"></a>
+
+## <img src="https://img.shields.io/badge/08-5600EF?style=for-the-badge" height="20" align="absmiddle" /> PRUEBAS Y CALIDAD
 
 | Nivel | Herramienta | Paquete | Pruebas |
 | --- | --- | --- | --- |
@@ -313,15 +402,18 @@ Cobertura JaCoCo de dominio y aplicación: **100 % de líneas** (mínimo 85 %, v
 
 ---
 
-## 09 · Checklist de entrega
+<a id="09-checklist-de-entrega"></a>
+
+## <img src="https://img.shields.io/badge/09-5600EF?style=for-the-badge" height="20" align="absmiddle" /> CHECKLIST DE ENTREGA
 
 | Estado | Criterio | Verificación |
 | --- | --- | --- |
-| ✅ | Estructura hexagonal con interfaz + `Impl` y dominio sin frameworks | Paquetes `domain`, `application`, `infrastructure` |
-| ✅ | Dockerfile multi-stage y docker-compose | `docker compose up --build` |
-| ✅ | Versiones fijas y secretos fuera del repo | `pom.xml`, `.env.example` |
-| ✅ | Pipeline: build → pruebas → análisis estático y cobertura → imagen Docker | `ci-qa.yml` |
-| ✅ | Swagger con descripción, ejemplos y códigos de error | `/swagger-ui.html` |
-| ✅ | README con las 12 secciones | `README.md` |
-| ✅ | Diagramas con explicación: hexagonal, clases y base de datos | Secciones 04, 05 y 06 |
-| ⏳ | Despliegue en Azure | Pendiente de crear el App Service y cargar los secrets |
+| Cumple | Estructura hexagonal con interfaz + `Impl` y dominio sin frameworks | Paquetes `domain`, `application`, `infrastructure` |
+| Cumple | Dockerfile multi-stage y docker-compose | `docker compose up --build` |
+| Cumple | Versiones fijas y secretos fuera del repo | `pom.xml`, `.env.example` |
+| Cumple | Pipeline: build → pruebas → análisis estático y cobertura → imagen Docker | `ci-qa.yml` |
+| Cumple | Swagger con descripción, ejemplos y códigos de error | `/swagger-ui.html` |
+| Cumple | README con las 12 secciones | `README.md` |
+| Cumple | Diagramas con explicación: hexagonal, secuencia, clases y base de datos | Secciones 04, 05 y 06 |
+| Pendiente | Contratos de eventos aprobados por Catálogo y Notificaciones | `SR_GJ_ContratosEventos_v1.md`, sección de aprobación |
+| Pendiente | Despliegue en Azure | Pendiente de crear el App Service y cargar los secrets |

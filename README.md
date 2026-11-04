@@ -1,94 +1,342 @@
-# GJ-Chat-Service · StyleRadar
+<!-- ==============================================================================
+  STYLE RADAR · ms-chat (repositorio GJ-Chat-Service)
+  Asignatura: DOSW · 2026-2 · Equipo GJ
+  README según SR_Template_README_v1: 12 secciones oficiales en el orden del curso.
+============================================================================== -->
 
-[![CI QA](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg)](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml)
-![Java 17](https://img.shields.io/badge/Java-17-orange) ![Spring Boot 3.2](https://img.shields.io/badge/Spring%20Boot-3.2-green) ![Cobertura](https://img.shields.io/badge/JaCoCo%20dominio%2Baplicaci%C3%B3n-100%25-brightgreen)
+<div align="center">
 
-> Microservicio de **chat** de StyleRadar, curso DOSW 2026-2, equipo **Guatoque Jiraguas (GJ)**. Documentación técnica completa en [`docs/SR_GJ_DocumentoTecnico_v1.md`](docs/SR_GJ_DocumentoTecnico_v1.md) y análisis de tecnologías en [`docs/SR_GJ_AnalisisTecnologias_v1.md`](docs/SR_GJ_AnalisisTecnologias_v1.md).
+  <a href="https://github.com/StyleRadar1">
+    <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/logo/styleradar-logo.svg" width="340" alt="StyleRadar Logo Oficial" />
+  </a>
 
-## 1. Nombre del servicio y su bounded context
+  <h1>STYLE<font color="#5600EF">RADAR</font> &nbsp;·&nbsp; <code>ms-chat</code></h1>
 
-**GJ-Chat-Service** es dueño del bounded context **Mensajería (Chat)**: las conversaciones privadas entre el comprador y el vendedor de una prenda de segunda mano, y los mensajes con que coordinan la entrega.
+  <p align="center">
+    <img src="https://img.shields.io/badge/BOUNDED_CONTEXT-Mensajer%C3%ADa_(Chat)-12063A?style=for-the-badge" alt="Context" />
+    <img src="https://img.shields.io/badge/PUERTO_OFICIAL-8089-5600EF?style=for-the-badge" alt="Port" />
+    <img src="https://img.shields.io/badge/ARQUITECTURA-HEXAGONAL-16A34A?style=for-the-badge" alt="Hexagonal" />
+  </p>
 
-| Dato | Valor |
-| --- | --- |
-| Requerimientos | SR-RF-40 (iniciar chat con el vendedor) y SR-RF-41 (coordinar la entrega por chat) |
-| Paquete del curso | P3: Chat / Notificaciones |
-| Puerto | **8089** |
-| Dueño de | `Conversacion`, `Mensaje` |
-| No es dueño de | Publicaciones de segunda mano (las consulta por API) ni usuarios (los toma del JWT) |
+  <p align="center">
+    <strong><font color="#5600EF">Descubre tu estilo. En tu ciudad.</font></strong><br />
+    <em>Plataforma de moda local con inventario multi-sede geolocalizado en tiempo real y probador virtual para Bogotá.</em>
+  </p>
 
-## 2. Equipo y responsables
+  <p align="center">
+    <a href="https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml">
+      <img src="https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg" alt="CI QA" />
+    </a>
+    <a href="#10-cicd-con-el-badge-del-pipeline">
+      <img src="https://img.shields.io/badge/QA_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA Deployment" />
+    </a>
+    <a href="#10-cicd-con-el-badge-del-pipeline">
+      <img src="https://img.shields.io/badge/PROD_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="PROD Deployment" />
+    </a>
+    <a href="#9-pruebas-y-cobertura">
+      <img src="https://img.shields.io/badge/JaCoCo_Coverage-%E2%89%A5_85%25-16A34A?style=for-the-badge&logo=codecov&logoColor=white" alt="Coverage" />
+    </a>
+    <a href="#6-tecnologías-y-dependencias">
+      <img src="https://img.shields.io/badge/Java-17_LTS-12063A?style=for-the-badge&logo=openjdk&logoColor=C4B5FD" alt="Java 17" />
+    </a>
+    <a href="#6-tecnologías-y-dependencias">
+      <img src="https://img.shields.io/badge/Spring_Boot-3.2.12-12063A?style=for-the-badge&logo=spring&logoColor=C4B5FD" alt="Spring Boot 3.2.12" />
+    </a>
+    <a href="#7-cómo-ejecutar-local-y-con-docker">
+      <img src="https://img.shields.io/badge/Docker-OCI_Container-12063A?style=for-the-badge&logo=docker&logoColor=C4B5FD" alt="Docker OCI" />
+    </a>
+  </p>
 
-| Rol | Integrante |
-| --- | --- |
-| Responsable del servicio (Backend) | Santiago Andrés García Almario |
-| Integrantes del equipo GJ | _Completar con los integrantes del equipo_ |
+</div>
 
-## 3. Arquitectura hexagonal con su diagrama
+---
 
-Las dependencias apuntan hacia adentro: el **dominio** no conoce Spring, JPA ni HTTP; los **casos de uso** dependen solo de puertos (interfaces); la **infraestructura** implementa esos puertos.
+## <img src="https://img.shields.io/badge/ÍNDICE-5600EF?style=for-the-badge" height="20" align="absmiddle" /> ÍNDICE DE CONTENIDOS
+
+1. [Nombre del servicio y su bounded context](#1-nombre-del-servicio-y-su-bounded-context)
+2. [Equipo y responsables](#2-equipo-y-responsables)
+3. [Arquitectura hexagonal con su diagrama](#3-arquitectura-hexagonal-con-su-diagrama)
+4. [Endpoints y enlace a Swagger](#4-endpoints-y-enlace-a-swagger)
+5. [Eventos que publica y consume](#5-eventos-que-publica-y-consume)
+6. [Tecnologías y dependencias](#6-tecnologías-y-dependencias)
+7. [Cómo ejecutar local y con Docker](#7-cómo-ejecutar-local-y-con-docker)
+8. [Variables de entorno](#8-variables-de-entorno)
+9. [Pruebas y cobertura](#9-pruebas-y-cobertura)
+10. [CI/CD con el badge del pipeline](#10-cicd-con-el-badge-del-pipeline)
+11. [Ramas y cómo contribuir](#11-ramas-y-cómo-contribuir)
+12. [Enlace a la épica en Jira](#12-enlace-a-la-épica-en-jira)
+
+**Documentación del servicio**
+
+| Documento | Contenido |
+| :--- | :--- |
+| [`docs/SR_GJ_DocumentoTecnico_v1.md`](docs/SR_GJ_DocumentoTecnico_v1.md) | Diagramas generales y específicos (hexagonal, clases, base de datos, secuencia) con su explicación |
+| [`docs/SR_GJ_AnalisisTecnologias_v1.md`](docs/SR_GJ_AnalisisTecnologias_v1.md) | Criterios, ADR, costos y riesgos de cada tecnología elegida |
+| [`docs/SR_GJ_ContratosEventos_v1.md`](docs/SR_GJ_ContratosEventos_v1.md) | Contratos de los eventos que publica y consume el chat |
+
+---
+
+<a id="1-nombre-del-servicio-y-su-bounded-context"></a>
+
+## <img src="https://img.shields.io/badge/01-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 1. NOMBRE DEL SERVICIO Y SU BOUNDED CONTEXT
+
+* **Identificador de Servicio:** `ms-chat` (repositorio `GJ-Chat-Service`, artefacto `gj-chat-service`)
+* **Paquete Arquitectónico:** `Paquete 3: Chat / Notificaciones`
+* **Puerto de Escucha Oficial:** `8089` (matriz de puertos del curso)
+* **Base de Datos Asignada:** `PostgreSQL 15` (`chat_db`), aislada bajo el patrón *Database-per-Service*.
+* **Bounded Context:** `Mensajería (Chat)`
+* **Requerimientos:** `SR-RF-40` Iniciar chat con vendedor · `SR-RF-41` Coordinar entrega mediante chat interno
+
+### Responsabilidades del Dominio
+
+Este microservicio encapsula exclusivamente la lógica de negocio de las conversaciones privadas entre el comprador y el vendedor de una prenda de segunda mano.
+
+| Qué HACE este Microservicio (Alcance) | Qué NO HACE este Microservicio (Límites) |
+| :--- | :--- |
+| • Inicia una conversación desde una publicación de segunda mano disponible, una sola por publicación y comprador. | • NO autentica usuarios: valida el JWT que emite el servicio de identidad (`ms-auth` en `:8081`). |
+| • Guarda y entrega los mensajes en orden de envío, solo a los participantes. | • NO es dueño de las publicaciones de segunda mano: las consulta al servicio que las administra. |
+| • Cierra la conversación cuando la prenda deja de estar disponible. | • NO envía notificaciones ni correos (delegado a `ms-notificaciones` en `:8088`). |
+| • Garantiza persistencia ACID e idempotencia en su base de datos. | • NO accede directamente a bases de datos de otros microservicios. |
+
+### Arquetipos de Moda y Personajes de StyleRadar
+
+<div align="center">
+
+| Antonia (Sastre) | Mateo (Calle) | Aura (Futuro) | Nora (Rebelde) | Tomás (Esencial) |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/mascota/antonia.jpg" width="110" style="border-radius:8px;" alt="Antonia" /><br>**Sastre**<br><sub>Tiendas & Descubrimiento</sub> | <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/mascota/mateo.jpg" width="110" style="border-radius:8px;" alt="Mateo" /><br>**Calle**<br><sub>Playlists & Cultura Urbana</sub> | <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/mascota/aura.jpg" width="110" style="border-radius:8px;" alt="Aura" /><br>**Futuro**<br><sub>Probador Virtual AI</sub> | <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/mascota/nora.jpg" width="110" style="border-radius:8px;" alt="Nora" /><br>**Rebelde**<br><sub>Segunda Vida & Vintage</sub> | <img src="https://raw.githubusercontent.com/JUANNICOLASA/Frontend-Style-Radar/main/styleradar-frontend-v3/assets/mascota/tomas.jpg" width="110" style="border-radius:8px;" alt="Tomás" /><br>**Esencial**<br><sub>Fundaciones & Donaciones</sub> |
+
+</div>
+
+---
+
+<a id="2-equipo-y-responsables"></a>
+
+## <img src="https://img.shields.io/badge/02-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 2. EQUIPO Y RESPONSABLES
+
+Desarrollado y mantenido por el **Equipo `GJ`** (prefijo `GJ`) para la asignatura DOSW 2026-2.
+
+<div align="center">
+
+| Rol | Nombre Completo | Usuario GitHub |
+| :---: | :---: | :---: |
+| **Backend Developer · Responsable de ms-chat** | `Santiago Andrés García Almario` | `<@usuario-github>` |
+| **Integrante** | `<Nombre del integrante>` | `<@usuario-github>` |
+| **Integrante** | `<Nombre del integrante>` | `<@usuario-github>` |
+
+</div>
+
+---
+
+<a id="3-arquitectura-hexagonal-con-su-diagrama"></a>
+
+## <img src="https://img.shields.io/badge/03-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 3. ARQUITECTURA HEXAGONAL CON SU DIAGRAMA
+
+El microservicio implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** combinada con **Domain-Driven Design (DDD)**. Las dependencias apuntan hacia adentro: el **dominio** no conoce Spring, JPA ni HTTP; los **casos de uso** dependen solo de puertos (interfaces); la **infraestructura** implementa esos puertos.
+
+### Diagrama Interactivo de Capas (Mermaid)
 
 ```mermaid
-flowchart LR
-    subgraph IN["Adaptadores de entrada"]
-        REST["ChatController<br/>REST /api/v1"]
-        AMQP["amqp/ (Sprint 2)"]
-        WS["websocket/ (Sprint 3)"]
-    end
-    subgraph APP["Aplicación"]
-        UC1["IniciarConversacionUseCaseImpl"]
-        UC2["ConsultarMisConversacionesUseCaseImpl"]
-        UC3["ConsultarMensajesUseCaseImpl"]
-        UC4["EnviarMensajeUseCaseImpl"]
-    end
-    subgraph DOM["Dominio (sin frameworks)"]
-        PIN["port/in<br/>4 casos de uso «interface»"]
-        MOD["Conversacion · Mensaje<br/>TextoMensaje (VO) · PublicacionResumen"]
-        POUT["port/out<br/>ConversacionRepositoryPort<br/>MensajeRepositoryPort<br/>PublicacionConsultaPort"]
-    end
-    subgraph OUT["Adaptadores de salida"]
-        JPA["persistence/<br/>JPA + Flyway"]
-        FEIGN["external/<br/>Feign → segunda mano"]
-        JWT["security/<br/>JwtTokenAdapter"]
-    end
-    DB[("PostgreSQL<br/>chat_db")]
-    SM["Servicio de publicaciones<br/>(monolito → ms-segunda-vida-donaciones)"]
+flowchart TD
+    GW["API Gateway :8080"]
+    BRK["RabbitMQ<br>(Sprint 2)"]
 
-    REST --> PIN
-    PIN -. implementa .-> UC1 & UC2 & UC3 & UC4
-    UC1 & UC2 & UC3 & UC4 --> MOD
-    UC1 & UC2 & UC3 & UC4 --> POUT
-    POUT -. implementa .-> JPA & FEIGN
-    JPA --> DB
-    FEIGN --> SM
+    subgraph INFRA_IN["Infraestructura de Entrada (Driving Adapters)"]
+        REST["ChatController + doc/ChatApi<br>(Spring Web / OpenAPI 3)"]
+        AMQP_IN["amqp/ Listener<br>(Sprint 2)"]
+        WS["websocket/ STOMP<br>(Sprint 3)"]
+    end
+
+    subgraph DOMAIN["Núcleo de Dominio (Java puro)"]
+        IN_PORT["port/in<br>4 interfaces de casos de uso"]
+        ENTITIES["Conversacion (agregado) · Mensaje"]
+        VO["TextoMensaje · PublicacionResumen<br>(Value Objects)"]
+        EXCEPTIONS["Excepciones de negocio"]
+        OUT_PORT["port/out<br>Repositorios y PublicacionConsultaPort"]
+    end
+
+    subgraph APP["Capa de Aplicación"]
+        USE_CASES["4 *UseCaseImpl<br>(registrados en BeanConfig)"]
+    end
+
+    subgraph INFRA_OUT["Infraestructura de Salida (Driven Adapters)"]
+        JPA_REPO["persistence/<br>Spring Data JPA + Flyway"]
+        FEIGN["external/<br>Feign → segunda mano"]
+        JWT["security/<br>JwtTokenAdapter (HS256)"]
+        RABBIT_PUB["messaging/<br>(Sprint 2)"]
+    end
+
+    DB[("PostgreSQL 15<br>chat_db")]
+    SM["Servicio de publicaciones<br>de segunda mano"]
+
+    GW --> REST
+    BRK -.-> AMQP_IN
+    REST --> IN_PORT
+    AMQP_IN -.-> IN_PORT
+    WS -.-> IN_PORT
+    IN_PORT --> USE_CASES
+    USE_CASES --> ENTITIES
+    USE_CASES --> OUT_PORT
+    OUT_PORT --> JPA_REPO
+    OUT_PORT --> FEIGN
+    OUT_PORT -.-> RABBIT_PUB
     REST -. autenticación .-> JWT
+    JPA_REPO --> DB
+    FEIGN --> SM
+    RABBIT_PUB -.-> BRK
+
+    classDef domain fill:#EDE7FF,stroke:#5600EF,stroke-width:2px,color:#0C0C12;
+    classDef app fill:#F8FAFC,stroke:#C4B5FD,stroke-width:2px,color:#0C0C12;
+    classDef infra fill:#12063A,stroke:#5600EF,stroke-width:1.5px,color:#FFFFFF;
+
+    class DOMAIN,IN_PORT,ENTITIES,VO,EXCEPTIONS,OUT_PORT domain;
+    class APP,USE_CASES app;
+    class INFRA_IN,INFRA_OUT,REST,AMQP_IN,WS,JPA_REPO,FEIGN,JWT,RABBIT_PUB infra;
 ```
 
-```
+Las líneas punteadas son los adaptadores que se completan en el Sprint 2 (RabbitMQ) y el Sprint 3 (WebSocket). Sus paquetes ya existen en el repositorio.
+
+**Diagramas específicos con su explicación** (en [`docs/SR_GJ_DocumentoTecnico_v1.md`](docs/SR_GJ_DocumentoTecnico_v1.md)):
+
+| Diagrama | Sección del documento técnico |
+| :--- | :--- |
+| Componentes específico (hexagonal, clase por clase) | [04 · Arquitectura hexagonal específica](docs/SR_GJ_DocumentoTecnico_v1.md#04-arquitectura-hexagonal-específica) |
+| Secuencia: enviar un mensaje (llamada Feign) | [04 · Diagrama de secuencia](docs/SR_GJ_DocumentoTecnico_v1.md#04-arquitectura-hexagonal-específica) |
+| Clases del dominio | [05 · Modelo de dominio y diagrama de clases](docs/SR_GJ_DocumentoTecnico_v1.md#05-modelo-de-dominio-y-diagrama-de-clases) |
+| Base de datos | [06 · Modelo de base de datos](docs/SR_GJ_DocumentoTecnico_v1.md#06-modelo-de-base-de-datos) |
+
+### Estructura Oficial de Paquetes en `src/main/java/`
+
+La capa de puertos sigue la guía hexagonal del curso: los puertos viven en `domain/port`.
+
+```text
 src/main/java/edu/dosw/styleradar/chat/
-├── domain/          model/ · event/ · exception/ · port/in · port/out
-├── application/     usecase/ (*UseCaseImpl) · dto/request|response|event · mapper/in|out (MapStruct)
-└── infrastructure/  adapter/in/rest (+doc) · adapter/in/amqp · adapter/in/websocket
-                     adapter/out/persistence · adapter/out/external · adapter/out/security · adapter/out/messaging
-                     config/ (BeanConfig, SecurityConfig, FeignConfig, OpenApiConfig) · exception/ (RFC 7807)
+├── domain/                                  <-- NÚCLEO DE DOMINIO (cero dependencias externas)
+│   ├── model/                               <-- Conversacion (agregado), Mensaje, TextoMensaje (VO), PublicacionResumen (VO)
+│   ├── event/                               <-- Eventos de dominio (Sprint 2: MensajeEnviadoEvent)
+│   ├── exception/                           <-- Excepciones de reglas de negocio
+│   └── port/
+│       ├── in/                              <-- Input Ports (interfaces de casos de uso)
+│       └── out/                             <-- Output Ports (repositorios y consulta de publicaciones)
+├── application/                             <-- CAPA DE APLICACIÓN
+│   ├── usecase/                             <-- *UseCaseImpl (sin @Service, se registran en BeanConfig)
+│   ├── dto/request · response · event       <-- DTOs como Java Records
+│   └── mapper/in · out                      <-- MapStruct
+└── infrastructure/                          <-- CAPA DE INFRAESTRUCTURA
+    ├── adapter/
+    │   ├── in/
+    │   │   ├── rest/ (+ doc/)               <-- ChatController y documentación OpenAPI
+    │   │   ├── amqp/                        <-- Consumidores RabbitMQ (Sprint 2)
+    │   │   └── websocket/                   <-- STOMP en tiempo real (Sprint 3)
+    │   └── out/
+    │       ├── persistence/                 <-- Entidades JPA, Spring Data y adaptadores
+    │       ├── external/                    <-- Cliente Feign del servicio de publicaciones
+    │       ├── security/                    <-- Validación del JWT
+    │       └── messaging/                   <-- Publicador RabbitMQ (Sprint 2)
+    ├── config/                              <-- BeanConfig, SecurityConfig, FeignConfig, OpenApiConfig
+    └── exception/                           <-- GlobalExceptionHandler (RFC 7807)
 ```
 
-Los casos de uso no llevan `@Service`: se registran a mano en `BeanConfig`. El controlador solo conoce las interfaces de `port/in`.
+---
 
-## 4. Endpoints y enlace a Swagger
+<a id="4-endpoints-y-enlace-a-swagger"></a>
 
-**Swagger UI:** `http://localhost:8089/swagger-ui.html` (local) · OpenAPI: `/v3/api-docs`. Cada endpoint trae descripción, ejemplos de request y response y los códigos de error con ejemplo en formato RFC 7807.
+## <img src="https://img.shields.io/badge/04-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 4. ENDPOINTS Y ENLACE A SWAGGER
 
-Todos exigen `Authorization: Bearer <JWT>` y el rol `COMPRADOR`.
+La documentación interactiva OpenAPI 3.0 trae, para cada endpoint, descripción, ejemplos de request y response y los códigos de error con su ejemplo en formato RFC 7807.
 
-| Método | Ruta | Qué hace | Respuestas |
-| --- | --- | --- | --- |
-| POST | `/api/v1/segunda-mano/{publicacionId}/conversaciones` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | 200, 401, 403, 404, 422, 503 |
-| GET | `/api/v1/usuarios/me/conversaciones` | Conversaciones donde participo, como comprador o vendedor. | 200, 401, 403 |
-| GET | `/api/v1/conversaciones/{id}/mensajes` | Mensajes de la conversación en orden de envío. Solo participantes. | 200, 401, 403, 404 |
-| POST | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres. | 201, 400, 401, 403, 404, 422, 503 |
+### Matriz Oficial de Enlaces por Entorno (PROD, QA, LOCAL)
 
-Ejemplo de error (`application/problem+json`):
+| Entorno | Estado | Propósito | URL Base del Servicio | Swagger OpenAPI UI | Health Check |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **Producción (PROD)** | Pendiente | Despliegue productivo | Se publica con el tag `v*.*.*` (`ci-prod.yml`) | — | — |
+| **Calidad / Pruebas (QA)** | Pendiente | Pruebas integradas del sprint | Se publica desde `master` con `DEPLOY_ENABLED=true` (`ci-qa.yml`) | — | — |
+| **Desarrollo Local (DEV)** | Activo | Desarrollo en la máquina local | `http://localhost:8089` | [Swagger UI Local](http://localhost:8089/swagger-ui.html) | [`/actuator/health`](http://localhost:8089/actuator/health) |
+
+* **Especificación OpenAPI (Contrato JSON):** `http://localhost:8089/v3/api-docs`
+* **Rutas públicas:** `/actuator/health`, `/swagger-ui.html` y `/v3/api-docs`. Todo lo demás exige JWT.
+
+<div align="center">
+  <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
+    <tr>
+      <td align="center" style="padding: 22px;">
+        <p>
+          <img src="https://img.shields.io/badge/ESPACIO_DE_CAPTURA-EVIDENCIA_01-5600EF?style=for-the-badge" alt="Evidencia 01" /><br />
+          <strong><font color="#5600EF" size="3">DOCUMENTACIÓN SWAGGER OPENAPI UI ACTIVA</font></strong>
+        </p>
+        <p>
+          <sub>Captura de <code>http://localhost:8089/swagger-ui.html</code> con los 4 endpoints del chat.</sub>
+        </p>
+        <p>
+<!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
+<!-- <img src="docs/evidencias/swagger-ui.png" width="90%" alt="Evidencia Swagger UI" /><br /> -->
+          <code>[ Pegar captura de Swagger UI aquí · docs/evidencias/swagger-ui.png ]</code>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+### Tabla de Endpoints Expuestos
+
+Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token, nunca de la URL.
+
+| Método | Endpoint | Descripción | Rol Requerido | Códigos HTTP |
+| :---: | :--- | :--- | :--- | :---: |
+| `GET` | `/actuator/health` | Estado del microservicio | Público | `200` |
+| `POST` | `/api/v1/segunda-mano/{publicacionId}/conversaciones` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
+| `GET` | `/api/v1/usuarios/me/conversaciones` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
+| `GET` | `/api/v1/conversaciones/{id}/mensajes` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
+| `POST` | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `422`, `503` |
+
+<details>
+<summary><b>Click para ver Ejemplos de Request y Response JSON (Payloads)</b></summary>
+
+<br>
+
+#### Ejemplo Request (`POST /api/v1/segunda-mano/10/conversaciones`)
+
+```bash
+curl -X POST "http://localhost:8089/api/v1/segunda-mano/10/conversaciones" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+#### Ejemplo Response Exitoso (`200 OK`)
+
+```json
+{
+  "id": 7,
+  "publicacionId": 10,
+  "prendaNombre": "Chaqueta de jean",
+  "compradorId": 1,
+  "vendedorId": 2,
+  "estado": "ABIERTA",
+  "fechaCreacion": "2026-11-01T15:00:00Z"
+}
+```
+
+#### Ejemplo Request (`POST /api/v1/conversaciones/7/mensajes`)
+
+```bash
+curl -X POST "http://localhost:8089/api/v1/conversaciones/7/mensajes" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -d '{ "texto": "¿Sigue disponible? Podría recogerla el sábado en Chapinero." }'
+```
+
+#### Ejemplo Response Exitoso (`201 Created`)
+
+```json
+{
+  "id": 20,
+  "conversacionId": 7,
+  "autorId": 1,
+  "texto": "¿Sigue disponible? Podría recogerla el sábado en Chapinero.",
+  "fechaEnvio": "2026-11-01T15:05:00Z"
+}
+```
+
+#### Ejemplo de Error (`422 Unprocessable Entity`, `application/problem+json`)
 
 ```json
 {
@@ -96,109 +344,339 @@ Ejemplo de error (`application/problem+json`):
   "title": "Regla de negocio incumplida",
   "status": 422,
   "detail": "No puede iniciar un chat sobre su propia publicación",
-  "instance": "/api/v1/segunda-mano/10/conversaciones"
+  "instance": "/api/v1/segunda-mano/10/conversaciones",
+  "timestamp": "2026-11-01T15:00:00Z"
 }
 ```
 
-## 5. Eventos que publica y consume
+</details>
 
-En el Sprint 1 el servicio todavía no usa el broker: los paquetes `adapter/in/amqp`, `adapter/out/messaging` y `domain/event` ya existen y se llenan en el Sprint 2.
+---
 
-| Evento | Dirección | Publicador → consumidor | Para qué | Sprint |
-| --- | --- | --- | --- | --- |
-| `MensajeEnviado` | Publica | GJ-Chat-Service → ms-notificaciones | Avisar al destinatario en la campana | 2 |
-| `PublicacionRetirada` | Consume | ms-segunda-vida-donaciones → GJ-Chat-Service | Cerrar las conversaciones de esa publicación | 2 |
+<a id="5-eventos-que-publica-y-consume"></a>
 
-Broker: RabbitMQ con topic exchange. Mientras no llega el evento, el cierre se detecta consultando la publicación al enviar cada mensaje.
+## <img src="https://img.shields.io/badge/05-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 5. EVENTOS QUE PUBLICA Y CONSUME
 
-## 6. Tecnologías y dependencias
+La comunicación asíncrona se hará a través de **RabbitMQ** con Topic Exchanges durables a partir del **Sprint 2**. En el Sprint 1 los paquetes `adapter/in/amqp`, `adapter/out/messaging` y `domain/event` ya existen; mientras tanto, el cierre de la conversación se detecta consultando la publicación por Feign en cada envío.
 
-| Capa | Tecnología | Versión |
-| --- | --- | --- |
-| Lenguaje | Java (Eclipse Temurin) | 17 |
-| Framework | Spring Boot (Web, Security, Data JPA, Validation, Actuator) | 3.2.12 |
-| Comunicación entre servicios | Spring Cloud OpenFeign | 2023.0.5 |
-| Base de datos y migraciones | PostgreSQL 15 + Flyway | — |
-| Seguridad | JJWT (HS256) | 0.12.6 |
-| Mappers | MapStruct · Lombok | 1.6.3 · 1.18.36 |
-| Documentación | springdoc-openapi (Swagger UI) | 2.5.0 |
-| Pruebas | JUnit 5, Mockito, Spring Boot Test, Testcontainers | — |
-| Calidad | JaCoCo (≥ 85 %) · Checkstyle (Google Java Style) | 0.8.12 · 3.6.0 |
+* **Exchange Principal de Dominio:** `styleradar.events` (`topic`, durable)
+* **Exchange de Auditoría:** `styleradar.audit` (`fanout`, durable)
+* **Dead Letter Exchange (DLX):** `styleradar.dlx`
 
-Todas las versiones están fijas en el `pom.xml`. Justificación de cada decisión en el [análisis de tecnologías](docs/SR_GJ_AnalisisTecnologias_v1.md).
+### Matriz de Eventos AMQP
 
-## 7. Cómo ejecutar local y con Docker
+| Tipo | Evento | Routing Key | Cola (Queue) | Microservicio Emisor / Receptor | Cuándo se Dispara / Acción |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **PUBLICA** | `MensajeEnviadoEvent` | `chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. Notificaciones avisa al destinatario. |
+| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `segunda-mano.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones de los demás compradores; la del comprador que se quedó con la prenda sigue abierta para coordinar la entrega. |
+| **CONSUME** | `PrendaSegundaManoRetiradaEvent` *(propuesto)* | `segunda-mano.prenda.retirada` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones cuando el vendedor retira la publicación. |
 
-**Local** (necesita Java 17 y un PostgreSQL):
+El detalle de cada campo, las reglas de idempotencia y el estado de aprobación con los equipos productores y consumidores están en [`docs/SR_GJ_ContratosEventos_v1.md`](docs/SR_GJ_ContratosEventos_v1.md).
 
-```bash
-export JWT_SECRET_BASE64=<misma llave del servicio de identidad>
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+<details>
+<summary><b>Click para ver Esquema JSON del Evento Publicado (con Idempotencia)</b></summary>
+
+<br>
+
+```json
+{
+  "eventId": "018f2c1a-7b3e-7000-8000-00000000a001",
+  "eventType": "chat.mensaje.enviado",
+  "version": 1,
+  "timestamp": "2026-11-10T15:05:00Z",
+  "producer": "ms-chat",
+  "correlationId": "c0a8012e-5f1d-4a7b-9e21-3b7c9d2f6a10",
+  "data": {
+    "mensajeId": 20,
+    "conversacionId": 7,
+    "publicacionId": 10,
+    "prendaNombre": "Chaqueta de jean",
+    "autorId": 1,
+    "destinatarioId": 2,
+    "vistaPrevia": "¿Sigue disponible? Podría recogerla el sábado…",
+    "fechaEnvio": "2026-11-10T15:05:00Z"
+  }
+}
 ```
 
-**Docker Compose** (levanta PostgreSQL y el servicio con un solo comando):
+</details>
+
+---
+
+<a id="6-tecnologías-y-dependencias"></a>
+
+## <img src="https://img.shields.io/badge/06-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 6. TECNOLOGÍAS Y DEPENDENCIAS
+
+Todas las versiones están fijas en el `pom.xml`. El análisis completo está en [`docs/SR_GJ_AnalisisTecnologias_v1.md`](docs/SR_GJ_AnalisisTecnologias_v1.md).
+
+| Capa / Componente | Tecnología | Versión | Justificación Técnica |
+| :--- | :--- | :--- | :--- |
+| **Lenguaje Core** | Java (Eclipse Temurin) | `17` | LTS que ya usa el monolito, así el dominio se migró sin reescribirlo. |
+| **Framework Empresarial** | Spring Boot (Web, Security, Data JPA, Validation, Actuator) | `3.2.12` | Configuración declarativa y ecosistema que el equipo ya domina. |
+| **Comunicación síncrona** | Spring Cloud OpenFeign | `2023.0.5` | Consulta la publicación con tiempos límite y reenvío del JWT. |
+| **Base de Datos** | PostgreSQL | `15` | ACID y restricción `UNIQUE` para una sola conversación por publicación y comprador. |
+| **Migraciones de BD** | Flyway | Gestionada por Spring Boot | Esquema versionado (`V1__init_schema.sql`); Hibernate solo valida. |
+| **Broker de Mensajería** | RabbitMQ | Sprint 2 | Desacopla notificaciones y cierre del chat mediante Topic Exchanges. |
+| **Seguridad** | JJWT (HS256) | `0.12.6` | Valida el token sin consultar la base de usuarios. |
+| **Mapeo de DTOs** | MapStruct · Lombok | `1.6.3` · `1.18.36` | Mappers generados en compilación, sin reflection. |
+| **Documentación API** | springdoc-openapi | `2.5.0` | Swagger UI con ejemplos y errores por endpoint. |
+| **Testing Core** | JUnit 5 + Mockito | Gestionada por Spring Boot | Pruebas del dominio y casos de uso sin levantar Spring. |
+| **Testing Integración** | Testcontainers | Gestionada por Spring Boot | PostgreSQL real en Docker durante `mvn verify`. |
+| **Métricas de Cobertura** | JaCoCo | `0.8.12` | Falla el build si dominio y aplicación quedan por debajo del 85 %. |
+| **Análisis Estático** | Checkstyle (Google Java Style) | `3.6.0` | Reporte de estilo en cada ejecución del pipeline. |
+
+---
+
+<a id="7-cómo-ejecutar-local-y-con-docker"></a>
+
+## <img src="https://img.shields.io/badge/07-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 7. CÓMO EJECUTAR LOCAL Y CON DOCKER
+
+### Prerrequisitos de Entorno
+
+* **Java Development Kit (JDK):** 17 (`java -version`).
+* **Apache Maven:** 3.9+ (`mvn -version`).
+* **Docker Engine y Docker Compose:** Docker Desktop en ejecución (`docker --version`).
+
+### Ejecución Local con Maven (Perfil Dev)
 
 ```bash
-cp .env.example .env        # y poner la llave JWT real
+# 1. Clonar el repositorio
+git clone https://github.com/StyleRadar1/GJ-Chat-Service.git
+cd GJ-Chat-Service
+
+# 2. Levantar solo la base de datos en Docker
+docker compose up -d postgres
+
+# 3. Ejecutar el microservicio con el perfil dev
+export DB_URL=jdbc:postgresql://localhost:5433/chat_db
+export DB_PASSWORD=<la misma DB_PASSWORD de tu .env, o chat si no tienes .env>
+export JWT_SECRET_BASE64=<llave Base64 de al menos 32 bytes>
+mvn clean spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### Ejecución Contenerizada Completa con Docker
+
+<details>
+<summary><b>Click para ver Instrucciones de Docker</b></summary>
+
+<br>
+
+```bash
+# 1. Crear el archivo de variables a partir de la plantilla
+cp .env.example .env            # en PowerShell: copy .env.example .env
+
+# 2. Poner la llave JWT en JWT_SECRET_BASE64 (para generar una):
+docker run --rm alpine sh -c "head -c 32 /dev/urandom | base64"
+
+# 3. Construir la imagen multi-stage y levantar PostgreSQL + servicio
 docker compose up --build
+
+# 4. Apagar
+docker compose down
 ```
 
-**Prueba rápida con cURL**:
+El `docker-compose.yml` levanta dos servicios: `postgres` (`postgres:15-alpine`, puerto local `5433`, volumen `chat-data`) y `gj-chat-service` (puerto `8089`), que espera a que la base esté sana (`healthcheck`) antes de arrancar.
+
+</details>
+
+### Comprobación de Salud (Health Check)
 
 ```bash
-TOKEN="<jwt del login>"
-curl -X POST http://localhost:8089/api/v1/segunda-mano/1/conversaciones -H "Authorization: Bearer $TOKEN"
-curl -X POST http://localhost:8089/api/v1/conversaciones/1/mensajes \
-     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -d '{"texto":"¿Sigue disponible?"}'
+curl -s http://localhost:8089/actuator/health
+# Esperado: {"status":"UP"}
 ```
 
-## 8. Variables de entorno
+<div align="center">
+  <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
+    <tr>
+      <td align="center" style="padding: 22px;">
+        <p>
+          <img src="https://img.shields.io/badge/ESPACIO_DE_CAPTURA-EVIDENCIA_02-5600EF?style=for-the-badge" alt="Evidencia 02" /><br />
+          <strong><font color="#5600EF" size="3">CONTENEDOR OCI DOCKER EN EJECUCIÓN (docker compose ps)</font></strong>
+        </p>
+        <p>
+          <sub>Captura de <code>docker compose ps</code> con <code>postgres</code> y <code>gj-chat-service</code> en ejecución.</sub>
+        </p>
+        <p>
+<!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
+<!-- <img src="docs/evidencias/docker-compose-ps.png" width="90%" alt="Docker Compose PS" /><br /> -->
+          <code>[ Pegar captura de docker compose ps aquí · docs/evidencias/docker-compose-ps.png ]</code>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
 
-Los secretos nunca se suben: solo existe `.env.example`.
+---
 
-| Variable | Descripción | Valor por defecto |
-| --- | --- | --- |
-| `SERVER_PORT` | Puerto del servicio | `8089` |
-| `DB_URL` | URL JDBC de PostgreSQL | `jdbc:postgresql://localhost:5432/chat_db` |
-| `DB_USERNAME` / `DB_PASSWORD` | Credenciales de la base | `chat` / `chat` |
-| `JWT_SECRET_BASE64` | **Obligatoria.** Llave Base64 (≥ 256 bits) igual a la del servicio de identidad | — |
-| `JWT_ROL_POR_DEFECTO` | Rol asumido si el token no trae el claim `roles` | `COMPRADOR` |
-| `SEGUNDA_MANO_URL` | URL base del servicio de publicaciones | `http://localhost:8080` |
-| `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` / `SEGUNDA_MANO_READ_TIMEOUT_MS` | Tiempos límite de Feign | `3000` / `5000` |
-| `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por coma | vacío |
+<a id="8-variables-de-entorno"></a>
 
-## 9. Pruebas y cobertura
+## <img src="https://img.shields.io/badge/08-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 8. VARIABLES DE ENTORNO
+
+Las configuraciones sensibles se externalizan como variables de entorno (*Twelve-Factor App*). El `.env` real nunca se sube: solo existe `.env.example`.
+
+| Variable | Descripción | Valor por Defecto (`dev`) | Requerido en Prod |
+| :--- | :--- | :--- | :---: |
+| `SERVER_PORT` | Puerto HTTP del microservicio | `8089` | No |
+| `DB_URL` | URL JDBC de PostgreSQL | `jdbc:postgresql://localhost:5432/chat_db` | Sí |
+| `DB_USERNAME` | Usuario de la base de datos | `chat` | Sí |
+| `DB_PASSWORD` | Contraseña de la base de datos | `chat` | Sí |
+| `JWT_SECRET_BASE64` | Llave Base64 (≥ 256 bits) igual a la del servicio de identidad | — | Sí |
+| `JWT_ROL_POR_DEFECTO` | Rol asumido si el token no trae el claim `roles` | `COMPRADOR` | No |
+| `SEGUNDA_MANO_URL` | URL base del servicio de publicaciones de segunda mano | `http://localhost:8080` | Sí |
+| `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` | Tiempo límite de conexión de Feign | `3000` | No |
+| `SEGUNDA_MANO_READ_TIMEOUT_MS` | Tiempo límite de lectura de Feign | `5000` | No |
+| `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por coma | vacío | Sí |
+
+<details>
+<summary><b>Click para ver la Plantilla de Archivo .env.example</b></summary>
+
+<br>
+
+```dotenv
+# Copie este archivo como .env para docker compose. El .env real no se sube al repositorio.
+DB_NAME=chat_db
+DB_USERNAME=chat
+DB_PASSWORD=change-me
+DB_PORT=5433
+API_PORT=8089
+# Debe ser la MISMA llave con la que el servicio de identidad (hoy el monolito) firma los tokens.
+JWT_SECRET_BASE64=change-me-base64-key
+# Servicio dueño de las publicaciones de segunda mano. Sprint 1: el monolito.
+SEGUNDA_MANO_URL=http://host.docker.internal:8080
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+```
+
+</details>
+
+---
+
+<a id="9-pruebas-y-cobertura"></a>
+
+## <img src="https://img.shields.io/badge/09-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 9. PRUEBAS Y COBERTURA (≥ 85%)
+
+El `pom.xml` exige una cobertura mínima del **85 %** de líneas en `domain` y `application`, verificada por JaCoCo durante `mvn verify`. Hoy esas capas están al **100 %**.
+
+### Comandos de Ejecución de Pruebas
 
 ```bash
-mvn clean verify                  # pruebas + verificación JaCoCo ≥ 85 %
-# Reporte: target/site/jacoco/index.html
+# Ejecutar todas las pruebas unitarias y de integración (las de integración necesitan Docker)
+mvn clean verify
+
+# Generar únicamente el reporte HTML de JaCoCo
+mvn jacoco:report
 ```
 
-`src/test` es espejo de `src/main`:
+* **Ruta del Reporte HTML:** `target/site/jacoco/index.html` (también se publica como artefacto `reportes-calidad` en el pipeline).
 
-| Nivel | Herramienta | Qué cubre |
-| --- | --- | --- |
-| Unitaria · dominio | JUnit 5 | Reglas de `Conversacion`, `Mensaje`, `TextoMensaje`, `PublicacionResumen` |
-| Unitaria · caso de uso | Mockito (sin Spring) | Los 4 `*UseCaseImpl`, incluidos los casos negativos |
-| API | `@WebMvcTest` + MockMvc | Endpoints, seguridad (401/403), validación (400) y errores RFC 7807 |
-| Adaptadores | JUnit 5 + Mockito | Cliente Feign y validación del JWT |
-| Integración · persistencia | Testcontainers (PostgreSQL 15) + Flyway | Flujo completo del chat y concurrencia al crear conversaciones |
+<div align="center">
+  <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
+    <tr>
+      <td align="center" style="padding: 22px;">
+        <p>
+          <img src="https://img.shields.io/badge/ESPACIO_DE_CAPTURA-EVIDENCIA_03-5600EF?style=for-the-badge" alt="Evidencia 03" /><br />
+          <strong><font color="#5600EF" size="3">REPORTE CONSOLIDADO DE COBERTURA JACOCO (≥ 85%)</font></strong>
+        </p>
+        <p>
+          <sub>Captura de <code>target/site/jacoco/index.html</code> con la cobertura de dominio y aplicación.</sub>
+        </p>
+        <p>
+<!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
+<!-- <img src="docs/evidencias/cobertura-jacoco.png" width="90%" alt="Reporte JaCoCo" /><br /> -->
+          <code>[ Pegar captura de JaCoCo ≥ 85% aquí · docs/evidencias/cobertura-jacoco.png ]</code>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
 
-Cobertura de líneas en dominio y aplicación: **100 %** (mínimo exigido: 85 %).
+### Pirámide de Pruebas Implementada
 
-## 10. CI/CD con el badge del pipeline
+`src/test` es espejo de `src/main`. Total: **74 pruebas**.
+
+| Nivel de Prueba | Alcance | Tecnologías Utilizadas | Ubicación en el Código | Pruebas |
+| :--- | :--- | :--- | :--- | :---: |
+| **Unitarias · dominio** | Reglas de `Conversacion`, `Mensaje`, `TextoMensaje`, `PublicacionResumen` | JUnit 5 | `src/test/java/.../domain/model/` | 25 |
+| **Unitarias · casos de uso** | Los 4 `*UseCaseImpl`, incluidos los casos negativos | JUnit 5, Mockito | `src/test/java/.../application/usecase/` | 14 |
+| **Adaptadores** | Cliente Feign y validación del JWT | JUnit 5, Mockito | `src/test/java/.../infrastructure/adapter/out/` | 14 |
+| **Contrato de API** | Endpoints, seguridad (401/403), validación (400) y errores RFC 7807 | `@WebMvcTest`, MockMvc | `src/test/java/.../infrastructure/adapter/in/rest/` | 17 |
+| **Integración** | Flujo completo del chat y concurrencia al crear conversaciones | Spring Boot Test, Testcontainers (PostgreSQL 15) | `src/test/java/.../infrastructure/` | 4 |
+
+> [!IMPORTANT]
+> **Criterio de Fallo en CI:** el `pom.xml` contiene la regla `<minimum>0.85</minimum>` sobre `domain/**` y `application/**`. Si la cobertura baja de ese valor, `mvn verify` falla y el pipeline bloquea el Pull Request.
+
+---
+
+<a id="10-cicd-con-el-badge-del-pipeline"></a>
+
+## <img src="https://img.shields.io/badge/10-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 10. CI/CD CON EL BADGE DEL PIPELINE
 
 [![CI QA](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg)](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml)
 
-| Pipeline | Cuándo corre | Etapas |
-| --- | --- | --- |
-| `ci-qa.yml` | Push a `master`, `develop` o `feature/**` y PR | Build → pruebas (unitarias + integración) → cobertura JaCoCo → análisis estático Checkstyle → imagen Docker. En `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
-| `ci-prod.yml` | Tag `v*.*.*` | Pruebas → imagen de versión → despliegue en Azure PROD con aprobación manual. |
+### Matriz de Pipelines por Entorno (PROD y QA)
 
-Para activar el despliegue: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` y `SEGUNDA_MANO_URL_QA`, y crear la variable `DEPLOY_ENABLED=true`.
+| Pipeline | Entorno Destino | Desencadenador (Trigger) | Quality Gate Exigido |
+| :--- | :--- | :--- | :--- |
+| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build OK + pruebas unitarias e integración + JaCoCo ≥ 85 % + Checkstyle + imagen Docker. En `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
+| **CD - Producción** (`ci-prod.yml`) | Producción (`PROD`) | Tag `v*.*.*` creado al pasar `develop` a `master` | Pruebas + imagen de versión + aprobación manual del ambiente `production` en Azure App Service. |
 
-## 11. Ramas y cómo contribuir
+### Diagrama del Flujo Automatizado (Pipeline Stages)
+
+```mermaid
+flowchart LR
+    A["Push / PR<br>(GitHub)"] --> B["Build & Compile<br>(Maven, Java 17)"]
+    B --> C["Tests & JaCoCo<br>(Coverage ≥ 85%)"]
+    C --> D["Análisis estático<br>(Checkstyle)"]
+    D --> E["Build Docker OCI<br>(Multi-stage)"]
+    E --> F["Deploy Cloud<br>(Azure App Service)"]
+
+    classDef step fill:#12063A,stroke:#5600EF,stroke-width:2px,color:#FFFFFF;
+    classDef pass fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#0C0C12;
+
+    class A,B,E,F step;
+    class C,D pass;
+```
+
+**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` y `SEGUNDA_MANO_URL_QA`, y crear la variable de repositorio `DEPLOY_ENABLED=true`.
+
+<div align="center">
+  <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
+    <tr>
+      <td align="center" style="padding: 22px;">
+        <p>
+          <img src="https://img.shields.io/badge/ESPACIO_DE_CAPTURA-EVIDENCIA_04-5600EF?style=for-the-badge" alt="Evidencia 04" /><br />
+          <strong><font color="#5600EF" size="3">EJECUCIÓN DEL PIPELINE CI/CD EN VERDE</font></strong>
+        </p>
+        <p>
+          <sub>Captura de la pestaña Actions con el workflow <b>CI QA</b> finalizado con éxito en todas sus etapas.</sub>
+        </p>
+        <p>
+<!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
+<!-- <img src="docs/evidencias/pipeline-ci-cd.png" width="90%" alt="Pipeline CI/CD" /><br /> -->
+          <code>[ Pegar captura del Pipeline CI/CD en verde aquí · docs/evidencias/pipeline-ci-cd.png ]</code>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
+<a id="11-ramas-y-cómo-contribuir"></a>
+
+## <img src="https://img.shields.io/badge/11-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 11. RAMAS Y CÓMO CONTRIBUIR
+
+El equipo sigue **GitFlow adaptado para microservicios**. `master` y `develop` están protegidas y solo reciben cambios por Pull Request con revisión y pipeline en verde.
+
+### Estructura de Ramas Oficial
+
+```text
+master                                  <-- Versiones estables (CMV con tag v*.*.*)
+└── develop                             <-- Integración del trabajo del equipo (QA)
+    ├── feature/scaffolding             <-- Estructura base del servicio
+    ├── feature/HU-xx-descripcion-corta <-- Una rama por historia de usuario
+    └── bugfix/GJ-xx-descripcion-corta  <-- Corrección de defectos
+```
 
 ```mermaid
 %%{init: { 'gitGraph': { 'mainBranchName': 'master' } } }%%
@@ -214,13 +692,71 @@ gitGraph
     merge develop id: "CMV v0.1.0"
 ```
 
-- Dos ramas fijas: **`master`** y **`develop`**. Nunca se hacen commits directos en ellas.
-- Cada cambio sale de `develop` en una rama `feature/scaffolding` o `feature/HU-xx` y vuelve a `develop` por **Pull Request con revisión** y pipeline en verde.
-- Al pasar de `develop` a `master` se crea el **CMV** con un tag `v*.*.*`.
-- Mensajes de commit en español e imperativo, por ejemplo `Agrega validación del texto del mensaje`.
+### Convención de Commits (*Conventional Commits*)
 
-## 12. Enlace a la épica en Jira
+```text
+<tipo>(<alcance>): <descripción imperativa en español> [#SR-RF-XX]
 
-**Épica:** _GJ-Chat-Service_ → _pegar aquí el enlace de la épica en Jira_
+Ejemplos válidos:
+feat(chat): agregar envío de mensajes entre comprador y vendedor [#SR-RF-41]
+fix(chat): rechazar mensajes en conversaciones cerradas [#SR-RF-41]
+test(dominio): agregar pruebas de TextoMensaje [#SR-RF-41]
+docs(readme): aplicar la plantilla oficial del README
+```
 
-Historias del Sprint 1: HU-01 Iniciar chat con el vendedor (SR-RF-40) · HU-02 Coordinar la entrega por chat (SR-RF-41) · HU-03 Ver mis conversaciones (SR-RF-41) · HT-01 Servicio de chat independiente.
+### Checklist Obligatorio para Pull Requests
+
+- [ ] La rama parte de la versión más reciente de `develop`.
+- [ ] El código compila limpiamente con `mvn clean compile`.
+- [ ] Todas las pruebas unitarias e integración pasan (`mvn verify`).
+- [ ] La cobertura JaCoCo es mayor o igual al 85 %.
+- [ ] No se introducen credenciales, contraseñas ni tokens en el código fuente.
+- [ ] El PR tiene asignado al menos 1 revisor del equipo antes del merge.
+
+---
+
+<a id="12-enlace-a-la-épica-en-jira"></a>
+
+## <img src="https://img.shields.io/badge/12-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 12. ENLACE A LA ÉPICA EN JIRA
+
+### Enlaces de Gestión, Repositorios y Evidencias
+
+* **Épica Oficial del Microservicio (Jira):** `GJ-1 · ms-chat` → `<pegar el enlace de la épica GJ-1>`
+* **Tablero Scrum del Equipo (Jira):** `<pegar el enlace del tablero del proyecto GJ>`
+* **Repositorio:** [StyleRadar1/GJ-Chat-Service](https://github.com/StyleRadar1/GJ-Chat-Service)
+* **API Swagger (local):** [http://localhost:8089/swagger-ui.html](http://localhost:8089/swagger-ui.html)
+
+<div align="center">
+  <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
+    <tr>
+      <td align="center" style="padding: 22px;">
+        <p>
+          <img src="https://img.shields.io/badge/ESPACIO_DE_CAPTURA-EVIDENCIA_05-5600EF?style=for-the-badge" alt="Evidencia 05" /><br />
+          <strong><font color="#5600EF" size="3">TABLERO SCRUM Y SEGUIMIENTO DE LA ÉPICA EN JIRA</font></strong>
+        </p>
+        <p>
+          <sub>Captura del tablero de Jira con la épica GJ-1, sus historias y tareas del sprint.</sub>
+        </p>
+        <p>
+<!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
+<!-- <img src="docs/evidencias/jira-tablero-epica.png" width="90%" alt="Tablero Jira" /><br /> -->
+          <code>[ Pegar captura del Tablero de Jira aquí · docs/evidencias/jira-tablero-epica.png ]</code>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+### Requerimientos Funcionales Asignados
+
+| Código RF | Nombre del Requerimiento | Actor Principal | Criterio de Aceptación Clave |
+| :---: | :--- | :--- | :--- |
+| `SR-RF-40` | Iniciar chat con vendedor | Comprador | Solo sobre una publicación disponible y ajena; si la conversación ya existe, devuelve la misma. |
+| `SR-RF-41` | Coordinar entrega mediante chat interno | Comprador y vendedor | Solo los participantes leen y escriben; máximo 1.000 caracteres; no se escribe si la prenda ya no está disponible. |
+
+| Historia | Descripción | Requerimiento |
+| :---: | :--- | :---: |
+| `HU-01` | Iniciar chat con el vendedor | `SR-RF-40` |
+| `HU-02` | Coordinar la entrega por chat | `SR-RF-41` |
+| `HU-03` | Ver mis conversaciones | `SR-RF-41` |
+| `HT-01` | Servicio de chat independiente (base, pipeline e imagen propios) | — |
