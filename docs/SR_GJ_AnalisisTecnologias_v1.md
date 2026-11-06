@@ -170,7 +170,7 @@ Para no multiplicar costos con 13 servicios, se recomienda compartir el plan de 
 
 | Servicio | Equipo | ¿BD? | Tipo de BD | Framework | Broker | Puerto |
 | --- | --- | --- | --- | --- | --- | --- |
-| GJ-Chat-Service | Guatoque Jiraguas (GJ) | Sí | Relacional · PostgreSQL 15 (`chat_db`) | Spring Boot 3.2 · Java 17 | RabbitMQ (publica `MensajeEnviadoEvent`, consume `PrendaSegundaManoVendidaEvent`) | 8089 |
+| GJ-Chat-Service | Guatoque Jiraguas (GJ) | Sí | Relacional · PostgreSQL 15 (`chat_db`) | Spring Boot 3.2 · Java 17 | RabbitMQ (publica `MensajeEnviadoEvent`, consume `PrendaSegundaManoVendidaEvent`) | 8320 |
 
 <a id="07-conclusión"></a>
 

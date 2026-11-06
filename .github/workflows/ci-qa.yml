@@ -105,7 +105,7 @@ jobs:
               --resource-group "$RG" \
               --output none \
               --settings \
-                WEBSITES_PORT=8089 \
+                WEBSITES_PORT=8320 \
                 DB_URL="${{ secrets.DB_URL_QA }}" \
                 DB_USERNAME="${{ secrets.DB_USERNAME_QA }}" \
                 DB_PASSWORD="${{ secrets.DB_PASSWORD_QA }}" \

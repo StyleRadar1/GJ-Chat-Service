@@ -18,7 +18,7 @@
 
 | Campo | Valor |
 | :--- | :--- |
-| Microservicio | `ms-chat` (repositorio `GJ-Chat-Service`, puerto 8089) |
+| Microservicio | `ms-chat` (repositorio `GJ-Chat-Service`, puerto 8320) |
 | Equipo | GJ · Responsable: Santiago Andrés García Almario |
 | Equipos que deben aprobar | Paquete Catálogo (productor de los eventos de segunda mano) · `ms-notificaciones` (consumidor de `MensajeEnviadoEvent`) |
 | Versión · Fecha | v1.0 · 3 de noviembre de 2026 |

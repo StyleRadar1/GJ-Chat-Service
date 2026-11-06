@@ -14,5 +14,5 @@ COPY --from=build /app/target/gj-chat-service.jar app.jar
 RUN chown styleradar:styleradar app.jar
 USER styleradar
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
-EXPOSE 8089
+EXPOSE 8320
 ENTRYPOINT ["java", "-jar", "app.jar"]

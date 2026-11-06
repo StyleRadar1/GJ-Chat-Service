@@ -8,7 +8,7 @@
 
   <p align="center">
     <img src="https://img.shields.io/badge/MICROSERVICIO-ms--chat-12063A?style=for-the-badge" alt="Servicio" />
-    <img src="https://img.shields.io/badge/PUERTO_OFICIAL-8089-5600EF?style=for-the-badge" alt="Puerto" />
+    <img src="https://img.shields.io/badge/PUERTO_OFICIAL-8320-5600EF?style=for-the-badge" alt="Puerto" />
     <img src="https://img.shields.io/badge/ARQUITECTURA-HEXAGONAL-16A34A?style=for-the-badge" alt="Hexagonal" />
   </p>
 
@@ -18,7 +18,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Microservicio | GJ-Chat-Service (`gj-chat-service`, puerto 8089) |
+| Microservicio | GJ-Chat-Service (`gj-chat-service`, puerto 8320) |
 | Dominio / Paquete | P3: Chat / Notificaciones · bounded context **Mensajería** |
 | Equipo | Guatoque Jiraguas (GJ) · Responsable: Santiago Andrés García Almario |
 | Versión · Fecha | v1.1 · 3 de noviembre de 2026 (Sprint 1) |
@@ -40,7 +40,7 @@
 | Recurso | Ubicación |
 | --- | --- |
 | Repositorio | `GJ-Chat-Service` (organización del proyecto en GitHub) |
-| Swagger UI | `http://localhost:8089/swagger-ui.html` · OpenAPI en `/v3/api-docs` |
+| Swagger UI | `http://localhost:8320/swagger-ui.html` · OpenAPI en `/v3/api-docs` |
 | Pipeline | `.github/workflows/ci-qa.yml` y `ci-prod.yml` |
 | Contratos de eventos | [`SR_GJ_ContratosEventos_v1.md`](SR_GJ_ContratosEventos_v1.md) |
 | Esquema de base de datos | `src/main/resources/db/migration/V1__init_schema.sql` |
@@ -85,12 +85,12 @@ El chat lo usan dos usuarios finales: el **comprador**, que inicia la conversaci
 ```mermaid
 flowchart LR
     FE["Frontend"] -->|"HTTPS"| GW["API Gateway :8080"]
-    GW -->|"/api/v1/conversaciones/**<br/>/api/v1/usuarios/me/conversaciones<br/>/api/v1/segunda-mano/{id}/conversaciones"| CHAT["GJ-Chat-Service :8089"]
+    GW -->|"/api/v1/conversaciones/**<br/>/api/v1/usuarios/me/conversaciones<br/>/api/v1/segunda-mano/{id}/conversaciones"| CHAT["GJ-Chat-Service :8320"]
     CHAT --> DB[("chat_db<br/>PostgreSQL")]
     CHAT -->|"Feign · GET publicación"| SM["Servicio de publicaciones<br/>(Sprint 1: monolito)"]
     CHAT -. "MensajeEnviadoEvent (Sprint 2)" .-> MQ{{"RabbitMQ<br/>styleradar.events"}}
     MQ -. "PrendaSegundaManoVendidaEvent<br/>PrendaSegundaManoRetiradaEvent (Sprint 2)" .-> CHAT
-    MQ -.-> NOT["ms-notificaciones :8088"]
+    MQ -.-> NOT["ms-notificaciones :8300"]
 ```
 
 El frontend nunca llama al chat directamente: entra por el **API Gateway**, que valida el JWT y enruta. El chat tiene **su propia base de datos** y no lee la de ningún otro servicio. Lo único que necesita de otro contexto (el estado y el dueño de una publicación) lo pide por **REST con Feign**, porque necesita la respuesta en ese momento para decidir si deja iniciar el chat. Las notificaciones y el cierre de la conversación cuando la prenda se vende o se retira no necesitan respuesta inmediata, por eso irán por **eventos en RabbitMQ**: así el chat no depende de que ms-notificaciones esté arriba.
@@ -101,11 +101,11 @@ El frontend nunca llama al chat directamente: entra por el **API Gateway**, que 
 flowchart TB
     subgraph LOCAL["Docker Compose (local)"]
         PG[("postgres:15-alpine<br/>:5433 → 5432<br/>volumen chat-data")]
-        APP["gj-chat-service<br/>eclipse-temurin:17-jre-alpine<br/>:8089"]
+        APP["gj-chat-service<br/>eclipse-temurin:17-jre-alpine<br/>:8320"]
         APP -->|"JDBC"| PG
     end
     subgraph AZURE["Azure (QA / PROD)"]
-        AS["App Service para contenedores<br/>WEBSITES_PORT=8089"]
+        AS["App Service para contenedores<br/>WEBSITES_PORT=8320"]
         APG[("Azure Database for PostgreSQL")]
         AS -->|"JDBC cifrado"| APG
     end
@@ -395,7 +395,7 @@ Cobertura JaCoCo de dominio y aplicación: **100 % de líneas** (mínimo 85 %, v
 
 | Evidencia | Dónde se obtiene |
 | --- | --- |
-| E1 · Swagger UI | `http://localhost:8089/swagger-ui.html` con `docker compose up` |
+| E1 · Swagger UI | `http://localhost:8320/swagger-ui.html` con `docker compose up` |
 | E2 · Pipeline en verde | Pestaña Actions del repositorio, workflow **CI QA** |
 | E3 · Reporte JaCoCo | Artefacto `reportes-calidad` del pipeline o `target/site/jacoco/index.html` |
 | E4 · Contenedor corriendo | `docker compose ps` |

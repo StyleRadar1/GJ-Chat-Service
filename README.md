@@ -14,7 +14,7 @@
 
   <p align="center">
     <img src="https://img.shields.io/badge/BOUNDED_CONTEXT-Mensajer%C3%ADa_(Chat)-12063A?style=for-the-badge" alt="Context" />
-    <img src="https://img.shields.io/badge/PUERTO_OFICIAL-8089-5600EF?style=for-the-badge" alt="Port" />
+    <img src="https://img.shields.io/badge/PUERTO_OFICIAL-8320-5600EF?style=for-the-badge" alt="Port" />
     <img src="https://img.shields.io/badge/ARQUITECTURA-HEXAGONAL-16A34A?style=for-the-badge" alt="Hexagonal" />
   </p>
 
@@ -81,8 +81,8 @@
 ## <img src="https://img.shields.io/badge/01-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 1. NOMBRE DEL SERVICIO Y SU BOUNDED CONTEXT
 
 * **Identificador de Servicio:** `ms-chat` (repositorio `GJ-Chat-Service`, artefacto `gj-chat-service`)
-* **Paquete Arquitectónico:** `Paquete 3: Chat / Notificaciones`
-* **Puerto de Escucha Oficial:** `8089` (matriz de puertos del curso)
+* **Paquete Arquitectónico:** `Paquete 3: Notificaciones, Chat y Broker` (Estación Guatoque Jiraguas · bloque de puertos 8300)
+* **Puerto de Escucha Oficial:** `8320` (bloque 8300 del equipo; `ms-notificaciones` `8300`, broker RabbitMQ `5672`)
 * **Base de Datos Asignada:** `PostgreSQL 15` (`chat_db`), aislada bajo el patrón *Database-per-Service*.
 * **Bounded Context:** `Mensajería (Chat)`
 * **Requerimientos:** `SR-RF-40` Iniciar chat con vendedor · `SR-RF-41` Coordinar entrega mediante chat interno
@@ -95,7 +95,7 @@ Este microservicio encapsula exclusivamente la lógica de negocio de las convers
 | :--- | :--- |
 | • Inicia una conversación desde una publicación de segunda mano disponible, una sola por publicación y comprador. | • NO autentica usuarios: valida el JWT que emite el servicio de identidad (`ms-auth` en `:8081`). |
 | • Guarda y entrega los mensajes en orden de envío, solo a los participantes. | • NO es dueño de las publicaciones de segunda mano: las consulta al servicio que las administra. |
-| • Cierra la conversación cuando la prenda deja de estar disponible. | • NO envía notificaciones ni correos (delegado a `ms-notificaciones` en `:8088`). |
+| • Cierra la conversación cuando la prenda deja de estar disponible. | • NO envía notificaciones ni correos (delegado a `ms-notificaciones` en `:8300`). |
 | • Garantiza persistencia ACID e idempotencia en su base de datos. | • NO accede directamente a bases de datos de otros microservicios. |
 
 ### Arquetipos de Moda y Personajes de StyleRadar
@@ -121,8 +121,8 @@ Desarrollado y mantenido por el **Equipo `GJ`** (prefijo `GJ`) para la asignatur
 | Rol | Nombre Completo | Usuario GitHub |
 | :---: | :---: | :---: |
 | **Backend Developer · Responsable de ms-chat** | `Santiago Andrés García Almario` | `<@usuario-github>` |
-| **Integrante** | `<Nombre del integrante>` | `<@usuario-github>` |
-| **Integrante** | `<Nombre del integrante>` | `<@usuario-github>` |
+| **Líder del Paquete 3** | `Paula Alejandra Díaz` | `<@usuario-github>` |
+| **Backend Developer** | `Óscar Lasso` | `<@usuario-github>` |
 
 </div>
 
@@ -251,9 +251,9 @@ La documentación interactiva OpenAPI 3.0 trae, para cada endpoint, descripción
 | :--- | :---: | :--- | :--- | :--- | :--- |
 | **Producción (PROD)** | Pendiente | Despliegue productivo | Se publica con el tag `v*.*.*` (`ci-prod.yml`) | — | — |
 | **Calidad / Pruebas (QA)** | Pendiente | Pruebas integradas del sprint | Se publica desde `master` con `DEPLOY_ENABLED=true` (`ci-qa.yml`) | — | — |
-| **Desarrollo Local (DEV)** | Activo | Desarrollo en la máquina local | `http://localhost:8089` | [Swagger UI Local](http://localhost:8089/swagger-ui.html) | [`/actuator/health`](http://localhost:8089/actuator/health) |
+| **Desarrollo Local (DEV)** | Activo | Desarrollo en la máquina local | `http://localhost:8320` | [Swagger UI Local](http://localhost:8320/swagger-ui.html) | [`/actuator/health`](http://localhost:8320/actuator/health) |
 
-* **Especificación OpenAPI (Contrato JSON):** `http://localhost:8089/v3/api-docs`
+* **Especificación OpenAPI (Contrato JSON):** `http://localhost:8320/v3/api-docs`
 * **Rutas públicas:** `/actuator/health`, `/swagger-ui.html` y `/v3/api-docs`. Todo lo demás exige JWT.
 
 <div align="center">
@@ -265,7 +265,7 @@ La documentación interactiva OpenAPI 3.0 trae, para cada endpoint, descripción
           <strong><font color="#5600EF" size="3">DOCUMENTACIÓN SWAGGER OPENAPI UI ACTIVA</font></strong>
         </p>
         <p>
-          <sub>Captura de <code>http://localhost:8089/swagger-ui.html</code> con los 4 endpoints del chat.</sub>
+          <sub>Captura de <code>http://localhost:8320/swagger-ui.html</code> con los 4 endpoints del chat.</sub>
         </p>
         <p>
 <!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
@@ -297,7 +297,7 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 #### Ejemplo Request (`POST /api/v1/segunda-mano/10/conversaciones`)
 
 ```bash
-curl -X POST "http://localhost:8089/api/v1/segunda-mano/10/conversaciones" \
+curl -X POST "http://localhost:8320/api/v1/segunda-mano/10/conversaciones" \
   -H "Authorization: Bearer <JWT_TOKEN>"
 ```
 
@@ -318,7 +318,7 @@ curl -X POST "http://localhost:8089/api/v1/segunda-mano/10/conversaciones" \
 #### Ejemplo Request (`POST /api/v1/conversaciones/7/mensajes`)
 
 ```bash
-curl -X POST "http://localhost:8089/api/v1/conversaciones/7/mensajes" \
+curl -X POST "http://localhost:8320/api/v1/conversaciones/7/mensajes" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <JWT_TOKEN>" \
   -d '{ "texto": "¿Sigue disponible? Podría recogerla el sábado en Chapinero." }'
@@ -475,14 +475,14 @@ docker compose up --build
 docker compose down
 ```
 
-El `docker-compose.yml` levanta dos servicios: `postgres` (`postgres:15-alpine`, puerto local `5433`, volumen `chat-data`) y `gj-chat-service` (puerto `8089`), que espera a que la base esté sana (`healthcheck`) antes de arrancar.
+El `docker-compose.yml` levanta tres servicios: `postgres` (`postgres:15-alpine`, puerto local `5433`, volumen `chat-data`), `rabbitmq` (`rabbitmq:3.13-management-alpine`, AMQP `5672` y consola de administración `15672`) y `gj-chat-service` (puerto `8320`), que espera a que la base esté sana (`healthcheck`) antes de arrancar.
 
 </details>
 
 ### Comprobación de Salud (Health Check)
 
 ```bash
-curl -s http://localhost:8089/actuator/health
+curl -s http://localhost:8320/actuator/health
 # Esperado: {"status":"UP"}
 ```
 
@@ -517,7 +517,7 @@ Las configuraciones sensibles se externalizan como variables de entorno (*Twelve
 
 | Variable | Descripción | Valor por Defecto (`dev`) | Requerido en Prod |
 | :--- | :--- | :--- | :---: |
-| `SERVER_PORT` | Puerto HTTP del microservicio | `8089` | No |
+| `SERVER_PORT` | Puerto HTTP del microservicio | `8320` | No |
 | `DB_URL` | URL JDBC de PostgreSQL | `jdbc:postgresql://localhost:5432/chat_db` | Sí |
 | `DB_USERNAME` | Usuario de la base de datos | `chat` | Sí |
 | `DB_PASSWORD` | Contraseña de la base de datos | `chat` | Sí |
@@ -539,7 +539,9 @@ DB_NAME=chat_db
 DB_USERNAME=chat
 DB_PASSWORD=change-me
 DB_PORT=5433
-API_PORT=8089
+API_PORT=8320
+RABBITMQ_PORT=5672
+RABBITMQ_MANAGEMENT_PORT=15672
 # Debe ser la MISMA llave con la que el servicio de identidad (hoy el monolito) firma los tokens.
 JWT_SECRET_BASE64=change-me-base64-key
 # Servicio dueño de las publicaciones de segunda mano. Sprint 1: el monolito.
@@ -724,7 +726,7 @@ docs(readme): aplicar la plantilla oficial del README
 * **Épica Oficial del Microservicio (Jira):** `GJ-1 · ms-chat` → `<pegar el enlace de la épica GJ-1>`
 * **Tablero Scrum del Equipo (Jira):** `<pegar el enlace del tablero del proyecto GJ>`
 * **Repositorio:** [StyleRadar1/GJ-Chat-Service](https://github.com/StyleRadar1/GJ-Chat-Service)
-* **API Swagger (local):** [http://localhost:8089/swagger-ui.html](http://localhost:8089/swagger-ui.html)
+* **API Swagger (local):** [http://localhost:8320/swagger-ui.html](http://localhost:8320/swagger-ui.html)
 
 <div align="center">
   <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
