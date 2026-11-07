@@ -10,9 +10,9 @@ RUN mvn -B -q package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 RUN addgroup -S styleradar && adduser -S styleradar -G styleradar
-COPY --from=build /app/target/ms-chat.jar app.jar
+COPY --from=build /app/target/gj-chat-service.jar app.jar
 RUN chown styleradar:styleradar app.jar
 USER styleradar
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
-EXPOSE 8089
+EXPOSE 8320
 ENTRYPOINT ["java", "-jar", "app.jar"]

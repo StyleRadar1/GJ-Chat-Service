@@ -1,4 +1,4 @@
-# Ambiente local de ms-chat: PostgreSQL propio (Database per Service) y el servicio.
+# Ambiente local de GJ-Chat-Service: PostgreSQL propio (Database per Service) y el servicio.
 services:
   postgres:
     image: postgres:15-alpine
@@ -13,9 +13,23 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-chat} -d ${DB_NAME:-chat_db}"]
       interval: 5s
+      timeout: 5s
       retries: 10
+      start_period: 20s
 
-  ms-chat:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  gj-chat-service:
     build: .
     depends_on:
       postgres:
@@ -30,7 +44,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "${API_PORT:-8089}:8089"
+      - "${API_PORT:-8320}:8320"
 
 volumes:
   chat-data:

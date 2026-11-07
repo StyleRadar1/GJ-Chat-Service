@@ -1,10 +1,10 @@
 server:
-  port: ${SERVER_PORT:8089}
+  port: ${SERVER_PORT:8320}
   shutdown: graceful
 
 spring:
   application:
-    name: ms-chat
+    name: gj-chat-service
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/chat_db}
     username: ${DB_USERNAME:chat}
