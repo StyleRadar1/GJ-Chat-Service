@@ -134,65 +134,15 @@ Desarrollado y mantenido por el **Equipo `GJ`** (prefijo `GJ`) para la asignatur
 
 El microservicio implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** combinada con **Domain-Driven Design (DDD)**. Las dependencias apuntan hacia adentro: el **dominio** no conoce Spring, JPA ni HTTP; los **casos de uso** dependen solo de puertos (interfaces); la **infraestructura** implementa esos puertos.
 
-### Diagrama Interactivo de Capas (Mermaid)
+### Diagrama de Capas (draw.io)
 
-```mermaid
-flowchart TD
-    GW["API Gateway :8080"]
-    BRK["RabbitMQ<br>(Sprint 2)"]
+<div align="center">
 
-    subgraph INFRA_IN["Infraestructura de Entrada (Driving Adapters)"]
-        REST["ChatController + doc/ChatApi<br>(Spring Web / OpenAPI 3)"]
-        AMQP_IN["amqp/ Listener<br>(Sprint 2)"]
-        WS["websocket/ STOMP<br>(Sprint 3)"]
-    end
+<img src="docs/diagramas/arquitectura-hexagonal-capas.png" alt="Arquitectura hexagonal de ms-chat: capas, puertos y adaptadores" width="100%" />
 
-    subgraph DOMAIN["Núcleo de Dominio (Java puro)"]
-        IN_PORT["port/in<br>4 interfaces de casos de uso"]
-        ENTITIES["Conversacion (agregado) · Mensaje"]
-        VO["TextoMensaje · PublicacionResumen<br>(Value Objects)"]
-        EXCEPTIONS["Excepciones de negocio"]
-        OUT_PORT["port/out<br>Repositorios y PublicacionConsultaPort"]
-    end
+<sub>Editable en draw.io: <a href="docs/diagramas/arquitectura-hexagonal-capas.drawio"><code>arquitectura-hexagonal-capas.drawio</code></a></sub>
 
-    subgraph APP["Capa de Aplicación"]
-        USE_CASES["4 *UseCaseImpl<br>(registrados en BeanConfig)"]
-    end
-
-    subgraph INFRA_OUT["Infraestructura de Salida (Driven Adapters)"]
-        JPA_REPO["persistence/<br>Spring Data JPA + Flyway"]
-        FEIGN["external/<br>Feign → segunda mano"]
-        JWT["security/<br>JwtTokenAdapter (HS256)"]
-        RABBIT_PUB["messaging/<br>(Sprint 2)"]
-    end
-
-    DB[("PostgreSQL 15<br>chat_db")]
-    SM["Servicio de publicaciones<br>de segunda mano"]
-
-    GW --> REST
-    BRK -.-> AMQP_IN
-    REST --> IN_PORT
-    AMQP_IN -.-> IN_PORT
-    WS -.-> IN_PORT
-    IN_PORT --> USE_CASES
-    USE_CASES --> ENTITIES
-    USE_CASES --> OUT_PORT
-    OUT_PORT --> JPA_REPO
-    OUT_PORT --> FEIGN
-    OUT_PORT -.-> RABBIT_PUB
-    REST -. autenticación .-> JWT
-    JPA_REPO --> DB
-    FEIGN --> SM
-    RABBIT_PUB -.-> BRK
-
-    classDef domain fill:#EDE7FF,stroke:#5600EF,stroke-width:2px,color:#0C0C12;
-    classDef app fill:#F8FAFC,stroke:#C4B5FD,stroke-width:2px,color:#0C0C12;
-    classDef infra fill:#12063A,stroke:#5600EF,stroke-width:1.5px,color:#FFFFFF;
-
-    class DOMAIN,IN_PORT,ENTITIES,VO,EXCEPTIONS,OUT_PORT domain;
-    class APP,USE_CASES app;
-    class INFRA_IN,INFRA_OUT,REST,AMQP_IN,WS,JPA_REPO,FEIGN,JWT,RABBIT_PUB infra;
-```
+</div>
 
 Las líneas punteadas son los adaptadores que se completan en el Sprint 2 (RabbitMQ) y el Sprint 3 (WebSocket). Sus paquetes ya existen en el repositorio.
 
@@ -624,20 +574,13 @@ mvn jacoco:report
 
 ### Diagrama del Flujo Automatizado (Pipeline Stages)
 
-```mermaid
-flowchart LR
-    A["Push / PR<br>(GitHub)"] --> B["Build & Compile<br>(Maven, Java 17)"]
-    B --> C["Tests & JaCoCo<br>(Coverage ≥ 85%)"]
-    C --> D["Análisis estático<br>(Checkstyle)"]
-    D --> E["Build Docker OCI<br>(Multi-stage)"]
-    E --> F["Deploy Cloud<br>(Azure App Service)"]
+<div align="center">
 
-    classDef step fill:#12063A,stroke:#5600EF,stroke-width:2px,color:#FFFFFF;
-    classDef pass fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#0C0C12;
+<img src="docs/diagramas/pipeline-ci-cd.png" alt="Pipeline CI/CD de ms-chat" width="100%" />
 
-    class A,B,E,F step;
-    class C,D pass;
-```
+<sub>Editable en draw.io: <a href="docs/diagramas/pipeline-ci-cd.drawio"><code>pipeline-ci-cd.drawio</code></a></sub>
+
+</div>
 
 **Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` y `SEGUNDA_MANO_URL_QA`, y crear la variable de repositorio `DEPLOY_ENABLED=true`.
 
@@ -680,19 +623,13 @@ master                                  <-- Versiones estables (CMV con tag v*.*
     └── bugfix/GJ-xx-descripcion-corta  <-- Corrección de defectos
 ```
 
-```mermaid
-%%{init: { 'gitGraph': { 'mainBranchName': 'master' } } }%%
-gitGraph
-    commit id: "scaffolding"
-    branch develop
-    checkout develop
-    branch feature/HU-01
-    commit id: "HU-01"
-    checkout develop
-    merge feature/HU-01 id: "PR revisado"
-    checkout master
-    merge develop id: "CMV v0.1.0"
-```
+<div align="center">
+
+<img src="docs/diagramas/estructura-de-ramas.png" alt="Estructura de ramas oficial" width="100%" />
+
+<sub>Editable en draw.io: <a href="docs/diagramas/estructura-de-ramas.drawio"><code>estructura-de-ramas.drawio</code></a></sub>
+
+</div>
 
 ### Convención de Commits (*Conventional Commits*)
 

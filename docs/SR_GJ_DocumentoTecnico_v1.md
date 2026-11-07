@@ -23,7 +23,7 @@
 | Equipo | Guatoque Jiraguas (GJ) · Responsable: Santiago Andrés García Almario |
 | Versión · Fecha | v1.1 · 3 de noviembre de 2026 (Sprint 1) |
 
-> **Regla de oro:** cada diagrama va con su explicación y justificación. Los diagramas están en Mermaid dentro de este archivo, así que quedan versionados junto al código y GitHub los dibuja directamente.
+> **Regla de oro:** cada diagrama va con su explicación y justificación. Los diagramas se editan en draw.io con la plantilla de componentes de StyleRadar y viven en `docs/diagramas/` (un `.drawio` editable y su `.png` por cada uno), así que quedan versionados junto al código.
 
 ---
 
@@ -36,6 +36,7 @@
 | v0.1 | 01/11/2026 | Santiago García (Backend) | Scaffolding hexagonal, dominio y casos de uso migrados del monolito | Borrador |
 | v1.0 | 03/11/2026 | Santiago García (Backend) | Diagramas específicos, contratos OpenAPI, pruebas y CI/CD | Entregado Sprint 1 |
 | v1.1 | 03/11/2026 | Santiago García (Backend) | Formato de la plantilla oficial, diagrama de secuencia con la llamada Feign y eventos con los nombres de la matriz del curso | Entregado Sprint 1 |
+| v1.2 | 06/11/2026 | Santiago García (Backend) | Diagramas migrados de Mermaid a draw.io con la plantilla StyleRadar; puertos 8320 / 8300 | En revisión |
 
 | Recurso | Ubicación |
 | --- | --- |
@@ -68,50 +69,37 @@ Los diagramas generales completos los hace todo el curso. Aquí se muestra cómo
 
 ### 2.1 Contexto
 
-```mermaid
-flowchart LR
-    C["Comprador"] -->|"inicia chat, envía mensajes"| SR
-    V["Vendedor (usuario de segunda mano)"] -->|"responde, coordina entrega"| SR
-    SR["Sistema StyleRadar"]
-    SR -->|"mapa"| MB["Mapbox"]
-    SR -->|"probador virtual"| FA["FASHN AI"]
-    SR -->|"pagos de suscripción"| PSE["Pasarela PSE"]
-```
+<div align="center">
+
+<img src="diagramas/contexto-del-sistema.png" alt="Contexto del sistema" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/contexto-del-sistema.drawio"><code>contexto-del-sistema.drawio</code></a></sub>
+
+</div>
 
 El chat lo usan dos usuarios finales: el **comprador**, que inicia la conversación desde una publicación de segunda mano, y el **vendedor**, que responde y acuerda la entrega. El chat no se integra con ningún sistema externo; los sistemas externos del contexto (Mapbox, FASHN AI, PSE) pertenecen a otros servicios.
 
 ### 2.2 Componentes general (lo que toca el chat)
 
-```mermaid
-flowchart LR
-    FE["Frontend"] -->|"HTTPS"| GW["API Gateway :8080"]
-    GW -->|"/api/v1/conversaciones/**<br/>/api/v1/usuarios/me/conversaciones<br/>/api/v1/segunda-mano/{id}/conversaciones"| CHAT["GJ-Chat-Service :8320"]
-    CHAT --> DB[("chat_db<br/>PostgreSQL")]
-    CHAT -->|"Feign · GET publicación"| SM["Servicio de publicaciones<br/>(Sprint 1: monolito)"]
-    CHAT -. "MensajeEnviadoEvent (Sprint 2)" .-> MQ{{"RabbitMQ<br/>styleradar.events"}}
-    MQ -. "PrendaSegundaManoVendidaEvent<br/>PrendaSegundaManoRetiradaEvent (Sprint 2)" .-> CHAT
-    MQ -.-> NOT["ms-notificaciones :8300"]
-```
+<div align="center">
+
+<img src="diagramas/componentes-general.png" alt="Componentes generales" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/componentes-general.drawio"><code>componentes-general.drawio</code></a></sub>
+
+</div>
 
 El frontend nunca llama al chat directamente: entra por el **API Gateway**, que valida el JWT y enruta. El chat tiene **su propia base de datos** y no lee la de ningún otro servicio. Lo único que necesita de otro contexto (el estado y el dueño de una publicación) lo pide por **REST con Feign**, porque necesita la respuesta en ese momento para decidir si deja iniciar el chat. Las notificaciones y el cierre de la conversación cuando la prenda se vende o se retira no necesitan respuesta inmediata, por eso irán por **eventos en RabbitMQ**: así el chat no depende de que ms-notificaciones esté arriba.
 
 ### 2.3 Despliegue
 
-```mermaid
-flowchart TB
-    subgraph LOCAL["Docker Compose (local)"]
-        PG[("postgres:15-alpine<br/>:5433 → 5432<br/>volumen chat-data")]
-        APP["gj-chat-service<br/>eclipse-temurin:17-jre-alpine<br/>:8320"]
-        APP -->|"JDBC"| PG
-    end
-    subgraph AZURE["Azure (QA / PROD)"]
-        AS["App Service para contenedores<br/>WEBSITES_PORT=8320"]
-        APG[("Azure Database for PostgreSQL")]
-        AS -->|"JDBC cifrado"| APG
-    end
-    HUB["Docker Hub<br/>gj-chat-service:qa-&lt;sha&gt; / vX.Y.Z"] --> AS
-    GHA["GitHub Actions"] --> HUB
-```
+<div align="center">
+
+<img src="diagramas/despliegue.png" alt="Despliegue local y en Azure" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/despliegue.drawio"><code>despliegue.drawio</code></a></sub>
+
+</div>
 
 En local, `docker compose up --build` levanta la base y el servicio; el servicio espera a que PostgreSQL esté sano (`healthcheck`) antes de arrancar. En la nube, GitHub Actions construye la imagen multi-stage, la publica en Docker Hub y la despliega en un App Service con sus variables de entorno (`DB_URL`, `JWT_SECRET_BASE64`, `SEGUNDA_MANO_URL`). La misma imagen corre en los dos ambientes; solo cambian las variables.
 
@@ -143,50 +131,13 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 
 ## <img src="https://img.shields.io/badge/04-5600EF?style=for-the-badge" height="20" align="absmiddle" /> ARQUITECTURA HEXAGONAL ESPECÍFICA
 
-```mermaid
-flowchart LR
-    subgraph IN["Adaptadores de entrada (driving)"]
-        CTRL["ChatController<br/>+ doc/ChatApi"]
-        FIL["JwtAuthenticationFilter"]
-    end
-    subgraph PORTIN["domain/port/in"]
-        I1["IniciarConversacionUseCase"]
-        I2["ConsultarMisConversacionesUseCase"]
-        I3["ConsultarMensajesUseCase"]
-        I4["EnviarMensajeUseCase"]
-    end
-    subgraph APP["application/usecase"]
-        U1["IniciarConversacionUseCaseImpl"]
-        U2["ConsultarMisConversacionesUseCaseImpl"]
-        U3["ConsultarMensajesUseCaseImpl"]
-        U4["EnviarMensajeUseCaseImpl"]
-    end
-    subgraph DOM["domain/model"]
-        M["Conversacion · Mensaje<br/>TextoMensaje · PublicacionResumen"]
-    end
-    subgraph PORTOUT["domain/port/out"]
-        O1["ConversacionRepositoryPort"]
-        O2["MensajeRepositoryPort"]
-        O3["PublicacionConsultaPort"]
-    end
-    subgraph OUT["Adaptadores de salida (driven)"]
-        A1["ConversacionRepositoryAdapter"]
-        A2["MensajeRepositoryAdapter"]
-        A3["PublicacionConsultaAdapter<br/>(SegundaManoFeignClient)"]
-    end
-    CTRL --> I1 & I2 & I3 & I4
-    I1 -.-> U1
-    I2 -.-> U2
-    I3 -.-> U3
-    I4 -.-> U4
-    U1 & U2 & U3 & U4 --> M
-    U1 & U4 --> O3
-    U1 & U2 & U3 & U4 --> O1
-    U3 & U4 --> O2
-    O1 -.-> A1
-    O2 -.-> A2
-    O3 -.-> A3
-```
+<div align="center">
+
+<img src="diagramas/arquitectura-hexagonal-detalle.png" alt="Arquitectura hexagonal en detalle" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/arquitectura-hexagonal-detalle.drawio"><code>arquitectura-hexagonal-detalle.drawio</code></a></sub>
+
+</div>
 
 **Explicación.** Los adaptadores de entrada traducen HTTP: `JwtAuthenticationFilter` valida el token y deja al usuario en el contexto, y `ChatController` solo conoce las interfaces de `port/in`. Cada caso de uso es una interfaz con su `*UseCaseImpl` en `application/usecase`, registrado como `@Bean` en `BeanConfig` (sin `@Service`). Las reglas del negocio viven en el dominio y no dependen de Spring ni de JPA. Los casos de uso piden lo externo por puertos de salida, que implementan los adaptadores: JPA para la base y Feign para el servicio de publicaciones.
 
@@ -196,51 +147,13 @@ flowchart LR
 
 ### Diagrama de secuencia · enviar un mensaje (actualiza la secuencia 7.5 con la llamada Feign)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor U as Comprador o vendedor
-    participant GW as API Gateway
-    participant F as JwtAuthenticationFilter
-    participant C as ChatController
-    participant UC as EnviarMensajeUseCaseImpl
-    participant CR as ConversacionRepositoryPort<br/>(JPA)
-    participant PC as PublicacionConsultaPort<br/>(Feign)
-    participant SM as Servicio de publicaciones<br/>de segunda mano
-    participant MR as MensajeRepositoryPort<br/>(JPA)
+<div align="center">
 
-    U->>GW: POST /api/v1/conversaciones/7/mensajes<br/>Bearer JWT · {"texto": "..."}
-    GW->>F: reenvía la petición con el JWT
-    F->>F: valida firma HS256 y saca el usuario (id 1)
-    F->>C: petición autenticada
-    C->>C: valida el JSON y crea TextoMensaje
-    C->>UC: enviar(1, 7, texto)
-    UC->>CR: buscarPorId(7)
-    CR-->>UC: Conversacion (ABIERTA)
-    UC->>UC: verificarParticipante(1)
-    UC->>PC: consultar(publicacionId = 10)
-    PC->>SM: GET /api/v1/segunda-mano/10<br/>Authorization reenviado · timeout 3 s / 5 s
-    alt el servicio responde
-        SM-->>PC: 200 {estado, vendedorId, ...}
-        PC-->>UC: PublicacionResumen
-    else no responde o falla
-        SM--xPC: timeout / 5xx
-        PC-->>C: ServicioExternoNoDisponibleException
-        C-->>U: 503 problem+json
-    end
-    alt la publicación fue retirada
-        UC->>UC: conversacion.cerrar()
-        UC->>CR: guardar(conversacion CERRADA)
-        UC-->>C: ConversacionCerradaException
-        C-->>U: 422 problem+json
-    else sigue disponible
-        UC->>UC: conversacion.escribir(1, texto, ahora)
-        UC->>MR: guardar(mensaje)
-        MR-->>UC: Mensaje con id 20
-        UC-->>C: Mensaje
-        C-->>U: 201 MensajeResponse
-    end
-```
+<img src="diagramas/secuencia-enviar-mensaje.png" alt="Secuencia: enviar un mensaje" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/secuencia-enviar-mensaje.drawio"><code>secuencia-enviar-mensaje.drawio</code></a></sub>
+
+</div>
 
 **Explicación.** El diagrama recorre el caso de uso de SR-RF-41 de punta a punta. La autenticación ocurre una sola vez, en el filtro; el controlador y el caso de uso reciben el id del usuario ya validado. El cambio frente a la secuencia 7.5 del monolito son los pasos 10 y 11: como la publicación ya no vive en la misma base, el caso de uso la pide por `PublicacionConsultaPort`, y el adaptador Feign hace la llamada HTTP al servicio dueño, reenviando el mismo JWT y con tiempos límite de 3 s para conectar y 5 s para leer.
 
@@ -252,65 +165,13 @@ sequenceDiagram
 
 ## <img src="https://img.shields.io/badge/05-5600EF?style=for-the-badge" height="20" align="absmiddle" /> MODELO DE DOMINIO Y DIAGRAMA DE CLASES
 
-```mermaid
-classDiagram
-    class Conversacion {
-        <<Aggregate Root>>
-        -Long id
-        -Long publicacionId
-        -String prendaNombre
-        -Long compradorId
-        -Long vendedorId
-        -EstadoConversacion estado
-        -Instant fechaCreacion
-        +iniciar(PublicacionResumen, Long, Instant)$ Conversacion
-        +esParticipante(Long) boolean
-        +verificarParticipante(Long)
-        +estaAbierta() boolean
-        +cerrar()
-        +escribir(Long, TextoMensaje, Instant) Mensaje
-    }
-    class Mensaje {
-        <<Entity>>
-        -Long id
-        -Long conversacionId
-        -Long autorId
-        -TextoMensaje texto
-        -Instant fechaEnvio
-    }
-    class TextoMensaje {
-        <<Value Object>>
-        +String valor
-        +LONGITUD_MAXIMA = 1000
-    }
-    class PublicacionResumen {
-        <<Value Object>>
-        +Long id
-        +Long vendedorId
-        +String prendaNombre
-        +EstadoPublicacion estado
-        +estaDisponible() boolean
-        +fueRetirada() boolean
-    }
-    class EstadoConversacion {
-        <<enumeration>>
-        ABIERTA
-        CERRADA
-    }
-    class EstadoPublicacion {
-        <<enumeration>>
-        DISPONIBLE
-        VENDIDA
-        RETIRADA
-        EN_DONACION
-        DONADA
-    }
-    Conversacion "1" --> "0..*" Mensaje : contiene
-    Conversacion ..> PublicacionResumen : se inicia desde
-    Conversacion --> EstadoConversacion
-    Mensaje --> TextoMensaje
-    PublicacionResumen --> EstadoPublicacion
-```
+<div align="center">
+
+<img src="diagramas/modelo-de-dominio-clases.png" alt="Diagrama de clases del dominio" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/modelo-de-dominio-clases.drawio"><code>modelo-de-dominio-clases.drawio</code></a></sub>
+
+</div>
 
 **Explicación.** `Conversacion` es el agregado raíz: toda escritura pasa por `escribir(...)`, que garantiza las invariantes (solo participantes, conversación abierta). `Iniciar` es un método de fábrica que exige una publicación disponible y ajena. `Mensaje` es inmutable una vez creado. `TextoMensaje` es un value object: valida al crearse que el texto no esté vacío, le quita los espacios sobrantes y limita a 1.000 caracteres, así un texto inválido nunca llega a existir dentro del dominio. `PublicacionResumen` es la copia mínima e inmutable de un dato que pertenece a otro contexto. Las excepciones del dominio (`ConversacionNoEncontradaException`, `ConversacionCerradaException`, `PublicacionNoDisponibleException`, `ChatConsigoMismoException`, `TextoMensajeInvalidoException`) no saben de HTTP; la infraestructura las traduce.
 
@@ -322,26 +183,13 @@ classDiagram
 
 ## <img src="https://img.shields.io/badge/06-5600EF?style=for-the-badge" height="20" align="absmiddle" /> MODELO DE BASE DE DATOS
 
-```mermaid
-erDiagram
-    CONVERSACIONES ||--o{ MENSAJES : contiene
-    CONVERSACIONES {
-        bigint id PK "GENERATED BY DEFAULT AS IDENTITY"
-        bigint publicacion_id "NOT NULL · id externo, sin FK"
-        varchar prenda_nombre "200"
-        bigint comprador_id "NOT NULL · id externo"
-        bigint vendedor_id "NOT NULL · id externo"
-        varchar estado "NOT NULL · ABIERTA | CERRADA"
-        timestamptz fecha_creacion "NOT NULL"
-    }
-    MENSAJES {
-        bigint id PK
-        bigint conversacion_id FK "NOT NULL"
-        bigint autor_id "NOT NULL · id externo"
-        varchar texto "NOT NULL · 1000"
-        timestamptz fecha_envio "NOT NULL"
-    }
-```
+<div align="center">
+
+<img src="diagramas/modelo-entidad-relacion.png" alt="Modelo entidad-relación" width="100%" />
+
+<sub>Editable en draw.io: <a href="diagramas/modelo-entidad-relacion.drawio"><code>modelo-entidad-relacion.drawio</code></a></sub>
+
+</div>
 
 | Restricción / índice | Para qué |
 | --- | --- |
