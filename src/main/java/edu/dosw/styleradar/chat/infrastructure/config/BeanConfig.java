@@ -1,51 +1,61 @@
 package edu.dosw.styleradar.chat.infrastructure.config;
 
-import edu.dosw.styleradar.chat.application.usecase.ConsultarMensajesUseCaseImpl;
-import edu.dosw.styleradar.chat.application.usecase.ConsultarMisConversacionesUseCaseImpl;
-import edu.dosw.styleradar.chat.application.usecase.EnviarMensajeUseCaseImpl;
-import edu.dosw.styleradar.chat.application.usecase.IniciarConversacionUseCaseImpl;
-import edu.dosw.styleradar.chat.domain.port.in.ConsultarMensajesUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.ConsultarMisConversacionesUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.EnviarMensajeUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.IniciarConversacionUseCase;
-import edu.dosw.styleradar.chat.domain.port.out.ConversacionRepositoryPort;
-import edu.dosw.styleradar.chat.domain.port.out.MensajeRepositoryPort;
-import edu.dosw.styleradar.chat.domain.port.out.PublicacionConsultaPort;
+import edu.dosw.styleradar.chat.application.usecase.CloseConversationsOnSaleUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.GetMessagesUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.GetMyConversationsUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.SendMessageUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.StartConversationUseCaseImpl;
+import edu.dosw.styleradar.chat.domain.port.in.CloseConversationsOnSaleUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
+import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
+import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
+import edu.dosw.styleradar.chat.domain.port.out.ProcessedEventPort;
+import edu.dosw.styleradar.chat.domain.port.out.ListingQueryPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 
-/** Inyección manual: los casos de uso no llevan @Service; aquí se conectan con sus adaptadores. */
+/** Wires the use cases as Spring beans so the application layer stays framework free. */
 @Configuration
 public class BeanConfig {
-
     @Bean
     public Clock clock() {
         return Clock.systemUTC();
     }
 
     @Bean
-    public IniciarConversacionUseCase iniciarConversacionUseCase(ConversacionRepositoryPort conversaciones,
-                                                                 PublicacionConsultaPort publicaciones, Clock clock) {
-        return new IniciarConversacionUseCaseImpl(conversaciones, publicaciones, clock);
+    public StartConversationUseCase startConversationUseCase(ConversationRepositoryPort conversations,
+                                                                 ListingQueryPort listings, Clock clock) {
+        return new StartConversationUseCaseImpl(conversations, listings, clock);
     }
 
     @Bean
-    public ConsultarMisConversacionesUseCase consultarMisConversacionesUseCase(ConversacionRepositoryPort conversaciones) {
-        return new ConsultarMisConversacionesUseCaseImpl(conversaciones);
+    public GetMyConversationsUseCase getMyConversationsUseCase(ConversationRepositoryPort conversations) {
+        return new GetMyConversationsUseCaseImpl(conversations);
     }
 
     @Bean
-    public ConsultarMensajesUseCase consultarMensajesUseCase(ConversacionRepositoryPort conversaciones,
-                                                             MensajeRepositoryPort mensajes) {
-        return new ConsultarMensajesUseCaseImpl(conversaciones, mensajes);
+    public GetMessagesUseCase getMessagesUseCase(ConversationRepositoryPort conversations,
+                                                             MessageRepositoryPort messages) {
+        return new GetMessagesUseCaseImpl(conversations, messages);
     }
 
     @Bean
-    public EnviarMensajeUseCase enviarMensajeUseCase(ConversacionRepositoryPort conversaciones,
-                                                     MensajeRepositoryPort mensajes,
-                                                     PublicacionConsultaPort publicaciones, Clock clock) {
-        return new EnviarMensajeUseCaseImpl(conversaciones, mensajes, publicaciones, clock);
+    public SendMessageUseCase sendMessageUseCase(ConversationRepositoryPort conversations,
+                                                     MessageRepositoryPort messages,
+                                                     ListingQueryPort listings, EventPublisherPort events,
+                                                     Clock clock) {
+        return new SendMessageUseCaseImpl(conversations, messages, listings, events, clock);
+    }
+
+    @Bean
+    public CloseConversationsOnSaleUseCase closeConversationsOnSaleUseCase(
+            ConversationRepositoryPort conversations, ProcessedEventPort processedEvents) {
+        return new CloseConversationsOnSaleUseCaseImpl(conversations, processedEvents);
     }
 }

@@ -1,20 +1,20 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.in.rest;
 
-import edu.dosw.styleradar.chat.application.mapper.in.MensajeDtoInMapperImpl;
-import edu.dosw.styleradar.chat.application.mapper.out.ConversacionDtoOutMapperImpl;
-import edu.dosw.styleradar.chat.application.mapper.out.MensajeDtoOutMapperImpl;
-import edu.dosw.styleradar.chat.domain.exception.ChatConsigoMismoException;
-import edu.dosw.styleradar.chat.domain.exception.ConversacionCerradaException;
-import edu.dosw.styleradar.chat.domain.exception.ConversacionNoEncontradaException;
-import edu.dosw.styleradar.chat.domain.exception.PublicacionNoEncontradaException;
-import edu.dosw.styleradar.chat.domain.exception.ServicioExternoNoDisponibleException;
-import edu.dosw.styleradar.chat.domain.exception.TextoMensajeInvalidoException;
-import edu.dosw.styleradar.chat.domain.model.EstadoConversacion;
-import edu.dosw.styleradar.chat.domain.model.TextoMensaje;
-import edu.dosw.styleradar.chat.domain.port.in.ConsultarMensajesUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.ConsultarMisConversacionesUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.EnviarMensajeUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.IniciarConversacionUseCase;
+import edu.dosw.styleradar.chat.application.mapper.in.MessageDtoInMapperImpl;
+import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapperImpl;
+import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapperImpl;
+import edu.dosw.styleradar.chat.domain.exception.SelfChatException;
+import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
+import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.ListingNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
+import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
+import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtTokenAdapter;
 import edu.dosw.styleradar.chat.infrastructure.config.SecurityConfig;
 import edu.dosw.styleradar.chat.infrastructure.exception.GlobalExceptionHandler;
@@ -34,10 +34,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Clock;
 import java.util.List;
 
-import static edu.dosw.styleradar.chat.support.Datos.COMPRADOR;
-import static edu.dosw.styleradar.chat.support.Datos.PUBLICACION;
-import static edu.dosw.styleradar.chat.support.Datos.conversacion;
-import static edu.dosw.styleradar.chat.support.Datos.mensaje;
+import static edu.dosw.styleradar.chat.support.TestData.BUYER;
+import static edu.dosw.styleradar.chat.support.TestData.LISTING;
+import static edu.dosw.styleradar.chat.support.TestData.conversation;
+import static edu.dosw.styleradar.chat.support.TestData.message;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -48,19 +48,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Web slice tests of the REST contract, security and error mapping. */
 @WebMvcTest(controllers = ChatController.class)
 @ActiveProfiles("test")
 @Import({SecurityConfig.class, JwtTokenAdapter.class, SecurityProblemHandler.class, GlobalExceptionHandler.class,
-        MensajeDtoInMapperImpl.class, ConversacionDtoOutMapperImpl.class, MensajeDtoOutMapperImpl.class,
-        ChatControllerTest.Reloj.class})
+        MessageDtoInMapperImpl.class, ConversationDtoOutMapperImpl.class, MessageDtoOutMapperImpl.class,
+        ChatControllerTest.FixedClockConfig.class})
 class ChatControllerTest {
-
-    private static final String INICIAR = "/api/v1/segunda-mano/10/conversaciones";
-    private static final String MENSAJES = "/api/v1/conversaciones/7/mensajes";
-    private static final String MIS_CONVERSACIONES = "/api/v1/usuarios/me/conversaciones";
+    private static final String START = "/api/v1/segunda-mano/10/conversaciones";
+    private static final String MESSAGES = "/api/v1/conversaciones/7/mensajes";
+    private static final String MY_CONVERSATIONS = "/api/v1/usuarios/me/conversaciones";
 
     @TestConfiguration
-    static class Reloj {
+    static class FixedClockConfig {
         @Bean
         Clock clock() {
             return Clock.systemUTC();
@@ -70,21 +70,21 @@ class ChatControllerTest {
     @Autowired
     private MockMvc mvc;
     @MockBean
-    private IniciarConversacionUseCase iniciar;
+    private StartConversationUseCase start;
     @MockBean
-    private ConsultarMisConversacionesUseCase misConversaciones;
+    private GetMyConversationsUseCase myConversations;
     @MockBean
-    private ConsultarMensajesUseCase consultarMensajes;
+    private GetMessagesUseCase getMessages;
     @MockBean
-    private EnviarMensajeUseCase enviar;
+    private SendMessageUseCase send;
 
-    private static String comprador() {
-        return Tokens.bearer(Tokens.de(COMPRADOR));
+    private static String buyer() {
+        return Tokens.bearer(Tokens.forUser(BUYER));
     }
 
     @Test
-    void sinTokenResponde401EnFormatoProblemDetails() throws Exception {
-        mvc.perform(post(INICIAR))
+    void withoutTokenRespondsWith401InProblemDetailsFormat() throws Exception {
+        mvc.perform(post(START))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401))
@@ -92,26 +92,26 @@ class ChatControllerTest {
     }
 
     @Test
-    void conTokenInvalidoResponde401() throws Exception {
-        mvc.perform(get(MIS_CONVERSACIONES).header("Authorization", Tokens.bearer(Tokens.conOtraLlave(COMPRADOR))))
+    void withInvalidTokenRespondsWith401() throws Exception {
+        mvc.perform(get(MY_CONVERSATIONS).header("Authorization", Tokens.bearer(Tokens.withAnotherKey(BUYER))))
                 .andExpect(status().isUnauthorized());
-        verifyNoInteractions(misConversaciones);
+        verifyNoInteractions(myConversations);
     }
 
     @Test
-    void conOtroRolResponde403() throws Exception {
-        mvc.perform(get(MIS_CONVERSACIONES)
-                        .header("Authorization", Tokens.bearer(Tokens.conRoles(COMPRADOR, List.of("ADMIN_STYLERADAR")))))
+    void withAnotherRoleRespondsWith403() throws Exception {
+        mvc.perform(get(MY_CONVERSATIONS)
+                        .header("Authorization", Tokens.bearer(Tokens.withRoles(BUYER, List.of("ADMIN_STYLERADAR")))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
-        verifyNoInteractions(misConversaciones);
+        verifyNoInteractions(myConversations);
     }
 
     @Test
-    void iniciaUnaConversacionConElUsuarioDelToken() throws Exception {
-        when(iniciar.iniciar(COMPRADOR, PUBLICACION)).thenReturn(conversacion(7L, EstadoConversacion.ABIERTA));
+    void startsAConversationWithTheTokenUser() throws Exception {
+        when(start.start(BUYER, LISTING)).thenReturn(conversation(7L, ConversationStatus.OPEN));
 
-        mvc.perform(post(INICIAR).header("Authorization", comprador()))
+        mvc.perform(post(START).header("Authorization", buyer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.publicacionId").value(10))
@@ -123,20 +123,20 @@ class ChatControllerTest {
     }
 
     @Test
-    void listaMisConversaciones() throws Exception {
-        when(misConversaciones.consultar(COMPRADOR)).thenReturn(List.of(conversacion(7L, EstadoConversacion.CERRADA)));
+    void listsMyConversations() throws Exception {
+        when(myConversations.fetch(BUYER)).thenReturn(List.of(conversation(7L, ConversationStatus.CLOSED)));
 
-        mvc.perform(get(MIS_CONVERSACIONES).header("Authorization", comprador()))
+        mvc.perform(get(MY_CONVERSATIONS).header("Authorization", buyer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(7))
                 .andExpect(jsonPath("$[0].estado").value("CERRADA"));
     }
 
     @Test
-    void listaLosMensajes() throws Exception {
-        when(consultarMensajes.consultar(COMPRADOR, 7L)).thenReturn(List.of(mensaje(20L, 7L, COMPRADOR, "Hola")));
+    void listsTheMessages() throws Exception {
+        when(getMessages.fetch(BUYER, 7L)).thenReturn(List.of(message(20L, 7L, BUYER, "Hola")));
 
-        mvc.perform(get(MENSAJES).header("Authorization", comprador()))
+        mvc.perform(get(MESSAGES).header("Authorization", buyer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(20))
                 .andExpect(jsonPath("$[0].conversacionId").value(7))
@@ -145,95 +145,95 @@ class ChatControllerTest {
     }
 
     @Test
-    void enviaUnMensajeYResponde201() throws Exception {
-        when(enviar.enviar(eq(COMPRADOR), eq(7L), eq(new TextoMensaje("Hola"))))
-                .thenReturn(mensaje(20L, 7L, COMPRADOR, "Hola"));
+    void sendsAMessageAndRespondsWith201() throws Exception {
+        when(send.send(eq(BUYER), eq(7L), eq(new MessageText("Hola"))))
+                .thenReturn(message(20L, 7L, BUYER, "Hola"));
 
-        mvc.perform(post(MENSAJES).header("Authorization", comprador())
+        mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"  Hola  \"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.texto").value("Hola"));
     }
 
     @Test
-    void unMensajeVacioResponde400ConElCampo() throws Exception {
-        mvc.perform(post(MENSAJES).header("Authorization", comprador())
+    void anEmptyMessageRespondsWith400WithTheField() throws Exception {
+        mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errores.texto").exists());
-        verifyNoInteractions(enviar);
+        verifyNoInteractions(send);
     }
 
     @Test
-    void unCuerpoMalFormadoResponde400() throws Exception {
-        mvc.perform(post(MENSAJES).header("Authorization", comprador())
+    void aMalformedBodyRespondsWith400() throws Exception {
+        mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{texto"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void unIdNoNumericoResponde400() throws Exception {
-        mvc.perform(get("/api/v1/conversaciones/abc/mensajes").header("Authorization", comprador()))
+    void aNonNumericIdRespondsWith400() throws Exception {
+        mvc.perform(get("/api/v1/conversaciones/abc/mensajes").header("Authorization", buyer()))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void unTextoInvalidoDelDominioResponde400() throws Exception {
-        when(enviar.enviar(any(), any(), any())).thenThrow(new TextoMensajeInvalidoException("inválido"));
+    void anInvalidDomainTextRespondsWith400() throws Exception {
+        when(send.send(any(), any(), any())).thenThrow(new InvalidMessageTextException("inválido"));
 
-        mvc.perform(post(MENSAJES).header("Authorization", comprador())
+        mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void conversacionAjenaOInexistenteResponde404() throws Exception {
-        when(consultarMensajes.consultar(COMPRADOR, 7L)).thenThrow(new ConversacionNoEncontradaException(7L));
+    void foreignOrMissingConversationRespondsWith404() throws Exception {
+        when(getMessages.fetch(BUYER, 7L)).thenThrow(new ConversationNotFoundException(7L));
 
-        mvc.perform(get(MENSAJES).header("Authorization", comprador()))
+        mvc.perform(get(MESSAGES).header("Authorization", buyer()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("No existe la conversación 7"))
-                .andExpect(jsonPath("$.instance").value(MENSAJES));
+                .andExpect(jsonPath("$.instance").value(MESSAGES));
     }
 
     @Test
-    void publicacionInexistenteResponde404() throws Exception {
-        when(iniciar.iniciar(COMPRADOR, PUBLICACION)).thenThrow(new PublicacionNoEncontradaException("no existe"));
+    void missingListingRespondsWith404() throws Exception {
+        when(start.start(BUYER, LISTING)).thenThrow(new ListingNotFoundException("no existe"));
 
-        mvc.perform(post(INICIAR).header("Authorization", comprador())).andExpect(status().isNotFound());
+        mvc.perform(post(START).header("Authorization", buyer())).andExpect(status().isNotFound());
     }
 
     @Test
-    void reglasDeNegocioResponden422() throws Exception {
-        when(iniciar.iniciar(COMPRADOR, PUBLICACION)).thenThrow(new ChatConsigoMismoException("propia"));
-        mvc.perform(post(INICIAR).header("Authorization", comprador()))
+    void businessRulesRespondWith422() throws Exception {
+        when(start.start(BUYER, LISTING)).thenThrow(new SelfChatException("propia"));
+        mvc.perform(post(START).header("Authorization", buyer()))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title").value("Regla de negocio incumplida"));
 
-        when(enviar.enviar(any(), any(), any())).thenThrow(new ConversacionCerradaException("cerrada"));
-        mvc.perform(post(MENSAJES).header("Authorization", comprador())
+        when(send.send(any(), any(), any())).thenThrow(new ConversationClosedException("cerrada"));
+        mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
-    void siElServicioDePublicacionesFallaResponde503() throws Exception {
-        when(iniciar.iniciar(COMPRADOR, PUBLICACION)).thenThrow(new ServicioExternoNoDisponibleException("caído"));
+    void ifListingServiceFailsRespondsWith503() throws Exception {
+        when(start.start(BUYER, LISTING)).thenThrow(new ExternalServiceUnavailableException("caído"));
 
-        mvc.perform(post(INICIAR).header("Authorization", comprador())).andExpect(status().isServiceUnavailable());
+        mvc.perform(post(START).header("Authorization", buyer())).andExpect(status().isServiceUnavailable());
     }
 
     @Test
-    void unErrorInesperadoResponde500SinDetallesInternos() throws Exception {
-        when(misConversaciones.consultar(COMPRADOR)).thenThrow(new IllegalStateException("detalle interno"));
+    void anUnexpectedErrorRespondsWith500WithoutInternalDetails() throws Exception {
+        when(myConversations.fetch(BUYER)).thenThrow(new IllegalStateException("detalle interno"));
 
-        mvc.perform(get(MIS_CONVERSACIONES).header("Authorization", comprador()))
+        mvc.perform(get(MY_CONVERSATIONS).header("Authorization", buyer()))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.detail").value("Ocurrió un error inesperado"));
     }
 
     @Test
-    void unaRutaInexistenteResponde404() throws Exception {
-        mvc.perform(get("/api/v1/no-existe").header("Authorization", comprador())).andExpect(status().isNotFound());
+    void aMissingRouteRespondsWith404() throws Exception {
+        mvc.perform(get("/api/v1/no-existe").header("Authorization", buyer())).andExpect(status().isNotFound());
     }
 }

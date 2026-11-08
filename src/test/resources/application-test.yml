@@ -1,7 +1,19 @@
+spring:
+  rabbitmq:
+    dynamic: false
+    listener:
+      simple:
+        auto-startup: false
+
 styleradar:
   security:
     jwt:
       secret-base64: c3R5bGVyYWRhci1tcy1jaGF0LWxsYXZlLXNvbG8tcGFyYS1wcnVlYmFzISE=
-  servicios:
-    segunda-mano:
+  services:
+    second-hand:
       url: http://localhost:1
+
+management:
+  health:
+    rabbit:
+      enabled: false

@@ -41,7 +41,7 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Web, validación, seguridad y salud -->
+        <!-- Web, validation, security and health -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -59,7 +59,7 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Persistencia -->
+        <!-- Persistence -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -74,7 +74,12 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
-        <!-- Comunicación con otros microservicios -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
+        <!-- Messaging and service calls -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
@@ -99,14 +104,14 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Documentación -->
+        <!-- API docs -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Mappers y utilidades -->
+        <!-- Mappers and utilities -->
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
@@ -119,7 +124,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Pruebas -->
+        <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -228,7 +233,7 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
-                            <!-- La guía exige el 85 % en dominio y aplicación -->
+                            <!-- 85% coverage in domain and application -->
                             <includes>
                                 <include>edu/dosw/styleradar/chat/domain/**</include>
                                 <include>edu/dosw/styleradar/chat/application/**</include>

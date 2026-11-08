@@ -19,18 +19,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-/** Stateless con JWT. Públicos: salud y documentación. Lo demás exige token y el rol se revisa con @PreAuthorize. */
+/** Stateless security: public health and docs endpoints, JWT everywhere else, CORS from configuration. */
 @Configuration
 @EnableMethodSecurity(proxyTargetClass = true)
 public class SecurityConfig {
-
-    private static final String[] RUTAS_PUBLICAS = {
+    private static final String[] PUBLIC_PATHS = {
             "/actuator/health/**", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
-                                                   SecurityProblemHandler problemas) throws Exception {
+                                                   SecurityProblemHandler problems) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> {
@@ -39,27 +38,26 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(RUTAS_PUBLICAS).permitAll()
+                        .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
-                .exceptionHandling(e -> e.authenticationEntryPoint(problemas).accessDeniedHandler(problemas))
+                .exceptionHandling(e -> e.authenticationEntryPoint(problems).accessDeniedHandler(problems))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-    /** El filtro solo debe correr dentro de la cadena de seguridad, no también como filtro global del servidor. */
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
-        FilterRegistrationBean<JwtAuthenticationFilter> registro = new FilterRegistrationBean<>(filter);
-        registro.setEnabled(false);
-        return registro;
+        FilterRegistrationBean<JwtAuthenticationFilter> registry = new FilterRegistrationBean<>(filter);
+        registry.setEnabled(false);
+        return registry;
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${styleradar.cors.allowed-origins:}") String origenes) {
+            @Value("${styleradar.cors.allowed-origins:}") String origins) {
         CorsConfiguration config = new CorsConfiguration();
-        List<String> permitidos = Arrays.stream(origenes.split(",")).map(String::trim).filter(o -> !o.isEmpty()).toList();
-        config.setAllowedOrigins(permitidos);
+        List<String> allowed = Arrays.stream(origins.split(",")).map(String::trim).filter(o -> !o.isEmpty()).toList();
+        config.setAllowedOrigins(allowed);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

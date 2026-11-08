@@ -10,59 +10,59 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/** Tests for JWT validation. */
 class JwtTokenAdapterTest {
-
-    private final JwtTokenAdapter adapter = new JwtTokenAdapter(Tokens.SECRETO, "COMPRADOR", Clock.systemUTC());
+    private final JwtTokenAdapter adapter = new JwtTokenAdapter(Tokens.SECRET, "COMPRADOR", Clock.systemUTC());
 
     @Test
-    void sinClaimDeRolesAsignaElRolPorDefecto() {
-        UsuarioAutenticado usuario = adapter.validar(Tokens.de(5L));
+    void withoutRolesClaimAssignsDefaultRole() {
+        AuthenticatedUser user = adapter.validate(Tokens.forUser(5L));
 
-        assertThat(usuario.usuarioId()).isEqualTo(5L);
-        assertThat(usuario.roles()).containsExactly("COMPRADOR");
-        assertThat(usuario.authorities()).extracting("authority").containsExactly("ROLE_COMPRADOR");
+        assertThat(user.userId()).isEqualTo(5L);
+        assertThat(user.roles()).containsExactly("COMPRADOR");
+        assertThat(user.authorities()).extracting("authority").containsExactly("ROLE_COMPRADOR");
     }
 
     @Test
-    void usaLosRolesDelTokenConOSinPrefijo() {
-        UsuarioAutenticado usuario = adapter.validar(Tokens.conRoles(5L, List.of("ROLE_ADMIN_ALMACEN", "COMPRADOR", " ")));
+    void usesTokenRolesWithOrWithoutPrefix() {
+        AuthenticatedUser user = adapter.validate(Tokens.withRoles(5L, List.of("ROLE_ADMIN_ALMACEN", "COMPRADOR", " ")));
 
-        assertThat(usuario.roles()).containsExactlyInAnyOrder("ADMIN_ALMACEN", "COMPRADOR");
+        assertThat(user.roles()).containsExactlyInAnyOrder("ADMIN_ALMACEN", "COMPRADOR");
     }
 
     @Test
-    void rechazaTokenVencido() {
-        assertThatThrownBy(() -> adapter.validar(Tokens.vencido(5L))).isInstanceOf(JwtException.class);
+    void rejectsExpiredToken() {
+        assertThatThrownBy(() -> adapter.validate(Tokens.expired(5L))).isInstanceOf(JwtException.class);
     }
 
     @Test
-    void rechazaTokenFirmadoConOtraLlave() {
-        assertThatThrownBy(() -> adapter.validar(Tokens.conOtraLlave(5L))).isInstanceOf(JwtException.class);
+    void rejectsTokenSignedWithAnotherKey() {
+        assertThatThrownBy(() -> adapter.validate(Tokens.withAnotherKey(5L))).isInstanceOf(JwtException.class);
     }
 
     @Test
-    void rechazaUnAlgoritmoDistintoDeHs256() {
-        String secreto512 = java.util.Base64.getEncoder().encodeToString(new byte[64]);
-        JwtTokenAdapter adapter512 = new JwtTokenAdapter(secreto512, "COMPRADOR", Clock.systemUTC());
-        assertThatThrownBy(() -> adapter512.validar(Tokens.conAlgoritmoHs512(5L))).isInstanceOf(JwtException.class);
+    void rejectsAlgorithmOtherThanHs256() {
+        String secret512 = java.util.Base64.getEncoder().encodeToString(new byte[64]);
+        JwtTokenAdapter adapter512 = new JwtTokenAdapter(secret512, "COMPRADOR", Clock.systemUTC());
+        assertThatThrownBy(() -> adapter512.validate(Tokens.withHs512Algorithm(5L))).isInstanceOf(JwtException.class);
     }
 
     @Test
-    void rechazaUnTokenMalFormado() {
-        assertThatThrownBy(() -> adapter.validar("no-es-un-jwt")).isInstanceOf(JwtException.class);
+    void rejectsMalformedToken() {
+        assertThatThrownBy(() -> adapter.validate("no-es-un-jwt")).isInstanceOf(JwtException.class);
     }
 
     @Test
-    void rechazaSubjectNoNumerico() {
-        assertThatThrownBy(() -> adapter.validar(Tokens.conSubject("abc"))).isInstanceOf(JwtException.class);
-        assertThatThrownBy(() -> adapter.validar(Tokens.conSubject("0"))).isInstanceOf(JwtException.class);
+    void rejectsNonNumericSubject() {
+        assertThatThrownBy(() -> adapter.validate(Tokens.withSubject("abc"))).isInstanceOf(JwtException.class);
+        assertThatThrownBy(() -> adapter.validate(Tokens.withSubject("0"))).isInstanceOf(JwtException.class);
     }
 
     @Test
-    void exigeUnaLlaveValidaDeAlMenos256Bits() {
+    void requiresAKeyOfAtLeast256Bits() {
         assertThatThrownBy(() -> new JwtTokenAdapter("", "COMPRADOR", Clock.systemUTC()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("256");
-        assertThatThrownBy(() -> new JwtTokenAdapter("no-es-base64!", "COMPRADOR", Clock.systemUTC()))
+        assertThatThrownBy(() -> new JwtTokenAdapter("not-base64!", "COMPRADOR", Clock.systemUTC()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("Base64");
     }
 }
