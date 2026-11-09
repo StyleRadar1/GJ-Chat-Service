@@ -7,18 +7,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/** Reenvía el JWT del usuario a los otros microservicios para que apliquen sus propias reglas de acceso. */
+/** Enables Feign clients and forwards the caller Authorization header to downstream services. */
 @Configuration
 @EnableFeignClients(basePackages = "edu.dosw.styleradar.chat.infrastructure.adapter.out.external")
 public class FeignConfig {
-
     @Bean
-    public RequestInterceptor reenviarAutorizacion() {
+    public RequestInterceptor forwardAuthorization() {
         return template -> {
-            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes atributos) {
-                String autorizacion = atributos.getRequest().getHeader("Authorization");
-                if (autorizacion != null) {
-                    template.header("Authorization", autorizacion);
+            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
+                String authorization = attributes.getRequest().getHeader("Authorization");
+                if (authorization != null) {
+                    template.header("Authorization", authorization);
                 }
             }
         };

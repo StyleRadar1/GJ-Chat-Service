@@ -7,9 +7,9 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Swagger metadata and Bearer security scheme. */
 @Configuration
 public class OpenApiConfig {
-
     @Bean
     public OpenAPI chatOpenApi() {
         return new OpenAPI()

@@ -162,8 +162,8 @@ La capa de puertos sigue la guía hexagonal del curso: los puertos viven en `dom
 ```text
 src/main/java/edu/dosw/styleradar/chat/
 ├── domain/                                  <-- NÚCLEO DE DOMINIO (cero dependencias externas)
-│   ├── model/                               <-- Conversacion (agregado), Mensaje, TextoMensaje (VO), PublicacionResumen (VO)
-│   ├── event/                               <-- Eventos de dominio (Sprint 2: MensajeEnviadoEvent)
+│   ├── model/                               <-- Conversation (agregado), Message, MessageText (VO), ListingSummary (VO)
+│   ├── event/                               <-- Eventos de dominio (MessageSentEvent)
 │   ├── exception/                           <-- Excepciones de reglas de negocio
 │   └── port/
 │       ├── in/                              <-- Input Ports (interfaces de casos de uso)
@@ -176,13 +176,13 @@ src/main/java/edu/dosw/styleradar/chat/
     ├── adapter/
     │   ├── in/
     │   │   ├── rest/ (+ doc/)               <-- ChatController y documentación OpenAPI
-    │   │   ├── amqp/                        <-- Consumidores RabbitMQ (Sprint 2)
+    │   │   ├── amqp/                        <-- Consumidor RabbitMQ de la venta de una prenda
     │   │   └── websocket/                   <-- STOMP en tiempo real (Sprint 3)
     │   └── out/
     │       ├── persistence/                 <-- Entidades JPA, Spring Data y adaptadores
     │       ├── external/                    <-- Cliente Feign del servicio de publicaciones
     │       ├── security/                    <-- Validación del JWT
-    │       └── messaging/                   <-- Publicador RabbitMQ (Sprint 2)
+    │       └── messaging/                   <-- Publicador RabbitMQ de mensajes enviados
     ├── config/                              <-- BeanConfig, SecurityConfig, FeignConfig, OpenApiConfig
     └── exception/                           <-- GlobalExceptionHandler (RFC 7807)
 ```
@@ -307,7 +307,7 @@ curl -X POST "http://localhost:8320/api/v1/conversaciones/7/mensajes" \
 
 ## <img src="https://img.shields.io/badge/05-5600EF?style=for-the-badge" height="20" align="absmiddle" /> 5. EVENTOS QUE PUBLICA Y CONSUME
 
-La comunicación asíncrona se hará a través de **RabbitMQ** con Topic Exchanges durables a partir del **Sprint 2**. En el Sprint 1 los paquetes `adapter/in/amqp`, `adapter/out/messaging` y `domain/event` ya existen; mientras tanto, el cierre de la conversación se detecta consultando la publicación por Feign en cada envío.
+La comunicación asíncrona usa **RabbitMQ** con Topic Exchanges durables desde el **Sprint 2**: el chat publica `MensajeEnviadoEvent` al guardar un mensaje y consume `PrendaSegundaManoVendidaEvent` para cerrar las conversaciones de los demás compradores. El consumidor es idempotente (tabla `processed_events` por `eventId`) y, tras 3 reintentos, los mensajes fallidos van a `q.chat.segunda-mano.dlq` por `styleradar.dlx`. El cierre por retiro sigue detectándose con la consulta Feign en cada envío.
 
 * **Exchange Principal de Dominio:** `styleradar.events` (`topic`, durable)
 * **Exchange de Auditoría:** `styleradar.audit` (`fanout`, durable)
@@ -472,6 +472,10 @@ Las configuraciones sensibles se externalizan como variables de entorno (*Twelve
 | `DB_USERNAME` | Usuario de la base de datos | `chat` | Sí |
 | `DB_PASSWORD` | Contraseña de la base de datos | `chat` | Sí |
 | `JWT_SECRET_BASE64` | Llave Base64 (≥ 256 bits) igual a la del servicio de identidad | — | Sí |
+| `RABBITMQ_HOST` | Host del broker RabbitMQ | `localhost` | Sí |
+| `RABBITMQ_PORT` | Puerto AMQP del broker | `5672` | No |
+| `RABBITMQ_USER` | Usuario del broker | `guest` | Sí |
+| `RABBITMQ_PASSWORD` | Contraseña del broker | `guest` | Sí |
 | `JWT_ROL_POR_DEFECTO` | Rol asumido si el token no trae el claim `roles` | `COMPRADOR` | No |
 | `SEGUNDA_MANO_URL` | URL base del servicio de publicaciones de segunda mano | `http://localhost:8080` | Sí |
 | `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` | Tiempo límite de conexión de Feign | `3000` | No |
@@ -492,6 +496,8 @@ DB_PORT=5433
 API_PORT=8320
 RABBITMQ_PORT=5672
 RABBITMQ_MANAGEMENT_PORT=15672
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=change-me
 # Debe ser la MISMA llave con la que el servicio de identidad (hoy el monolito) firma los tokens.
 JWT_SECRET_BASE64=change-me-base64-key
 # Servicio dueño de las publicaciones de segunda mano. Sprint 1: el monolito.
@@ -544,15 +550,15 @@ mvn jacoco:report
 
 ### Pirámide de Pruebas Implementada
 
-`src/test` es espejo de `src/main`. Total: **74 pruebas**.
+`src/test` es espejo de `src/main`. Total: **81 pruebas** (métodos de prueba).
 
 | Nivel de Prueba | Alcance | Tecnologías Utilizadas | Ubicación en el Código | Pruebas |
 | :--- | :--- | :--- | :--- | :---: |
-| **Unitarias · dominio** | Reglas de `Conversacion`, `Mensaje`, `TextoMensaje`, `PublicacionResumen` | JUnit 5 | `src/test/java/.../domain/model/` | 25 |
-| **Unitarias · casos de uso** | Los 4 `*UseCaseImpl`, incluidos los casos negativos | JUnit 5, Mockito | `src/test/java/.../application/usecase/` | 14 |
-| **Adaptadores** | Cliente Feign y validación del JWT | JUnit 5, Mockito | `src/test/java/.../infrastructure/adapter/out/` | 14 |
-| **Contrato de API** | Endpoints, seguridad (401/403), validación (400) y errores RFC 7807 | `@WebMvcTest`, MockMvc | `src/test/java/.../infrastructure/adapter/in/rest/` | 17 |
-| **Integración** | Flujo completo del chat y concurrencia al crear conversaciones | Spring Boot Test, Testcontainers (PostgreSQL 15) | `src/test/java/.../infrastructure/` | 4 |
+| **Unitarias · dominio** | Reglas de `Conversation`, `Message`, `MessageText`, `ListingSummary` | JUnit 5 | `src/test/java/.../domain/model/` | 20 |
+| **Unitarias · casos de uso** | Los 5 `*UseCaseImpl`, incluidos los casos negativos, la publicación del evento y la idempotencia | JUnit 5, Mockito | `src/test/java/.../application/usecase/` | 18 |
+| **Adaptadores** | Cliente Feign, JWT, publicador RabbitMQ, eventos procesados y consumidor | JUnit 5, Mockito | `src/test/java/.../infrastructure/adapter/` | 20 |
+| **Contrato de API** | Endpoints, seguridad (401/403), validación (400) y errores RFC 7807 | `@WebMvcTest`, MockMvc | `src/test/java/.../infrastructure/adapter/in/rest/` | 18 |
+| **Integración** | Flujo completo del chat y concurrencia al crear conversaciones | Spring Boot Test, Testcontainers (PostgreSQL 15) | `src/test/java/.../infrastructure/` | 5 |
 
 > [!IMPORTANT]
 > **Criterio de Fallo en CI:** el `pom.xml` contiene la regla `<minimum>0.85</minimum>` sobre `domain/**` y `application/**`. Si la cobertura baja de ese valor, `mvn verify` falla y el pipeline bloquea el Pull Request.
@@ -639,7 +645,7 @@ master                                  <-- Versiones estables (CMV con tag v*.*
 Ejemplos válidos:
 feat(chat): agregar envío de mensajes entre comprador y vendedor [#SR-RF-41]
 fix(chat): rechazar mensajes en conversaciones cerradas [#SR-RF-41]
-test(dominio): agregar pruebas de TextoMensaje [#SR-RF-41]
+test(dominio): agregar pruebas de MessageText [#SR-RF-41]
 docs(readme): aplicar la plantilla oficial del README
 ```
 
