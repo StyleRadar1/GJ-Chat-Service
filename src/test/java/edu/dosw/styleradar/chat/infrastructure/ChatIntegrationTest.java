@@ -1,10 +1,11 @@
 package edu.dosw.styleradar.chat.infrastructure;
 
-import edu.dosw.styleradar.chat.domain.model.Conversacion;
-import edu.dosw.styleradar.chat.domain.model.EstadoConversacion;
-import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.SegundaManoFeignClient;
-import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.PublicacionExternaResponse;
-import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.ConversacionRepositoryAdapter;
+import edu.dosw.styleradar.chat.domain.model.Conversation;
+import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.SecondHandFeignClient;
+import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalListingResponse;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.ConversationRepositoryAdapter;
 import edu.dosw.styleradar.chat.support.Tokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,16 +30,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Prueba de punta a punta con PostgreSQL real (Testcontainers) y el esquema creado por Flyway.
- * Sin Docker se omite; en GitHub Actions siempre corre.
- */
+/** End-to-end chat flow against a real PostgreSQL container. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
 class ChatIntegrationTest {
-
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
@@ -46,79 +43,81 @@ class ChatIntegrationTest {
     @Autowired
     private MockMvc mvc;
     @Autowired
-    private ConversacionRepositoryAdapter conversaciones;
+    private ConversationRepositoryAdapter conversations;
     @MockBean
-    private SegundaManoFeignClient segundaMano;
+    private SecondHandFeignClient secondHand;
+    @MockBean
+    private EventPublisherPort eventPublisher;
 
-    private static PublicacionExternaResponse publicacion(Long id, Long vendedor, String estado) {
-        return new PublicacionExternaResponse(id, vendedor, new PublicacionExternaResponse.Prenda("Chaqueta"), estado);
+    private static ExternalListingResponse listing(Long id, Long seller, String status) {
+        return new ExternalListingResponse(id, seller, new ExternalListingResponse.Garment("Chaqueta"), status);
     }
 
     @Test
-    void flujoCompletoDelChat() throws Exception {
-        when(segundaMano.obtenerPublicacion(100L)).thenReturn(publicacion(100L, 200L, "DISPONIBLE"));
-        String comprador = Tokens.bearer(Tokens.de(300L));
-        String vendedor = Tokens.bearer(Tokens.de(200L));
-        String ajeno = Tokens.bearer(Tokens.de(400L));
+    void fullChatFlow() throws Exception {
+        when(secondHand.getListing(100L)).thenReturn(listing(100L, 200L, "DISPONIBLE"));
+        String buyer = Tokens.bearer(Tokens.forUser(300L));
+        String seller = Tokens.bearer(Tokens.forUser(200L));
+        String outsider = Tokens.bearer(Tokens.forUser(400L));
 
-        String respuesta = mvc.perform(post("/api/v1/segunda-mano/100/conversaciones").header("Authorization", comprador))
+        String response = mvc.perform(post("/api/v1/segunda-mano/100/conversaciones").header("Authorization", buyer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vendedorId").value(200))
                 .andReturn().getResponse().getContentAsString();
-        long id = Long.parseLong(respuesta.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
-        mvc.perform(post("/api/v1/segunda-mano/100/conversaciones").header("Authorization", comprador))
+        mvc.perform(post("/api/v1/segunda-mano/100/conversaciones").header("Authorization", buyer))
                 .andExpect(jsonPath("$.id").value(id));
 
-        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", comprador)
+        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", buyer)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"¿Sigue disponible?\"}"))
                 .andExpect(status().isCreated());
-        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", vendedor)
+        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", seller)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Sí, en Chapinero\"}"))
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", vendedor))
+        mvc.perform(get("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", seller))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].texto").value("¿Sigue disponible?"))
                 .andExpect(jsonPath("$[1].autorId").value(200));
 
-        mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", vendedor))
+        mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", seller))
                 .andExpect(jsonPath("$[0].id").value(id));
 
-        mvc.perform(get("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", ajeno))
+        mvc.perform(get("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", outsider))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void siLaPublicacionSeRetiraLaConversacionQuedaCerrada() throws Exception {
-        when(segundaMano.obtenerPublicacion(101L)).thenReturn(publicacion(101L, 201L, "DISPONIBLE"));
-        String comprador = Tokens.bearer(Tokens.de(301L));
-        String respuesta = mvc.perform(post("/api/v1/segunda-mano/101/conversaciones").header("Authorization", comprador))
+    void ifListingIsWithdrawnConversationIsClosed() throws Exception {
+        when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "DISPONIBLE"));
+        String buyer = Tokens.bearer(Tokens.forUser(301L));
+        String response = mvc.perform(post("/api/v1/segunda-mano/101/conversaciones").header("Authorization", buyer))
                 .andReturn().getResponse().getContentAsString();
-        long id = Long.parseLong(respuesta.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
-        when(segundaMano.obtenerPublicacion(101L)).thenReturn(publicacion(101L, 201L, "RETIRADA"));
-        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", comprador)
+        when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "RETIRADA"));
+        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", buyer)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isUnprocessableEntity());
 
-        mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", comprador))
+        mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", buyer))
                 .andExpect(jsonPath("$[0].estado").value("CERRADA"));
     }
 
     @Test
-    void siDosPeticionesCreanLaMismaConversacionSeConservaUnaSola() {
-        Conversacion primera = conversaciones.guardar(new Conversacion(null, 102L, "Gorra", 302L, 202L,
-                EstadoConversacion.ABIERTA, Instant.now()));
-        Conversacion repetida = conversaciones.guardar(new Conversacion(null, 102L, "Gorra", 302L, 202L,
-                EstadoConversacion.ABIERTA, Instant.now()));
+    void ifTwoRequestsCreateTheSameConversationOnlyOneIsKept() {
+        Conversation first = conversations.save(new Conversation(null, 102L, "Gorra", 302L, 202L,
+                ConversationStatus.OPEN, Instant.now()));
+        Conversation duplicate = conversations.save(new Conversation(null, 102L, "Gorra", 302L, 202L,
+                ConversationStatus.OPEN, Instant.now()));
 
-        assertThat(repetida.getId()).isEqualTo(primera.getId());
+        assertThat(duplicate.getId()).isEqualTo(first.getId());
     }
 
     @Test
-    void laSaludYLaDocumentacionSonPublicas() throws Exception {
+    void healthAndDocsArePublic() throws Exception {
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
     }

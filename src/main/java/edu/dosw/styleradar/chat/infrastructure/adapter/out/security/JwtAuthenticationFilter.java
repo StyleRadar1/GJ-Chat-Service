@@ -15,17 +15,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/** Lee el header Authorization: Bearer y deja al usuario en el contexto de seguridad. */
+/** Authenticates each request from its Bearer JWT. */
 @Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     private final JwtTokenAdapter tokens;
-    private final SecurityProblemHandler errores;
+    private final SecurityProblemHandler errors;
 
-    public JwtAuthenticationFilter(JwtTokenAdapter tokens, SecurityProblemHandler errores) {
+    public JwtAuthenticationFilter(JwtTokenAdapter tokens, SecurityProblemHandler errors) {
         this.tokens = tokens;
-        this.errores = errores;
+        this.errors = errors;
     }
 
     @Override
@@ -37,15 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-            UsuarioAutenticado usuario = tokens.validar(header.substring(7).trim());
+            AuthenticatedUser user = tokens.validate(header.substring(7).trim());
             var context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
-                    usuario, null, usuario.authorities()));
+                    user, null, user.authorities()));
             SecurityContextHolder.setContext(context);
         } catch (JwtException | IllegalArgumentException e) {
             SecurityContextHolder.clearContext();
             log.warn("Token Bearer rechazado");
-            errores.commence(request, response, new BadCredentialsException("Token inválido"));
+            errors.commence(request, response, new BadCredentialsException("Token inválido"));
             return;
         }
         chain.doFilter(request, response);

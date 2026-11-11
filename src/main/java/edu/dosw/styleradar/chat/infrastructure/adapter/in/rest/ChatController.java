@@ -1,69 +1,68 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.in.rest;
 
-import edu.dosw.styleradar.chat.application.dto.request.EnviarMensajeRequest;
-import edu.dosw.styleradar.chat.application.dto.response.ConversacionResponse;
-import edu.dosw.styleradar.chat.application.dto.response.MensajeResponse;
-import edu.dosw.styleradar.chat.application.mapper.in.MensajeDtoInMapper;
-import edu.dosw.styleradar.chat.application.mapper.out.ConversacionDtoOutMapper;
-import edu.dosw.styleradar.chat.application.mapper.out.MensajeDtoOutMapper;
-import edu.dosw.styleradar.chat.domain.port.in.ConsultarMensajesUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.ConsultarMisConversacionesUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.EnviarMensajeUseCase;
-import edu.dosw.styleradar.chat.domain.port.in.IniciarConversacionUseCase;
+import edu.dosw.styleradar.chat.application.dto.request.SendMessageRequest;
+import edu.dosw.styleradar.chat.application.dto.response.ConversationResponse;
+import edu.dosw.styleradar.chat.application.dto.response.MessageResponse;
+import edu.dosw.styleradar.chat.application.mapper.in.MessageDtoInMapper;
+import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapper;
+import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapper;
+import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
 import edu.dosw.styleradar.chat.infrastructure.adapter.in.rest.doc.ChatApi;
-import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.UsuarioAutenticado;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/** Solo traduce HTTP: conoce las interfaces de los casos de uso, nunca los repositorios. */
+/** REST adapter that exposes the chat use cases. */
 @RestController
 public class ChatController implements ChatApi {
+    private final StartConversationUseCase startConversation;
+    private final GetMyConversationsUseCase getMyConversations;
+    private final GetMessagesUseCase getMessages;
+    private final SendMessageUseCase sendMessage;
+    private final MessageDtoInMapper messageIn;
+    private final ConversationDtoOutMapper conversationOut;
+    private final MessageDtoOutMapper messageOut;
 
-    private final IniciarConversacionUseCase iniciarConversacion;
-    private final ConsultarMisConversacionesUseCase consultarMisConversaciones;
-    private final ConsultarMensajesUseCase consultarMensajes;
-    private final EnviarMensajeUseCase enviarMensaje;
-    private final MensajeDtoInMapper mensajeIn;
-    private final ConversacionDtoOutMapper conversacionOut;
-    private final MensajeDtoOutMapper mensajeOut;
-
-    public ChatController(IniciarConversacionUseCase iniciarConversacion,
-                          ConsultarMisConversacionesUseCase consultarMisConversaciones,
-                          ConsultarMensajesUseCase consultarMensajes, EnviarMensajeUseCase enviarMensaje,
-                          MensajeDtoInMapper mensajeIn, ConversacionDtoOutMapper conversacionOut,
-                          MensajeDtoOutMapper mensajeOut) {
-        this.iniciarConversacion = iniciarConversacion;
-        this.consultarMisConversaciones = consultarMisConversaciones;
-        this.consultarMensajes = consultarMensajes;
-        this.enviarMensaje = enviarMensaje;
-        this.mensajeIn = mensajeIn;
-        this.conversacionOut = conversacionOut;
-        this.mensajeOut = mensajeOut;
+    public ChatController(StartConversationUseCase startConversation,
+                          GetMyConversationsUseCase getMyConversations,
+                          GetMessagesUseCase getMessages, SendMessageUseCase sendMessage,
+                          MessageDtoInMapper messageIn, ConversationDtoOutMapper conversationOut,
+                          MessageDtoOutMapper messageOut) {
+        this.startConversation = startConversation;
+        this.getMyConversations = getMyConversations;
+        this.getMessages = getMessages;
+        this.sendMessage = sendMessage;
+        this.messageIn = messageIn;
+        this.conversationOut = conversationOut;
+        this.messageOut = messageOut;
     }
 
     @Override
-    public ResponseEntity<ConversacionResponse> iniciar(UsuarioAutenticado usuario, Long publicacionId) {
-        return ResponseEntity.ok(conversacionOut.toResponse(
-                iniciarConversacion.iniciar(usuario.usuarioId(), publicacionId)));
+    public ResponseEntity<ConversationResponse> start(AuthenticatedUser user, Long listingId) {
+        return ResponseEntity.ok(conversationOut.toResponse(
+                startConversation.start(user.userId(), listingId)));
     }
 
     @Override
-    public ResponseEntity<List<ConversacionResponse>> consultarMisConversaciones(UsuarioAutenticado usuario) {
-        return ResponseEntity.ok(conversacionOut.toResponse(consultarMisConversaciones.consultar(usuario.usuarioId())));
+    public ResponseEntity<List<ConversationResponse>> getMyConversations(AuthenticatedUser user) {
+        return ResponseEntity.ok(conversationOut.toResponse(getMyConversations.fetch(user.userId())));
     }
 
     @Override
-    public ResponseEntity<List<MensajeResponse>> consultarMensajes(UsuarioAutenticado usuario, Long id) {
-        return ResponseEntity.ok(mensajeOut.toResponse(consultarMensajes.consultar(usuario.usuarioId(), id)));
+    public ResponseEntity<List<MessageResponse>> getMessages(AuthenticatedUser user, Long id) {
+        return ResponseEntity.ok(messageOut.toResponse(getMessages.fetch(user.userId(), id)));
     }
 
     @Override
-    public ResponseEntity<MensajeResponse> enviarMensaje(UsuarioAutenticado usuario, Long id,
-                                                         EnviarMensajeRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(mensajeOut.toResponse(
-                enviarMensaje.enviar(usuario.usuarioId(), id, mensajeIn.toTexto(request))));
+    public ResponseEntity<MessageResponse> sendMessage(AuthenticatedUser user, Long id,
+                                                         SendMessageRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(messageOut.toResponse(
+                sendMessage.send(user.userId(), id, messageIn.toText(request))));
     }
 }

@@ -1,34 +1,33 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence;
 
-import edu.dosw.styleradar.chat.domain.model.Conversacion;
-import edu.dosw.styleradar.chat.domain.model.Mensaje;
-import edu.dosw.styleradar.chat.domain.model.TextoMensaje;
-import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity.ConversacionJpaEntity;
-import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity.MensajeJpaEntity;
+import edu.dosw.styleradar.chat.domain.model.Conversation;
+import edu.dosw.styleradar.chat.domain.model.Message;
+import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity.ConversationJpaEntity;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity.MessageJpaEntity;
 import org.springframework.stereotype.Component;
 
-/** Traduce entre las entidades JPA y el modelo de dominio, para que el dominio nunca vea una anotación JPA. */
+/** Translates JPA entities to the domain model and back, so the domain never sees JPA. */
 @Component
 public class PersistenceMapper {
-
-    public Conversacion toDomain(ConversacionJpaEntity entity) {
-        return new Conversacion(entity.getId(), entity.getPublicacionId(), entity.getPrendaNombre(),
-                entity.getCompradorId(), entity.getVendedorId(), entity.getEstado(), entity.getFechaCreacion());
+    public Conversation toDomain(ConversationJpaEntity entity) {
+        return new Conversation(entity.getId(), entity.getListingId(), entity.getGarmentName(),
+                entity.getBuyerId(), entity.getSellerId(), entity.getStatus(), entity.getCreatedAt());
     }
 
-    public ConversacionJpaEntity toEntity(Conversacion conversacion) {
-        return new ConversacionJpaEntity(conversacion.getId(), conversacion.getPublicacionId(),
-                conversacion.getPrendaNombre(), conversacion.getCompradorId(), conversacion.getVendedorId(),
-                conversacion.getEstado(), conversacion.getFechaCreacion());
+    public ConversationJpaEntity toEntity(Conversation conversation) {
+        return new ConversationJpaEntity(conversation.getId(), conversation.getListingId(),
+                conversation.getGarmentName(), conversation.getBuyerId(), conversation.getSellerId(),
+                conversation.getStatus(), conversation.getCreatedAt());
     }
 
-    public Mensaje toDomain(MensajeJpaEntity entity) {
-        return new Mensaje(entity.getId(), entity.getConversacionId(), entity.getAutorId(),
-                new TextoMensaje(entity.getTexto()), entity.getFechaEnvio());
+    public Message toDomain(MessageJpaEntity entity) {
+        return new Message(entity.getId(), entity.getConversationId(), entity.getAuthorId(),
+                new MessageText(entity.getText()), entity.getSentAt());
     }
 
-    public MensajeJpaEntity toEntity(Mensaje mensaje) {
-        return new MensajeJpaEntity(mensaje.getId(), mensaje.getConversacionId(), mensaje.getAutorId(),
-                mensaje.getTexto().valor(), mensaje.getFechaEnvio());
+    public MessageJpaEntity toEntity(Message message) {
+        return new MessageJpaEntity(message.getId(), message.getConversationId(), message.getAuthorId(),
+                message.getText().value(), message.getSentAt());
     }
 }

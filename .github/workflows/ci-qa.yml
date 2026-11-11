@@ -2,17 +2,17 @@ name: CI QA
 
 on:
   push:
-    branches: [main, develop, 'feature/**']
+    branches: [master, develop, 'feature/**']
   pull_request:
-    branches: [main, develop]
+    branches: [master, develop]
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ms-chat
+  IMAGE_NAME: gj-chat-service
 
 jobs:
-  test:
-    name: Pruebas y cobertura
+  build-test:
+    name: Build, pruebas, análisis estático y cobertura
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -23,33 +23,55 @@ jobs:
           java-version: '17'
           cache: maven
 
-      # Incluye las pruebas de integración con Testcontainers (Docker viene instalado en el runner)
-      - name: Ejecutar pruebas y verificar cobertura (85 % en dominio y aplicación)
+      # Compila, corre unitarias + integración (Testcontainers) y exige 85 % de cobertura en dominio y aplicación
+      - name: Build, pruebas y cobertura (JaCoCo ≥ 85 %)
         run: mvn -B clean verify
 
-      - name: Publicar reporte de cobertura
+      - name: Análisis estático (Checkstyle · Google Java Style)
+        run: mvn -B checkstyle:checkstyle
+
+      - name: Publicar reportes (JaCoCo, pruebas y Checkstyle)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report
-          path: target/site/jacoco/
+          name: reportes-calidad
+          path: |
+            target/site/jacoco/
+            target/surefire-reports/
+            target/checkstyle-result.xml
 
-  build-push:
-    name: Imagen QA en Docker Hub
-    needs: test
-    # Se activa creando la variable de repositorio DEPLOY_ENABLED=true cuando los secrets estén listos
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+  docker-image:
+    name: Imagen Docker
+    needs: build-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
       - uses: docker/setup-buildx-action@v3
+      - name: Construir la imagen (multi-stage)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verificar la imagen construida
+        run: docker image inspect ${{ env.IMAGE_NAME }}:ci-${{ github.sha }} --format 'Imagen {{.RepoTags}} · {{.Size}} bytes'
 
+  build-push:
+    name: Publicar imagen QA en Docker Hub
+    needs: docker-image
+    # Se activa con la variable de repositorio DEPLOY_ENABLED=true cuando los secrets estén listos
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -83,7 +105,7 @@ jobs:
               --resource-group "$RG" \
               --output none \
               --settings \
-                WEBSITES_PORT=8089 \
+                WEBSITES_PORT=8320 \
                 DB_URL="${{ secrets.DB_URL_QA }}" \
                 DB_USERNAME="${{ secrets.DB_USERNAME_QA }}" \
                 DB_PASSWORD="${{ secrets.DB_PASSWORD_QA }}" \
@@ -105,5 +127,5 @@ jobs:
             if [ "$STATUS" = "200" ]; then exit 0; fi
             sleep 20
           done
-          echo "ms-chat no respondió en $URL"
+          echo "GJ-Chat-Service no respondió en $URL"
           exit 1
