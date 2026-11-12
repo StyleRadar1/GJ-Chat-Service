@@ -1,0 +1,13 @@
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:styleradar-rabbitmq-qa.northcentralus.cloudapp.azure.com}
+    port: ${RABBITMQ_PORT:5671}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    ssl:
+      enabled: true
+      trust-store: file:${RABBITMQ_TRUSTSTORE_PATH:/tmp/rabbitmq-truststore.jks}
+      trust-store-password: ${RABBITMQ_TRUSTSTORE_PASSWORD:changeit}
+      trust-store-type: JKS
+      verify-hostname: true

@@ -216,9 +216,9 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 
 | Evento | Dirección | Exchange · routing key | Payload resumido | Sprint |
 | --- | --- | --- | --- | --- |
-| `MensajeEnviadoEvent` | Publica | `styleradar.events` → `chat.mensaje.enviado` | `{ "mensajeId": 20, "conversacionId": 7, "autorId": 1, "destinatarioId": 2, "fechaEnvio": "…" }` | 2 |
-| `PrendaSegundaManoVendidaEvent` | Consume | `styleradar.events` → `segunda-mano.prenda.vendida` | `{ "publicacionId": 10, "vendedorId": 2, "compradorId": 1, "fechaVenta": "…" }` | 2 |
-| `PrendaSegundaManoRetiradaEvent` *(propuesto)* | Consume | `styleradar.events` → `segunda-mano.prenda.retirada` | `{ "publicacionId": 10, "vendedorId": 2, "fechaRetiro": "…" }` | 2 |
+| `MensajeEnviadoEvent` | Publica | `styleradar.exchange` → `styleradar.chat.mensaje.enviado` | `{ "mensajeId": 20, "conversacionId": 7, "autorId": 1, "destinatarioId": 2, "fechaEnvio": "…" }` | 2 |
+| `PrendaSegundaManoVendidaEvent` | Consume | `styleradar.exchange` → `styleradar.segundavida.prenda.vendida` | `{ "publicacionId": 10, "vendedorId": 2, "compradorId": 1, "fechaVenta": "…" }` | 2 |
+| `PrendaSegundaManoRetiradaEvent` *(propuesto)* | Consume | `styleradar.exchange` → `segunda-mano.prenda.retirada` | `{ "publicacionId": 10, "vendedorId": 2, "fechaRetiro": "…" }` | 2 |
 
 Los campos completos, el sobre común (`eventId`, `version`, `correlationId`…), las reglas de idempotencia y la tabla de aprobación están en [`SR_GJ_ContratosEventos_v1.md`](SR_GJ_ContratosEventos_v1.md).
 

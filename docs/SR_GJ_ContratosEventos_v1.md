@@ -40,10 +40,10 @@ Estas reglas aplican a todos los eventos de este documento y siguen la plantilla
 
 | Elemento | Valor |
 | :--- | :--- |
-| Exchange principal | `styleradar.events` (`topic`, durable) |
+| Exchange principal | `styleradar.exchange` (`topic`, durable) |
 | Exchange de auditoría | `styleradar.audit` (`fanout`, durable) |
 | Dead Letter Exchange | `styleradar.dlx` |
-| Routing key | `<contexto>.<entidad>.<acción>` en minúsculas, por ejemplo `chat.mensaje.enviado` |
+| Routing key | `<contexto>.<entidad>.<acción>` en minúsculas, por ejemplo `styleradar.chat.mensaje.enviado` |
 | Cola del consumidor | `q.<servicio-consumidor>.<origen>`, por ejemplo `q.chat.segunda-mano` |
 | Formato | JSON UTF-8 (`content-type: application/json`) |
 | Fechas | ISO-8601 en UTC, por ejemplo `2026-11-10T15:05:00Z` |
@@ -57,7 +57,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 | Campo | Tipo | Obligatorio | Descripción |
 | :--- | :--- | :---: | :--- |
 | `eventId` | string (UUID) | Sí | Identificador único del evento. El consumidor lo usa para descartar duplicados. |
-| `eventType` | string | Sí | Igual a la routing key, por ejemplo `chat.mensaje.enviado`. |
+| `eventType` | string | Sí | Igual a la routing key, por ejemplo `styleradar.chat.mensaje.enviado`. |
 | `version` | integer | Sí | Versión del contrato de `data`. Empieza en `1`. Un cambio que rompa el contrato sube la versión. |
 | `timestamp` | string (ISO-8601 UTC) | Sí | Momento en que ocurrió el hecho en el servicio productor. |
 | `producer` | string | Sí | Microservicio que publica, por ejemplo `ms-chat`. |
@@ -70,15 +70,15 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 
 | Tipo | Evento | Routing Key | Cola | Productor → Consumidor | Acción en el consumidor |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **PUBLICA** | `MensajeEnviadoEvent` | `chat.mensaje.enviado` | `q.notificaciones.chat` | `ms-chat` → `ms-notificaciones` | Avisa al destinatario que tiene un mensaje nuevo. |
-| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `segunda-mano.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo → `ms-chat` | Cierra las conversaciones de los demás compradores. La del comprador que se quedó con la prenda sigue abierta. |
+| **PUBLICA** | `MensajeEnviadoEvent` | `styleradar.chat.mensaje.enviado` | `q.notificaciones.chat` | `ms-chat` → `ms-notificaciones` | Avisa al destinatario que tiene un mensaje nuevo. |
+| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `styleradar.segundavida.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo → `ms-chat` | Cierra las conversaciones de los demás compradores. La del comprador que se quedó con la prenda sigue abierta. |
 | **CONSUME** | `PrendaSegundaManoRetiradaEvent` *(propuesto)* | `segunda-mano.prenda.retirada` | `q.chat.segunda-mano` | Paquete Catálogo → `ms-chat` | Cierra todas las conversaciones de la publicación. |
 
 ---
 
 ## <img src="https://img.shields.io/badge/03-5600EF?style=for-the-badge" height="20" align="absmiddle" /> MensajeEnviadoEvent
 
-**Publica** `ms-chat` · **Consume** `ms-notificaciones` · **Routing key** `chat.mensaje.enviado`
+**Publica** `ms-chat` · **Consume** `ms-notificaciones` · **Routing key** `styleradar.chat.mensaje.enviado`
 
 **Cuándo se publica:** después de guardar el mensaje en `chat_db`, cuando la transacción ya terminó. Si la transacción falla, no se publica nada.
 
@@ -96,7 +96,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 ```json
 {
   "eventId": "018f2c1a-7b3e-7000-8000-00000000a001",
-  "eventType": "chat.mensaje.enviado",
+  "eventType": "styleradar.chat.mensaje.enviado",
   "version": 1,
   "timestamp": "2026-11-10T15:05:00Z",
   "producer": "ms-chat",
@@ -124,7 +124,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 
 ## <img src="https://img.shields.io/badge/04-5600EF?style=for-the-badge" height="20" align="absmiddle" /> PrendaSegundaManoVendidaEvent
 
-**Publica** Paquete Catálogo (servicio dueño de las publicaciones de segunda mano) · **Consume** `ms-chat` · **Routing key** `segunda-mano.prenda.vendida`
+**Publica** Paquete Catálogo (servicio dueño de las publicaciones de segunda mano) · **Consume** `ms-chat` · **Routing key** `styleradar.segundavida.prenda.vendida`
 
 **Cuándo se publica:** cuando la publicación de segunda mano pasa al estado `VENDIDA`.
 
@@ -139,7 +139,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 ```json
 {
   "eventId": "018f2c1a-9d40-7000-8000-00000000b002",
-  "eventType": "segunda-mano.prenda.vendida",
+  "eventType": "styleradar.segundavida.prenda.vendida",
   "version": 1,
   "timestamp": "2026-11-12T18:30:00Z",
   "producer": "<servicio de Catálogo dueño de segunda mano>",
@@ -203,7 +203,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 | 2 | ¿El evento de venta incluye `compradorId`? | Catálogo | Sí. Sin él, el chat no puede dejar abierta la conversación del comprador. |
 | 3 | ¿Se publica un evento para el retiro, o uno solo de cambio de estado? | Catálogo | Dos eventos: `PrendaSegundaManoVendidaEvent` y `PrendaSegundaManoRetiradaEvent`. |
 | 4 | ¿La notificación muestra parte del texto del mensaje? | Notificaciones | Sí, máximo 80 caracteres, en `vistaPrevia` (opcional). |
-| 5 | ¿Quién declara el exchange y las colas? | Todos | Cada consumidor declara su cola y su binding; el exchange `styleradar.events` es común. |
+| 5 | ¿Quién declara el exchange y las colas? | Todos | Cada consumidor declara su cola y su binding; el exchange `styleradar.exchange` es común. |
 
 ---
 

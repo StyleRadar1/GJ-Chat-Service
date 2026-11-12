@@ -24,7 +24,8 @@ import java.util.List;
 @EnableMethodSecurity(proxyTargetClass = true)
 public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
-            "/actuator/health/**", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+            "/actuator/health/**", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+            "/ws", "/ws/**"
     };
 
     @Bean

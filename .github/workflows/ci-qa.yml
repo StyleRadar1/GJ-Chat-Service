@@ -63,7 +63,11 @@ jobs:
     name: Publicar imagen QA en Docker Hub
     needs: docker-image
     # Se activa con la variable de repositorio DEPLOY_ENABLED=true cuando los secrets estén listos
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED == 'true'
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/feature/websocket-realtime-qa' ||
+       github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master') &&
+      vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -97,20 +101,60 @@ jobs:
 
       - name: Configurar variables de entorno del App Service
         uses: azure/cli@v2
+        env:
+          WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME_QA }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DB_URL: ${{ secrets.DB_URL_QA }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME_QA }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD_QA }}
+          JWT_SECRET_BASE64: ${{ secrets.JWT_SECRET_QA }}
+          SEGUNDA_MANO_URL: ${{ secrets.SEGUNDA_MANO_URL_QA }}
+          RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST_QA || 'styleradar-rabbitmq-qa.northcentralus.cloudapp.azure.com' }}
+          RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT_QA || '5671' }}
+          RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST_QA || '/' }}
+          RABBITMQ_USER: ${{ secrets.RABBITMQ_USER_QA }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD_QA }}
+          RABBITMQ_CA_CERT_BASE64: ${{ secrets.RABBITMQ_CA_CERT_BASE64_QA }}
+          RABBITMQ_TRUSTSTORE_PASSWORD: ${{ secrets.RABBITMQ_TRUSTSTORE_PASSWORD_QA || 'changeit' }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS_QA }}
         with:
           inlineScript: |
-            RG=$(az webapp list --query "[?name=='${{ secrets.AZURE_WEBAPP_NAME_QA }}'].resourceGroup | [0]" -o tsv)
+            test -n "$WEBAPP_NAME" && test -n "$DB_URL" && test -n "$DB_USERNAME" \
+              && test -n "$DB_PASSWORD" && test -n "$JWT_SECRET_BASE64" \
+              && test -n "$RABBITMQ_USER" && test -n "$RABBITMQ_PASSWORD" \
+              && test -n "$RABBITMQ_CA_CERT_BASE64" && test -n "$CORS_ALLOWED_ORIGINS" \
+              || { echo "Faltan secrets requeridos para el despliegue QA"; exit 1; }
+            RG=$(az webapp list --query "[?name=='$WEBAPP_NAME'].resourceGroup | [0]" -o tsv)
+            test -n "$RG" || { echo "No existe el App Service QA $WEBAPP_NAME"; exit 1; }
             az webapp config appsettings set \
-              --name "${{ secrets.AZURE_WEBAPP_NAME_QA }}" \
+              --name "$WEBAPP_NAME" \
               --resource-group "$RG" \
               --output none \
               --settings \
+                SPRING_PROFILES_ACTIVE=qa \
                 WEBSITES_PORT=8320 \
-                DB_URL="${{ secrets.DB_URL_QA }}" \
-                DB_USERNAME="${{ secrets.DB_USERNAME_QA }}" \
-                DB_PASSWORD="${{ secrets.DB_PASSWORD_QA }}" \
-                JWT_SECRET_BASE64="${{ secrets.JWT_SECRET_QA }}" \
-                SEGUNDA_MANO_URL="${{ secrets.SEGUNDA_MANO_URL_QA }}"
+                DB_URL="$DB_URL" \
+                DB_USERNAME="$DB_USERNAME" \
+                DB_PASSWORD="$DB_PASSWORD" \
+                JWT_SECRET_BASE64="$JWT_SECRET_BASE64" \
+                SEGUNDA_MANO_URL="$SEGUNDA_MANO_URL" \
+                RABBITMQ_HOST="$RABBITMQ_HOST" \
+                RABBITMQ_PORT="$RABBITMQ_PORT" \
+                RABBITMQ_VHOST="$RABBITMQ_VHOST" \
+                RABBITMQ_USER="$RABBITMQ_USER" \
+                RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
+                RABBITMQ_SSL_ENABLED=true \
+                RABBITMQ_CA_CERT_BASE64="$RABBITMQ_CA_CERT_BASE64" \
+                RABBITMQ_TRUSTSTORE_PASSWORD="$RABBITMQ_TRUSTSTORE_PASSWORD" \
+                CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
+                WEBSOCKET_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
+                DOCKER_REGISTRY_SERVER_URL=https://index.docker.io/v1/ \
+                DOCKER_REGISTRY_SERVER_USERNAME="$DOCKERHUB_USERNAME" \
+                DOCKER_REGISTRY_SERVER_PASSWORD="$DOCKERHUB_TOKEN" \
+                WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+            az webapp config set --name "$WEBAPP_NAME" --resource-group "$RG" \
+              --web-sockets-enabled true --output none
 
       - uses: azure/webapps-deploy@v3
         id: deploy

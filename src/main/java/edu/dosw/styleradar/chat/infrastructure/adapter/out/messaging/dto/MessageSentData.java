@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
-/** Data of the chat.mensaje.enviado event; JSON names follow the event contract. */
+/** Data of the styleradar.chat.mensaje.enviado event; JSON names follow the event contract. */
 public record MessageSentData(@JsonProperty("mensajeId") Long messageId,
                               @JsonProperty("conversacionId") Long conversationId,
                               @JsonProperty("publicacionId") Long listingId,

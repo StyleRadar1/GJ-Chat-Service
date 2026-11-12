@@ -11,8 +11,10 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 RUN addgroup -S styleradar && adduser -S styleradar -G styleradar
 COPY --from=build /app/target/gj-chat-service.jar app.jar
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod 755 /app/docker-entrypoint.sh
 RUN chown styleradar:styleradar app.jar
 USER styleradar
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
 EXPOSE 8320
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

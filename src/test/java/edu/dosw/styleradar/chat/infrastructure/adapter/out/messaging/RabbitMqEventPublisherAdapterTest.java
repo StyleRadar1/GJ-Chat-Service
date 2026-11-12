@@ -45,10 +45,11 @@ class RabbitMqEventPublisherAdapterTest {
         adapter.publish(EVENT);
 
         ArgumentCaptor<Object> sent = ArgumentCaptor.forClass(Object.class);
-        verify(rabbitTemplate).convertAndSend(eq("styleradar.events"), eq("chat.mensaje.enviado"), sent.capture());
+        verify(rabbitTemplate).convertAndSend(eq("styleradar.exchange"),
+                eq("styleradar.chat.mensaje.enviado"), sent.capture());
         EventEnvelope<MessageSentData> envelope = (EventEnvelope<MessageSentData>) sent.getValue();
         assertThat(envelope.eventId()).isNotBlank();
-        assertThat(envelope.eventType()).isEqualTo("chat.mensaje.enviado");
+        assertThat(envelope.eventType()).isEqualTo("styleradar.chat.mensaje.enviado");
         assertThat(envelope.version()).isEqualTo(1);
         assertThat(envelope.timestamp()).isEqualTo(NOW);
         assertThat(envelope.producer()).isEqualTo("ms-chat");

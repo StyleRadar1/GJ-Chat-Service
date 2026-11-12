@@ -144,7 +144,7 @@ El microservicio implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** c
 
 </div>
 
-Las líneas punteadas son los adaptadores que se completan en el Sprint 2 (RabbitMQ) y el Sprint 3 (WebSocket). Sus paquetes ya existen en el repositorio.
+Los adaptadores de RabbitMQ y WebSocket STOMP están implementados; las conexiones en QA usan RabbitMQ por TLS y el endpoint STOMP autentica con JWT.
 
 **Diagramas específicos con su explicación** (en [`docs/SR_GJ_DocumentoTecnico_v1.md`](docs/SR_GJ_DocumentoTecnico_v1.md)):
 
@@ -177,7 +177,7 @@ src/main/java/edu/dosw/styleradar/chat/
     │   ├── in/
     │   │   ├── rest/ (+ doc/)               <-- ChatController y documentación OpenAPI
     │   │   ├── amqp/                        <-- Consumidor RabbitMQ de la venta de una prenda
-    │   │   └── websocket/                   <-- STOMP en tiempo real (Sprint 3)
+    │   │   └── websocket/                   <-- STOMP en tiempo real autenticado por JWT
     │   └── out/
     │       ├── persistence/                 <-- Entidades JPA, Spring Data y adaptadores
     │       ├── external/                    <-- Cliente Feign del servicio de publicaciones
@@ -309,7 +309,7 @@ curl -X POST "http://localhost:8320/api/v1/conversaciones/7/mensajes" \
 
 La comunicación asíncrona usa **RabbitMQ** con Topic Exchanges durables desde el **Sprint 2**: el chat publica `MensajeEnviadoEvent` al guardar un mensaje y consume `PrendaSegundaManoVendidaEvent` para cerrar las conversaciones de los demás compradores. El consumidor es idempotente (tabla `processed_events` por `eventId`) y, tras 3 reintentos, los mensajes fallidos van a `q.chat.segunda-mano.dlq` por `styleradar.dlx`. El cierre por retiro sigue detectándose con la consulta Feign en cada envío.
 
-* **Exchange Principal de Dominio:** `styleradar.events` (`topic`, durable)
+* **Exchange Principal de Dominio:** `styleradar.exchange` (`topic`, durable)
 * **Exchange de Auditoría:** `styleradar.audit` (`fanout`, durable)
 * **Dead Letter Exchange (DLX):** `styleradar.dlx`
 
@@ -317,8 +317,8 @@ La comunicación asíncrona usa **RabbitMQ** con Topic Exchanges durables desde 
 
 | Tipo | Evento | Routing Key | Cola (Queue) | Microservicio Emisor / Receptor | Cuándo se Dispara / Acción |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **PUBLICA** | `MensajeEnviadoEvent` | `chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. Notificaciones avisa al destinatario. |
-| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `segunda-mano.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones de los demás compradores; la del comprador que se quedó con la prenda sigue abierta para coordinar la entrega. |
+| **PUBLICA** | `MensajeEnviadoEvent` | `styleradar.chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. Notificaciones avisa al destinatario. |
+| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `styleradar.segundavida.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones de los demás compradores; la del comprador que se quedó con la prenda sigue abierta para coordinar la entrega. |
 | **CONSUME** | `PrendaSegundaManoRetiradaEvent` *(propuesto)* | `segunda-mano.prenda.retirada` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones cuando el vendedor retira la publicación. |
 
 El detalle de cada campo, las reglas de idempotencia y el estado de aprobación con los equipos productores y consumidores están en [`docs/SR_GJ_ContratosEventos_v1.md`](docs/SR_GJ_ContratosEventos_v1.md).
@@ -331,7 +331,7 @@ El detalle de cada campo, las reglas de idempotencia y el estado de aprobación 
 ```json
 {
   "eventId": "018f2c1a-7b3e-7000-8000-00000000a001",
-  "eventType": "chat.mensaje.enviado",
+  "eventType": "styleradar.chat.mensaje.enviado",
   "version": 1,
   "timestamp": "2026-11-10T15:05:00Z",
   "producer": "ms-chat",
@@ -575,7 +575,7 @@ mvn jacoco:report
 
 | Pipeline | Entorno Destino | Desencadenador (Trigger) | Quality Gate Exigido |
 | :--- | :--- | :--- | :--- |
-| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build OK + pruebas unitarias e integración + JaCoCo ≥ 85 % + Checkstyle + imagen Docker. En `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
+| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build OK + pruebas unitarias e integración + JaCoCo ≥ 85 % + Checkstyle + imagen Docker. En `feature/websocket-realtime-qa`, `develop` o `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
 | **CD - Producción** (`ci-prod.yml`) | Producción (`PROD`) | Tag `v*.*.*` creado al pasar `develop` a `master` | Pruebas + imagen de versión + aprobación manual del ambiente `production` en Azure App Service. |
 
 ### Diagrama del Flujo Automatizado (Pipeline Stages)
@@ -588,7 +588,15 @@ mvn jacoco:report
 
 </div>
 
-**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` y `SEGUNDA_MANO_URL_QA`, y crear la variable de repositorio `DEPLOY_ENABLED=true`.
+**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA`, `SEGUNDA_MANO_URL_QA`, `RABBITMQ_USER_QA`, `RABBITMQ_PASSWORD_QA`, `RABBITMQ_CA_CERT_BASE64_QA` y `CORS_ALLOWED_ORIGINS_QA`. Codificar en Base64 el certificado público CA para `RABBITMQ_CA_CERT_BASE64_QA`; no incluir contraseñas reales en el repositorio. Opcionalmente definir `RABBITMQ_HOST_QA`, `RABBITMQ_PORT_QA`, `RABBITMQ_VHOST_QA` y `RABBITMQ_TRUSTSTORE_PASSWORD_QA`; el host y puerto documentados de QA se usan de forma predeterminada. Crear la variable de repositorio `DEPLOY_ENABLED=true`. El workflow configura App Service en puerto 8320 y habilita WebSockets. Mantener una sola instancia hasta incorporar Redis Pub/Sub.
+
+### Chat WebSocket STOMP
+
+- Endpoint de conexión: `/ws` (WebSocket nativo con STOMP).
+- En `CONNECT`, enviar `Authorization: Bearer <JWT>` como cabecera nativa STOMP.
+- Suscribirse a `/topic/conversations/{conversationId}`; solo se permiten conversaciones en las que participa el usuario autenticado.
+- Enviar a `/app/conversations/{conversationId}/messages` con cuerpo JSON `{"text":"Hola"}`. El servicio persiste el mensaje antes de difundirlo al tópico.
+- Configurar `WEBSOCKET_ALLOWED_ORIGINS` con los orígenes exactos del cliente, separados por comas. Si se omite, usa `CORS_ALLOWED_ORIGINS`.
 
 <div align="center">
   <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
