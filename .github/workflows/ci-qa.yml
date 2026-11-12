@@ -164,9 +164,10 @@ jobs:
 
       - name: Smoke test
         run: |
-          URL="https://${{ secrets.AZURE_WEBAPP_NAME_QA }}.azurewebsites.net/actuator/health"
+          BASE_URL="${{ steps.deploy.outputs.webapp-url }}"
+          URL="${BASE_URL%/}/actuator/health"
           for i in $(seq 1 30); do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            STATUS=$(curl --connect-timeout 10 --max-time 20 -s -o /dev/null -w "%{http_code}" "$URL" || true)
             echo "Intento $i: $STATUS"
             if [ "$STATUS" = "200" ]; then exit 0; fi
             sleep 20
