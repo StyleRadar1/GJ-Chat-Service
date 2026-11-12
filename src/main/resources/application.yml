@@ -48,7 +48,7 @@ styleradar:
   security:
     jwt:
       secret-base64: ${JWT_SECRET_BASE64:}
-      # The monolith token carries no roles, so this role is assumed.
+      # Legacy fallback for tokens that carry neither `role` nor `roles`.
       default-role: ${JWT_ROL_POR_DEFECTO:COMPRADOR}
   services:
     second-hand:

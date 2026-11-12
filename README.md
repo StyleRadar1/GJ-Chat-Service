@@ -28,7 +28,7 @@
       <img src="https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg" alt="CI QA" />
     </a>
     <a href="#10-cicd-con-el-badge-del-pipeline">
-      <img src="https://img.shields.io/badge/QA_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA Deployment" />
+      <img src="https://img.shields.io/badge/QA_Azure-JWT_QA_pendiente-D97706?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA deployment pending official identity JWT secret" />
     </a>
     <a href="#10-cicd-con-el-badge-del-pipeline">
       <img src="https://img.shields.io/badge/PROD_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="PROD Deployment" />
@@ -118,11 +118,11 @@ Desarrollado y mantenido por el **Equipo `GJ`** (prefijo `GJ`) para la asignatur
 
 <div align="center">
 
-| Rol | Nombre Completo | Usuario GitHub |
-| :---: | :---: | :---: |
-| **Backend Developer · Responsable de ms-chat** | `Santiago Andrés García Almario` | `<@usuario-github>` |
-| **Líder del Paquete 3** | `Paula Alejandra Díaz` | `<@usuario-github>` |
-| **Backend Developer** | `Óscar Lasso` | `<@usuario-github>` |
+| Rol | Responsable |
+| :---: | :---: |
+| **Responsable de ms-chat** | `Santiago Andres Garcia Almario` (`SantiagoAndresGarciaAlmario01`) |
+| **Líder del equipo / Paquete 3** | `Paula Díaz` |
+| **Colaborador backend** | `Óscar Lasso` |
 
 </div>
 
@@ -200,7 +200,7 @@ La documentación interactiva OpenAPI 3.0 trae, para cada endpoint, descripción
 | Entorno | Estado | Propósito | URL Base del Servicio | Swagger OpenAPI UI | Health Check |
 | :--- | :---: | :--- | :--- | :--- | :--- |
 | **Producción (PROD)** | Pendiente | Despliegue productivo | Se publica con el tag `v*.*.*` (`ci-prod.yml`) | — | — |
-| **Calidad / Pruebas (QA)** | Pendiente | Pruebas integradas del sprint | Se publica desde `master` con `DEPLOY_ENABLED=true` (`ci-qa.yml`) | — | — |
+| **Calidad / Pruebas (QA)** | CI listo; despliegue Azure bloqueado | Pruebas integradas del sprint | App Service `gj-chat-service-qa-santi` y PostgreSQL QA creados. Build, pruebas, análisis y publicación de la imagen completados; falta completar el despliegue Azure. | Pendiente hasta completar el despliegue | Pendiente hasta completar el despliegue |
 | **Desarrollo Local (DEV)** | Activo | Desarrollo en la máquina local | `http://localhost:8320` | [Swagger UI Local](http://localhost:8320/swagger-ui.html) | [`/actuator/health`](http://localhost:8320/actuator/health) |
 
 * **Especificación OpenAPI (Contrato JSON):** `http://localhost:8320/v3/api-docs`
@@ -476,11 +476,15 @@ Las configuraciones sensibles se externalizan como variables de entorno (*Twelve
 | `RABBITMQ_PORT` | Puerto AMQP del broker | `5672` | No |
 | `RABBITMQ_USER` | Usuario del broker | `guest` | Sí |
 | `RABBITMQ_PASSWORD` | Contraseña del broker | `guest` | Sí |
-| `JWT_ROL_POR_DEFECTO` | Rol asumido si el token no trae el claim `roles` | `COMPRADOR` | No |
+| `JWT_ROL_POR_DEFECTO` | Rol heredado si el token no trae `role` ni `roles` | `COMPRADOR` | No |
 | `SEGUNDA_MANO_URL` | URL base del servicio de publicaciones de segunda mano | `http://localhost:8080` | Sí |
 | `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` | Tiempo límite de conexión de Feign | `3000` | No |
 | `SEGUNDA_MANO_READ_TIMEOUT_MS` | Tiempo límite de lectura de Feign | `5000` | No |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por coma | vacío | Sí |
+
+#### Claims JWT aceptados por ms-chat
+
+El adaptador acepta el ID numérico del usuario en `userId` y permite que `sub` sea el correo; por compatibilidad, también acepta el formato heredado con `sub` numérico. Para roles admite `role` como texto o `roles` como lista. El rol compartido `USER` se traduce a `COMPRADOR` en ms-chat; los demás roles no se elevan. Este soporte transicional no sustituye el acuerdo del contrato canónico con ms-identidad. El secreto debe seguir siendo la llave HS256 oficial del ambiente.
 
 <details>
 <summary><b>Click para ver la Plantilla de Archivo .env.example</b></summary>
@@ -498,9 +502,9 @@ RABBITMQ_PORT=5672
 RABBITMQ_MANAGEMENT_PORT=15672
 RABBITMQ_USER=guest
 RABBITMQ_PASSWORD=change-me
-# Debe ser la MISMA llave con la que el servicio de identidad (hoy el monolito) firma los tokens.
+# Debe ser la misma llave con la que ms-identidad firma los tokens.
 JWT_SECRET_BASE64=change-me-base64-key
-# Servicio dueño de las publicaciones de segunda mano. Sprint 1: el monolito.
+# Servicio dueño de las publicaciones de segunda mano: ms-segunda-vida-donaciones.
 SEGUNDA_MANO_URL=http://host.docker.internal:8080
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
@@ -575,7 +579,7 @@ mvn jacoco:report
 
 | Pipeline | Entorno Destino | Desencadenador (Trigger) | Quality Gate Exigido |
 | :--- | :--- | :--- | :--- |
-| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build OK + pruebas unitarias e integración + JaCoCo ≥ 85 % + Checkstyle + imagen Docker. En `feature/websocket-realtime-qa`, `develop` o `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
+| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build, pruebas, JaCoCo, Checkstyle, imagen y publicación Docker Hub completados. El truststore ya está configurado; falta la llave oficial `JWT_SECRET_QA` de ms-identidad. CORS es opcional hasta que exista un frontend QA. |
 | **CD - Producción** (`ci-prod.yml`) | Producción (`PROD`) | Tag `v*.*.*` creado al pasar `develop` a `master` | Pruebas + imagen de versión + aprobación manual del ambiente `production` en Azure App Service. |
 
 ### Diagrama del Flujo Automatizado (Pipeline Stages)
@@ -588,7 +592,9 @@ mvn jacoco:report
 
 </div>
 
-**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA`, `SEGUNDA_MANO_URL_QA`, `RABBITMQ_USER_QA`, `RABBITMQ_PASSWORD_QA`, `RABBITMQ_TRUSTSTORE_BASE64_QA` y `CORS_ALLOWED_ORIGINS_QA`. Codificar en Base64 el archivo `rabbitmq-truststore.jks` para `RABBITMQ_TRUSTSTORE_BASE64_QA`; no incluir contraseñas reales en el repositorio. Opcionalmente definir `RABBITMQ_HOST_QA`, `RABBITMQ_PORT_QA`, `RABBITMQ_VHOST_QA` y `RABBITMQ_TRUSTSTORE_PASSWORD_QA`; el host y puerto documentados de QA se usan de forma predeterminada. Crear la variable de repositorio `DEPLOY_ENABLED=true`. El workflow configura App Service en puerto 8320 y habilita WebSockets. Mantener una sola instancia hasta incorporar Redis Pub/Sub.
+**Estado actual de QA:** el workflow completó build, pruebas, análisis, construcción y publicación de la imagen. El secreto `RABBITMQ_TRUSTSTORE_BASE64_QA` ya está configurado con el certificado recibido y validado. Aunque el archivo se llama `rabbitmq-truststore.jks`, su formato es PKCS12 y la configuración QA ya usa ese tipo; la contraseña predeterminada `changeit` fue validada. Solo falta la llave oficial `JWT_SECRET_QA` de ms-identidad en Base64. No usar la llave local de desarrollo en QA. `CORS_ALLOWED_ORIGINS_QA` es opcional mientras no haya un frontend QA: si se omite, el servicio no acepta llamadas del navegador desde otros orígenes; se debe configurar cuando se conozca el origen HTTPS del frontend. Al guardar la llave oficial, volver a ejecutar `ci-qa.yml` en `feature/websocket-realtime-qa` para desplegar en `gj-chat-service-qa-santi` y verificar Swagger y `/actuator/health`. No se registra una URL QA como activa hasta verificar el despliegue.
+
+El workflow configura App Service en el puerto 8320 y habilita WebSockets. Mantener una sola instancia hasta incorporar Redis Pub/Sub.
 
 ### Chat WebSocket STOMP
 
@@ -607,12 +613,12 @@ mvn jacoco:report
           <strong><font color="#5600EF" size="3">EJECUCIÓN DEL PIPELINE CI/CD EN VERDE</font></strong>
         </p>
         <p>
-          <sub>Captura de la pestaña Actions con el workflow <b>CI QA</b> finalizado con éxito en todas sus etapas.</sub>
+          <sub>El build, las pruebas, el análisis y la publicación de la imagen pasaron. Azure QA está pendiente de la llave oficial JWT de ms-identidad.</sub>
         </p>
         <p>
 <!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
 <!-- <img src="docs/evidencias/pipeline-ci-cd.png" width="90%" alt="Pipeline CI/CD" /><br /> -->
-          <code>[ Pegar captura del Pipeline CI/CD en verde aquí · docs/evidencias/pipeline-ci-cd.png ]</code>
+          <code>[ Agregar captura de Actions cuando Azure QA también finalice · docs/evidencias/pipeline-ci-cd.png ]</code>
         </p>
       </td>
     </tr>

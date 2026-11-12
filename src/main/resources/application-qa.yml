@@ -9,5 +9,5 @@ spring:
       enabled: true
       trust-store: file:${RABBITMQ_TRUSTSTORE_PATH:/tmp/rabbitmq-truststore.jks}
       trust-store-password: ${RABBITMQ_TRUSTSTORE_PASSWORD:changeit}
-      trust-store-type: JKS
+      trust-store-type: PKCS12
       verify-hostname: true
