@@ -50,7 +50,7 @@ class ChatIntegrationTest {
     private EventPublisherPort eventPublisher;
 
     private static ExternalListingResponse listing(Long id, Long seller, String status) {
-        return new ExternalListingResponse(id, seller, new ExternalListingResponse.Garment("Chaqueta"), status);
+        return new ExternalListingResponse(id, seller, new ExternalListingResponse.Garment("Chaqueta"), status, null);
     }
 
     @Test
