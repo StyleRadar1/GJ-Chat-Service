@@ -44,7 +44,7 @@ public class ListingQueryAdapter implements ListingQueryPort {
         } catch (IllegalArgumentException e) {
             throw new ExternalServiceUnavailableException("Estado de publicación desconocido: " + response.status());
         }
-        String name = response.garment() == null ? null : response.garment().name();
+        String name = response.resolvedGarmentName();
         return new ListingSummary(listingId, response.userId(), name, status);
     }
 }

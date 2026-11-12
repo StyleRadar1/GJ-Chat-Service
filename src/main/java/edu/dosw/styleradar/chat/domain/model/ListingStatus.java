@@ -19,11 +19,13 @@ public enum ListingStatus {
     }
 
     public static ListingStatus fromCode(String code) {
-        for (ListingStatus status : values()) {
-            if (status.code.equals(code)) {
-                return status;
-            }
-        }
-        throw new IllegalArgumentException("Unknown listing status: " + code);
+        return switch (code) {
+            case "DISPONIBLE", "AVAILABLE" -> AVAILABLE;
+            case "VENDIDA", "SOLD" -> SOLD;
+            case "RETIRADA", "RETIRED", "WITHDRAWN" -> WITHDRAWN;
+            case "EN_DONACION", "IN_DONATION" -> IN_DONATION;
+            case "DONADA", "DONATED" -> DONATED;
+            default -> throw new IllegalArgumentException("Unknown listing status: " + code);
+        };
     }
 }

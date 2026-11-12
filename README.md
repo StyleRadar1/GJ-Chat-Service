@@ -588,7 +588,7 @@ mvn jacoco:report
 
 </div>
 
-**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA`, `SEGUNDA_MANO_URL_QA`, `RABBITMQ_USER_QA`, `RABBITMQ_PASSWORD_QA`, `RABBITMQ_CA_CERT_BASE64_QA` y `CORS_ALLOWED_ORIGINS_QA`. Codificar en Base64 el certificado público CA para `RABBITMQ_CA_CERT_BASE64_QA`; no incluir contraseñas reales en el repositorio. Opcionalmente definir `RABBITMQ_HOST_QA`, `RABBITMQ_PORT_QA`, `RABBITMQ_VHOST_QA` y `RABBITMQ_TRUSTSTORE_PASSWORD_QA`; el host y puerto documentados de QA se usan de forma predeterminada. Crear la variable de repositorio `DEPLOY_ENABLED=true`. El workflow configura App Service en puerto 8320 y habilita WebSockets. Mantener una sola instancia hasta incorporar Redis Pub/Sub.
+**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA`, `SEGUNDA_MANO_URL_QA`, `RABBITMQ_USER_QA`, `RABBITMQ_PASSWORD_QA`, `RABBITMQ_TRUSTSTORE_BASE64_QA` y `CORS_ALLOWED_ORIGINS_QA`. Codificar en Base64 el archivo `rabbitmq-truststore.jks` para `RABBITMQ_TRUSTSTORE_BASE64_QA`; no incluir contraseñas reales en el repositorio. Opcionalmente definir `RABBITMQ_HOST_QA`, `RABBITMQ_PORT_QA`, `RABBITMQ_VHOST_QA` y `RABBITMQ_TRUSTSTORE_PASSWORD_QA`; el host y puerto documentados de QA se usan de forma predeterminada. Crear la variable de repositorio `DEPLOY_ENABLED=true`. El workflow configura App Service en puerto 8320 y habilita WebSockets. Mantener una sola instancia hasta incorporar Redis Pub/Sub.
 
 ### Chat WebSocket STOMP
 

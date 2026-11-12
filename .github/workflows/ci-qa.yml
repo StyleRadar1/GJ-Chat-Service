@@ -115,7 +115,7 @@ jobs:
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST_QA || '/' }}
           RABBITMQ_USER: ${{ secrets.RABBITMQ_USER_QA }}
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD_QA }}
-          RABBITMQ_CA_CERT_BASE64: ${{ secrets.RABBITMQ_CA_CERT_BASE64_QA }}
+          RABBITMQ_TRUSTSTORE_BASE64: ${{ secrets.RABBITMQ_TRUSTSTORE_BASE64_QA }}
           RABBITMQ_TRUSTSTORE_PASSWORD: ${{ secrets.RABBITMQ_TRUSTSTORE_PASSWORD_QA || 'changeit' }}
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS_QA }}
         with:
@@ -123,7 +123,7 @@ jobs:
             test -n "$WEBAPP_NAME" && test -n "$DB_URL" && test -n "$DB_USERNAME" \
               && test -n "$DB_PASSWORD" && test -n "$JWT_SECRET_BASE64" \
               && test -n "$RABBITMQ_USER" && test -n "$RABBITMQ_PASSWORD" \
-              && test -n "$RABBITMQ_CA_CERT_BASE64" && test -n "$CORS_ALLOWED_ORIGINS" \
+              && test -n "$RABBITMQ_TRUSTSTORE_BASE64" && test -n "$CORS_ALLOWED_ORIGINS" \
               || { echo "Faltan secrets requeridos para el despliegue QA"; exit 1; }
             RG=$(az webapp list --query "[?name=='$WEBAPP_NAME'].resourceGroup | [0]" -o tsv)
             test -n "$RG" || { echo "No existe el App Service QA $WEBAPP_NAME"; exit 1; }
@@ -145,7 +145,7 @@ jobs:
                 RABBITMQ_USER="$RABBITMQ_USER" \
                 RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
                 RABBITMQ_SSL_ENABLED=true \
-                RABBITMQ_CA_CERT_BASE64="$RABBITMQ_CA_CERT_BASE64" \
+                RABBITMQ_TRUSTSTORE_BASE64="$RABBITMQ_TRUSTSTORE_BASE64" \
                 RABBITMQ_TRUSTSTORE_PASSWORD="$RABBITMQ_TRUSTSTORE_PASSWORD" \
                 CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
                 WEBSOCKET_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
