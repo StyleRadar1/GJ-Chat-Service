@@ -5,6 +5,7 @@ import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtTokenAdapter;
+import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,6 +68,16 @@ class JwtStompChannelInterceptorTest {
     }
 
     @Test
+    void rejectsAConnectionWithAnInvalidJwt() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer invalid-token");
+        when(tokens.validate("invalid-token")).thenThrow(new JwtException("invalid"));
+
+        assertThatThrownBy(() -> interceptor.preSend(message(accessor), mock(MessageChannel.class)))
+                .isInstanceOf(MessagingException.class);
+    }
+
+    @Test
     void allowsOnlyAConversationParticipantToSubscribe() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
         accessor.setDestination("/topic/conversations/7");
@@ -90,6 +101,43 @@ class JwtStompChannelInterceptorTest {
 
         assertThatThrownBy(() -> interceptor.preSend(message(accessor), mock(MessageChannel.class)))
                 .isInstanceOf(MessagingException.class);
+    }
+
+    @Test
+    void rejectsMessagesSentByAnotherParticipantsConversation() {
+        AuthenticatedUser stranger = new AuthenticatedUser(3L, Set.of("COMPRADOR"));
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+        accessor.setDestination("/app/conversations/7/messages");
+        accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(stranger, null,
+                stranger.authorities()));
+        when(conversations.findById(7L)).thenReturn(Optional.of(CONVERSATION));
+
+        assertThatThrownBy(() -> interceptor.preSend(message(accessor), mock(MessageChannel.class)))
+                .isInstanceOf(MessagingException.class);
+    }
+
+    @Test
+    void allowsAnAuthenticatedUserToSubscribeToTheirPrivateAcknowledgements() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/user/queue/conversations/acks");
+        accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(PARTICIPANT, null,
+                PARTICIPANT.authorities()));
+
+        interceptor.preSend(message(accessor), mock(MessageChannel.class));
+
+        verify(conversations, org.mockito.Mockito.never()).findById(7L);
+    }
+
+    @Test
+    void allowsAnAuthenticatedUserToSubscribeToTheirPrivateErrors() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/user/queue/conversations/errors");
+        accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(PARTICIPANT, null,
+                PARTICIPANT.authorities()));
+
+        interceptor.preSend(message(accessor), mock(MessageChannel.class));
+
+        verify(conversations, org.mockito.Mockito.never()).findById(7L);
     }
 
     private Message<byte[]> message(StompHeaderAccessor accessor) {

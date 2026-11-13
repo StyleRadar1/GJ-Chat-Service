@@ -191,7 +191,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 }
 ```
 
-**Qué hace el chat al recibirlo:** cierra todas las conversaciones abiertas de `publicacionId`. Desde ese momento, enviar un mensaje responde `422` con el detalle "La publicación fue retirada; la conversación está cerrada".
+**Qué hace el chat al recibirlo:** cierra todas las conversaciones abiertas de `publicacionId`. Desde ese momento, enviar un mensaje responde `409` con el detalle "La publicación fue retirada; la conversación está cerrada". Por STOMP se informa el mismo conflicto al emisor por su destino privado de errores y no se guarda ni se difunde el mensaje.
 
 ---
 

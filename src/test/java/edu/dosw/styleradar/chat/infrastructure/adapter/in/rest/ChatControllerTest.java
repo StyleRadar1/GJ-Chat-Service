@@ -213,7 +213,9 @@ class ChatControllerTest {
         when(send.send(any(), any(), any())).thenThrow(new ConversationClosedException("cerrada"));
         mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value("cerrada"));
     }
 
     @Test

@@ -237,7 +237,7 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 | `POST` | `/api/v1/segunda-mano/{publicacionId}/conversaciones` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
 | `GET` | `/api/v1/usuarios/me/conversaciones` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
 | `GET` | `/api/v1/conversaciones/{id}/mensajes` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
-| `POST` | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `422`, `503` |
+| `POST` | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `503` |
 
 <details>
 <summary><b>Click para ver Ejemplos de Request y Response JSON (Payloads)</b></summary>
@@ -579,7 +579,7 @@ mvn jacoco:report
 
 | Pipeline | Entorno Destino | Desencadenador (Trigger) | Quality Gate Exigido |
 | :--- | :--- | :--- | :--- |
-| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build, pruebas, JaCoCo, Checkstyle, imagen y publicación Docker Hub completados. El truststore ya está configurado; falta la llave oficial `JWT_SECRET_QA` de ms-identidad. CORS es opcional hasta que exista un frontend QA. |
+| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build, pruebas, JaCoCo, Checkstyle, imagen, publicación Docker Hub y despliegue QA. |
 | **CD - Producción** (`ci-prod.yml`) | Producción (`PROD`) | Tag `v*.*.*` creado al pasar `develop` a `master` | Pruebas + imagen de versión + aprobación manual del ambiente `production` en Azure App Service. |
 
 ### Diagrama del Flujo Automatizado (Pipeline Stages)
@@ -592,9 +592,9 @@ mvn jacoco:report
 
 </div>
 
-**Estado actual de QA:** el workflow completó build, pruebas, análisis, construcción y publicación de la imagen. El secreto `RABBITMQ_TRUSTSTORE_BASE64_QA` ya está configurado con el certificado recibido y validado. Aunque el archivo se llama `rabbitmq-truststore.jks`, su formato es PKCS12 y la configuración QA ya usa ese tipo; la contraseña predeterminada `changeit` fue validada. Solo falta la llave oficial `JWT_SECRET_QA` de ms-identidad en Base64. No usar la llave local de desarrollo en QA. `CORS_ALLOWED_ORIGINS_QA` es opcional mientras no haya un frontend QA: si se omite, el servicio no acepta llamadas del navegador desde otros orígenes; se debe configurar cuando se conozca el origen HTTPS del frontend. Al guardar la llave oficial, volver a ejecutar `ci-qa.yml` en `feature/websocket-realtime-qa` para desplegar en `gj-chat-service-qa-santi` y verificar Swagger y `/actuator/health`. No se registra una URL QA como activa hasta verificar el despliegue.
+**Estado actual de QA:** el run `CI QA #20` de `feature/websocket-realtime-qa` terminó en verde el 12 de noviembre de 2026, incluyendo el smoke test de `/actuator/health`. El App Service `gj-chat-service-qa-santi` usa una instancia; se mantiene así hasta provisionar y validar Redis Pub/Sub en QA. No registrar secretos en este repositorio.
 
-El workflow configura App Service en el puerto 8320 y habilita WebSockets. Mantener una sola instancia hasta incorporar Redis Pub/Sub.
+El workflow configura App Service en el puerto 8320 y habilita WebSockets.
 
 ### Chat WebSocket STOMP
 
@@ -602,7 +602,10 @@ El workflow configura App Service en el puerto 8320 y habilita WebSockets. Mante
 - En `CONNECT`, enviar `Authorization: Bearer <JWT>` como cabecera nativa STOMP.
 - Suscribirse a `/topic/conversations/{conversationId}`; solo se permiten conversaciones en las que participa el usuario autenticado.
 - Enviar a `/app/conversations/{conversationId}/messages` con cuerpo JSON `{"text":"Hola"}`. El servicio persiste el mensaje antes de difundirlo al tópico.
+- Suscribirse también a `/user/queue/conversations/acks` para recibir la confirmación privada del mensaje guardado, y a `/user/queue/conversations/errors` para errores del emisor. Una conversación cerrada responde con conflicto lógico `409`; no guarda ni distribuye el mensaje.
 - Configurar `WEBSOCKET_ALLOWED_ORIGINS` con los orígenes exactos del cliente, separados por comas. Si se omite, usa `CORS_ALLOWED_ORIGINS`.
+- Contrato completo, esquema JSON, recuperación tras reconexión y configuración de Redis: [`docs/contrato-websocket-stomp.md`](docs/contrato-websocket-stomp.md).
+- Redis Pub/Sub se activa con `WEBSOCKET_REDIS_ENABLED=true` y `REDIS_URL`; mientras no exista Redis de QA, mantener una sola instancia.
 
 <div align="center">
   <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">

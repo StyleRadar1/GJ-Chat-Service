@@ -2,6 +2,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.in.websocket;
 
 import edu.dosw.styleradar.chat.application.dto.request.RealtimeMessageRequest;
 import edu.dosw.styleradar.chat.application.dto.response.MessageResponse;
+import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
@@ -9,8 +10,10 @@ import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.Authenticate
 import jakarta.validation.Valid;
 import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
@@ -23,10 +26,13 @@ import java.security.Principal;
 @Validated
 public class RealtimeChatController {
     private final SendMessageUseCase sendMessage;
+    private final RealtimeMessageBroadcaster broadcaster;
     private final SimpMessagingTemplate messaging;
 
-    public RealtimeChatController(SendMessageUseCase sendMessage, SimpMessagingTemplate messaging) {
+    public RealtimeChatController(SendMessageUseCase sendMessage, RealtimeMessageBroadcaster broadcaster,
+                                  SimpMessagingTemplate messaging) {
         this.sendMessage = sendMessage;
+        this.broadcaster = broadcaster;
         this.messaging = messaging;
     }
 
@@ -37,7 +43,14 @@ public class RealtimeChatController {
         Message saved = sendMessage.send(user.userId(), conversationId, new MessageText(request.text()));
         MessageResponse response = new MessageResponse(saved.getId(), saved.getConversationId(), saved.getAuthorId(),
                 saved.getText().value(), saved.getSentAt());
-        messaging.convertAndSend("/topic/conversations/" + conversationId, response);
+        messaging.convertAndSendToUser(user.userId().toString(), "/queue/conversations/acks", response);
+        broadcaster.broadcast(response);
+    }
+
+    @MessageExceptionHandler(ConversationClosedException.class)
+    @SendToUser(value = "/queue/conversations/errors", broadcast = false)
+    public RealtimeErrorResponse handleClosedConversation(ConversationClosedException exception) {
+        return new RealtimeErrorResponse(409, "conflicto", exception.getMessage());
     }
 
     private AuthenticatedUser authenticatedUser(Principal principal) {
