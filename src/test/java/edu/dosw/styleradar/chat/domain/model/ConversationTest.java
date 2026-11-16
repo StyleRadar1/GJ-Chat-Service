@@ -173,4 +173,30 @@ class ConversationTest {
         Conversation c = conversation(7L, ConversationStatus.OPEN);
         assertThat(c.isParticipant(null)).isFalse();
     }
+
+    @Test
+    void realtimeAccessToAStoreRequiresTheBuyerOrTheMatchingStoreNit() {
+        Conversation c = Conversation.startStore(new StoreSummary("900123-1", "Tienda Moda", true), BUYER, null, NOW);
+
+        assertThat(c.allowsRealtimeAccess(BUYER, false, null)).isTrue();
+        c.assignSellerIfUnassigned(SELLER);
+        assertThat(c.allowsRealtimeAccess(SELLER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, false, null)).isFalse();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "900123-1")).isTrue();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "otro-nit")).isFalse();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, null)).isFalse();
+        assertThat(c.allowsRealtimeAccess(null, true, "900123-1")).isFalse();
+        assertThat(c.belongsToStore("900123-1")).isTrue();
+        assertThat(c.belongsToStore(null)).isFalse();
+    }
+
+    @Test
+    void realtimeAccessOutsideAStoreRequiresParticipation() {
+        Conversation c = conversation(7L, ConversationStatus.OPEN);
+
+        assertThat(c.allowsRealtimeAccess(BUYER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(SELLER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "900123-1")).isFalse();
+        assertThat(c.belongsToStore("900123-1")).isFalse();
+    }
 }

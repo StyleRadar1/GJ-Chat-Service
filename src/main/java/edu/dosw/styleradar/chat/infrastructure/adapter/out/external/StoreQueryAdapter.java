@@ -10,7 +10,7 @@ import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/** Reads ally stores from ms-tiendas through Feign. */
+/** Consulta almacenes aliados en ms-tiendas mediante Feign. */
 @Slf4j
 @Component
 public class StoreQueryAdapter implements StoreQueryPort {
@@ -34,10 +34,8 @@ public class StoreQueryAdapter implements StoreQueryPort {
         if (response == null || response.nit() == null) {
             throw new ExternalServiceUnavailableException("Respuesta incompleta del servicio de tiendas");
         }
-        boolean verified = Boolean.TRUE.equals(response.verificado())
-                || "APROBADO".equalsIgnoreCase(response.estadoVerificacion())
-                || Boolean.TRUE.equals(response.activo());
-        return new StoreSummary(response.nit(), response.nombreComercial(), verified);
+        // GET /api/v1/almacenes/{nit} no informa verificación. HTTP 200 con datos implica almacén disponible.
+        return new StoreSummary(response.nit(), response.nombreComercial(), true);
     }
 
     @Override
@@ -54,7 +52,7 @@ public class StoreQueryAdapter implements StoreQueryPort {
         if (response == null || response.nit() == null) {
             throw new ExternalServiceUnavailableException("Respuesta incompleta del servicio de tiendas");
         }
-        boolean verified = "APROBADO".equalsIgnoreCase(response.estadoVerificacion());
-        return new StoreSummary(response.nit(), response.nombreComercial(), verified);
+        // Igual que en fetch(): una respuesta HTTP 200 con datos del almacén implica que está disponible.
+        return new StoreSummary(response.nit(), response.nombreComercial(), true);
     }
 }

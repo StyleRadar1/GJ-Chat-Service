@@ -1,9 +1,12 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.in.websocket;
 
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationType;
+import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
+import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtTokenAdapter;
 import io.jsonwebtoken.JwtException;
@@ -22,7 +25,7 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Authenticates STOMP connections and restricts sends/subscriptions to conversation participants. */
+/** Autentica la conexión STOMP y limita suscripción y envío a quien puede participar. */
 @Component
 public class JwtStompChannelInterceptor implements ChannelInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtStompChannelInterceptor.class);
@@ -32,10 +35,13 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
             Pattern.compile("^/(?:app/conversations|topic/conversations)/([1-9]\\d{0,18})(?:/messages)?$");
     private final JwtTokenAdapter tokens;
     private final ConversationRepositoryPort conversations;
+    private final StoreQueryPort stores;
 
-    public JwtStompChannelInterceptor(JwtTokenAdapter tokens, ConversationRepositoryPort conversations) {
+    public JwtStompChannelInterceptor(JwtTokenAdapter tokens, ConversationRepositoryPort conversations,
+                                      StoreQueryPort stores) {
         this.tokens = tokens;
         this.conversations = conversations;
+        this.stores = stores;
     }
 
     @Override
@@ -104,17 +110,43 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
     private void verifyParticipant(AuthenticatedUser user, Long conversationId) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
-        if (!conversation.isParticipant(user.userId())) {
-            if (conversation.getType() == ConversationType.ALMACEN
-                    && (user.roles().contains("ADMIN_ALMACEN") || user.roles().contains("TIENDA"))
-                    && conversation.getSellerId() == null) {
-                conversation.assignSellerIfUnassigned(user.userId());
-                conversations.save(conversation);
-                return;
-            }
+
+        boolean storeAdmin = isStoreAdmin(user);
+        String storeNit = null;
+        if (storeAdmin && conversation.getType() == ConversationType.ALMACEN
+                && !conversation.isParticipant(user.userId())) {
+            storeNit = storeNitOf(user.userId());
+        }
+
+        if (!conversation.allowsRealtimeAccess(user.userId(), storeAdmin, storeNit)) {
             LOGGER.warn("Acceso STOMP rechazado: userId={} no participa en conversationId={}",
                     user.userId(), conversationId);
-            throw new MessagingException("No tiene acceso a esta conversación");
+            throw new MessagingException("No tiene acceso a esta conversación",
+                    new AccessDeniedDomainException("No tiene acceso a esta conversación"));
+        }
+
+        if (storeAdmin && conversation.getSellerId() == null && conversation.belongsToStore(storeNit)) {
+            conversation.assignSellerIfUnassigned(user.userId());
+            conversations.save(conversation);
+        }
+    }
+
+    private static boolean isStoreAdmin(AuthenticatedUser user) {
+        return user.roles().contains("REPRESENTANTE_ALMACEN")
+                || user.roles().contains("ADMIN_ALMACEN")
+                || user.roles().contains("TIENDA");
+    }
+
+    private String storeNitOf(Long userId) {
+        try {
+            StoreSummary store = stores.fetchMyStore(userId);
+            if (store == null || store.nit() == null) {
+                return null;
+            }
+            return store.nit();
+        } catch (RuntimeException exception) {
+            LOGGER.warn("No se pudo resolver el almacén del usuario {}: {}", userId, exception.getMessage());
+            return null;
         }
     }
 }

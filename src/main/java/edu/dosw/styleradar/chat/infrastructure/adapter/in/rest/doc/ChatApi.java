@@ -58,7 +58,7 @@ public interface ChatApi {
             @PathVariable Long listingId);
 
     @Operation(summary = "Iniciar chat con almacén aliado (SR-RF-73 / GJ-56)",
-            description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén exista y esté verificado. Si ya existe conversación con este almacén, la devuelve.")
+            description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén exista. Si el servicio responde HTTP 200 con datos, el almacén se considera disponible. Si ya existe conversación con este almacén, la devuelve.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conversación iniciada o existente con el almacén"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
@@ -67,7 +67,7 @@ public interface ChatApi {
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
             @ApiResponse(responseCode = "404", description = "Almacén inexistente",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404))),
-            @ApiResponse(responseCode = "422", description = "Almacén no verificado o inactivo para chat",
+            @ApiResponse(responseCode = "422", description = "El almacén no está disponible para chat",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_422))),
             @ApiResponse(responseCode = "503", description = "El servicio de tiendas no respondió",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))

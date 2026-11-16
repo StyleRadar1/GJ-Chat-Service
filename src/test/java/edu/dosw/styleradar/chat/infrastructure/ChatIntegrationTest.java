@@ -3,8 +3,13 @@ package edu.dosw.styleradar.chat.infrastructure;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.SecondHandFeignClient;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.StoresFeignClient;
 import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalListingResponse;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalStoreResponse;
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.ConversationRepositoryAdapter;
 import edu.dosw.styleradar.chat.support.Tokens;
 import org.junit.jupiter.api.Test;
@@ -20,7 +25,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -46,6 +54,8 @@ class ChatIntegrationTest {
     private ConversationRepositoryAdapter conversations;
     @MockBean
     private SecondHandFeignClient secondHand;
+    @MockBean
+    private StoresFeignClient stores;
     @MockBean
     private EventPublisherPort eventPublisher;
 
@@ -117,8 +127,47 @@ class ChatIntegrationTest {
     }
 
     @Test
+    void storeIsAvailableWhenTheStoresServiceReturns200() throws Exception {
+        when(stores.getStore("900123456-1")).thenReturn(
+                new ExternalStoreResponse("900123456-1", "Atelier Urbano", "Ropa", 4.8));
+        String buyer = Tokens.bearer(Tokens.withRoles(310L, List.of("COMPRADOR")));
+
+        mvc.perform(post("/api/v1/almacenes/900123456-1/conversaciones").header("Authorization", buyer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tipo").value("ALMACEN"))
+                .andExpect(jsonPath("$.almacenNit").value("900123456-1"))
+                .andExpect(jsonPath("$.almacenNombre").value("Atelier Urbano"))
+                .andExpect(jsonPath("$.estado").value("ABIERTA"));
+    }
+
+    @Test
+    void storeIsNotAvailableWhenTheStoresServiceReturns404() throws Exception {
+        when(stores.getStore("999999-9")).thenThrow(storesError(404));
+        String buyer = Tokens.bearer(Tokens.withRoles(311L, List.of("COMPRADOR")));
+
+        mvc.perform(post("/api/v1/almacenes/999999-9/conversaciones").header("Authorization", buyer))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void storeIsNotAvailableWhenTheStoresServiceFails() throws Exception {
+        when(stores.getStore("900123456-2")).thenThrow(storesError(503));
+        String buyer = Tokens.bearer(Tokens.withRoles(312L, List.of("COMPRADOR")));
+
+        mvc.perform(post("/api/v1/almacenes/900123456-2/conversaciones").header("Authorization", buyer))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
     void healthAndDocsArePublic() throws Exception {
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
+    }
+
+    private static FeignException storesError(int status) {
+        Request request = Request.create(Request.HttpMethod.GET, "http://tiendas/api/v1/almacenes/x",
+                Map.of(), null, StandardCharsets.UTF_8, null);
+        Response response = Response.builder().status(status).reason("error").request(request).headers(Map.of()).build();
+        return FeignException.errorStatus("StoresFeignClient#getStore", response);
     }
 }

@@ -102,7 +102,34 @@ public final class Conversation {
         if (isParticipant(userId)) {
             return true;
         }
-        return type == ConversationType.ALMACEN && storeNit != null && storeNit.equals(storeNitOfUser);
+        return belongsToStore(storeNitOfUser);
+    }
+
+    /**
+     * Autoriza un frame de suscripción o envío en tiempo real.
+     * En un chat de almacén el comprador entra solo si su id es el buyerId (o ya es el vendedor
+     * asignado) y el administrador solo si el NIT de su almacén coincide.
+     * En segunda mano y donación basta con ser participante.
+     */
+    public boolean allowsRealtimeAccess(Long userId, boolean storeAdmin, String storeNitOfAdmin) {
+        if (userId == null) {
+            return false;
+        }
+        if (type == ConversationType.ALMACEN) {
+            if (buyerId.equals(userId) || (sellerId != null && sellerId.equals(userId))) {
+                return true;
+            }
+            return storeAdmin && belongsToStore(storeNitOfAdmin);
+        }
+        return isParticipant(userId);
+    }
+
+    /** La conversación pertenece al almacén indicado. */
+    public boolean belongsToStore(String storeNitOfAdmin) {
+        return type == ConversationType.ALMACEN
+                && storeNit != null
+                && storeNitOfAdmin != null
+                && storeNit.equals(storeNitOfAdmin);
     }
 
     public void verifyParticipant(Long userId) {
