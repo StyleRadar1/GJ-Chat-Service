@@ -40,12 +40,14 @@ class RealtimeChatControllerTest {
     private RealtimeMessageBroadcaster broadcaster;
     @Mock
     private SimpMessagingTemplate messaging;
+    @Mock
+    private edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics metrics;
 
     private RealtimeChatController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new RealtimeChatController(sendMessage, broadcaster, messaging);
+        controller = new RealtimeChatController(sendMessage, broadcaster, messaging, metrics);
     }
 
     @Test

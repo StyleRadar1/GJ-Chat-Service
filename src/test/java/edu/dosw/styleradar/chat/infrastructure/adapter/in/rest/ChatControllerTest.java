@@ -86,6 +86,8 @@ class ChatControllerTest {
     private GetMessagesUseCase getMessages;
     @MockBean
     private SendMessageUseCase send;
+    @MockBean
+    private edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics metrics;
 
     private static String buyer() {
         return Tokens.bearer(Tokens.forUser(BUYER));

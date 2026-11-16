@@ -90,6 +90,9 @@ class StoreAndDonationChatControllerTest {
     @MockBean
     private SendMessageUseCase sendMessage;
 
+    @MockBean
+    private edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics metrics;
+
     @Test
     @DisplayName("GJ-56: Comprador inicia chat con almacén aliado exitosamente")
     void startStoreConversationSuccess() throws Exception {

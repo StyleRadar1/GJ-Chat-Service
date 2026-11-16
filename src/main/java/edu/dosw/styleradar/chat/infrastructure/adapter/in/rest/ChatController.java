@@ -14,6 +14,7 @@ import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.StartDonationConversationUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.StartStoreConversationUseCase;
 import edu.dosw.styleradar.chat.infrastructure.adapter.in.rest.doc.ChatApi;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,7 @@ public class ChatController implements ChatApi {
     private final MessageDtoInMapper messageIn;
     private final ConversationDtoOutMapper conversationOut;
     private final MessageDtoOutMapper messageOut;
+    private final ChatMetrics metrics;
 
     public ChatController(StartConversationUseCase startConversation,
                           StartStoreConversationUseCase startStoreConversation,
@@ -42,7 +44,8 @@ public class ChatController implements ChatApi {
                           GetMyConversationsUseCase getMyConversations,
                           GetMessagesUseCase getMessages, SendMessageUseCase sendMessage,
                           MessageDtoInMapper messageIn, ConversationDtoOutMapper conversationOut,
-                          MessageDtoOutMapper messageOut) {
+                          MessageDtoOutMapper messageOut,
+                          ChatMetrics metrics) {
         this.startConversation = startConversation;
         this.startStoreConversation = startStoreConversation;
         this.getStoreConversations = getStoreConversations;
@@ -53,18 +56,21 @@ public class ChatController implements ChatApi {
         this.messageIn = messageIn;
         this.conversationOut = conversationOut;
         this.messageOut = messageOut;
+        this.metrics = metrics;
     }
 
     @Override
     public ResponseEntity<ConversationResponse> start(AuthenticatedUser user, Long listingId) {
-        return ResponseEntity.ok(conversationOut.toResponse(
-                startConversation.start(user.userId(), listingId)));
+        var conversation = startConversation.start(user.userId(), listingId);
+        metrics.recordConversationCreated(conversation.getType());
+        return ResponseEntity.ok(conversationOut.toResponse(conversation));
     }
 
     @Override
     public ResponseEntity<ConversationResponse> startStoreConversation(AuthenticatedUser user, String nit) {
-        return ResponseEntity.ok(conversationOut.toResponse(
-                startStoreConversation.start(user.userId(), nit)));
+        var conversation = startStoreConversation.start(user.userId(), nit);
+        metrics.recordConversationCreated(conversation.getType());
+        return ResponseEntity.ok(conversationOut.toResponse(conversation));
     }
 
     @Override
@@ -75,8 +81,9 @@ public class ChatController implements ChatApi {
 
     @Override
     public ResponseEntity<ConversationResponse> startDonationConversation(AuthenticatedUser user, Long donationId) {
-        return ResponseEntity.ok(conversationOut.toResponse(
-                startDonationConversation.start(user.userId(), donationId)));
+        var conversation = startDonationConversation.start(user.userId(), donationId);
+        metrics.recordConversationCreated(conversation.getType());
+        return ResponseEntity.ok(conversationOut.toResponse(conversation));
     }
 
     @Override
@@ -92,7 +99,10 @@ public class ChatController implements ChatApi {
     @Override
     public ResponseEntity<MessageResponse> sendMessage(AuthenticatedUser user, Long id,
                                                        SendMessageRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(messageOut.toResponse(
-                sendMessage.send(user.userId(), id, messageIn.toText(request))));
+        long start = System.currentTimeMillis();
+        var message = sendMessage.send(user.userId(), id, messageIn.toText(request));
+        metrics.recordMessageLatency(System.currentTimeMillis() - start);
+        metrics.recordMessageSent(null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(messageOut.toResponse(message));
     }
 }
