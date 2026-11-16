@@ -13,8 +13,11 @@ import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetStoreConversationsUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartDonationConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartStoreConversationUseCase;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtTokenAdapter;
 import edu.dosw.styleradar.chat.infrastructure.config.SecurityConfig;
 import edu.dosw.styleradar.chat.infrastructure.exception.GlobalExceptionHandler;
@@ -72,11 +75,19 @@ class ChatControllerTest {
     @MockBean
     private StartConversationUseCase start;
     @MockBean
+    private StartStoreConversationUseCase startStore;
+    @MockBean
+    private GetStoreConversationsUseCase storeConversations;
+    @MockBean
+    private StartDonationConversationUseCase startDonation;
+    @MockBean
     private GetMyConversationsUseCase myConversations;
     @MockBean
     private GetMessagesUseCase getMessages;
     @MockBean
     private SendMessageUseCase send;
+    @MockBean
+    private edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics metrics;
 
     private static String buyer() {
         return Tokens.bearer(Tokens.forUser(BUYER));

@@ -1,15 +1,19 @@
 package edu.dosw.styleradar.chat.application.usecase;
 
 import edu.dosw.styleradar.chat.domain.event.MessageSentEvent;
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.ListingQueryPort;
+import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
 
 import java.time.Clock;
 
@@ -20,14 +24,17 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
     private final ConversationRepositoryPort conversations;
     private final MessageRepositoryPort messages;
     private final ListingQueryPort listings;
+    private final StoreQueryPort stores;
     private final EventPublisherPort events;
     private final Clock clock;
 
     public SendMessageUseCaseImpl(ConversationRepositoryPort conversations, MessageRepositoryPort messages,
-                                    ListingQueryPort listings, EventPublisherPort events, Clock clock) {
+                                  ListingQueryPort listings, StoreQueryPort stores,
+                                  EventPublisherPort events, Clock clock) {
         this.conversations = conversations;
         this.messages = messages;
         this.listings = listings;
+        this.stores = stores;
         this.events = events;
         this.clock = clock;
     }
@@ -41,8 +48,26 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
     public Message send(Long userId, Long conversationId, MessageText text) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
+
+        if (conversation.getSellerId() == null && !conversation.getBuyerId().equals(userId)) {
+            if (conversation.getType() == ConversationType.ALMACEN) {
+                StoreSummary myStore;
+                try {
+                    myStore = stores.fetchMyStore(userId);
+                } catch (Exception e) {
+                    throw new AccessDeniedDomainException("No administra ningún almacén aliado");
+                }
+                if (myStore == null || !conversation.getStoreNit().equals(myStore.nit())) {
+                    throw new AccessDeniedDomainException("No tiene permisos para responder por este almacén aliado");
+                }
+            }
+            conversation.assignSellerIfUnassigned(userId);
+            conversations.save(conversation);
+        }
+
         conversation.verifyParticipant(userId);
-        if (conversation.isOpen() && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
+        if (conversation.isOpen() && conversation.getListingId() != null
+                && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
             conversation.close();
             conversations.save(conversation);
         }

@@ -6,6 +6,7 @@ import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.messaging.MessageDeliveryException;
@@ -28,19 +29,24 @@ public class RealtimeChatController {
     private final SendMessageUseCase sendMessage;
     private final RealtimeMessageBroadcaster broadcaster;
     private final SimpMessagingTemplate messaging;
+    private final ChatMetrics metrics;
 
     public RealtimeChatController(SendMessageUseCase sendMessage, RealtimeMessageBroadcaster broadcaster,
-                                  SimpMessagingTemplate messaging) {
+                                  SimpMessagingTemplate messaging, ChatMetrics metrics) {
         this.sendMessage = sendMessage;
         this.broadcaster = broadcaster;
         this.messaging = messaging;
+        this.metrics = metrics;
     }
 
     @MessageMapping("/conversations/{conversationId}/messages")
     public void send(@DestinationVariable Long conversationId, @Valid @Payload RealtimeMessageRequest request,
                      Principal principal) {
         AuthenticatedUser user = authenticatedUser(principal);
+        long start = System.currentTimeMillis();
         Message saved = sendMessage.send(user.userId(), conversationId, new MessageText(request.text()));
+        metrics.recordMessageLatency(System.currentTimeMillis() - start);
+        metrics.recordRealtimeMessageSent();
         MessageResponse response = new MessageResponse(saved.getId(), saved.getConversationId(), saved.getAuthorId(),
                 saved.getText().value(), saved.getSentAt());
         messaging.convertAndSendToUser(user.userId().toString(), "/queue/conversations/acks", response);

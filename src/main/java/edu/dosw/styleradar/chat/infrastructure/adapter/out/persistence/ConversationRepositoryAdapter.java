@@ -38,6 +38,33 @@ public class ConversationRepositoryAdapter implements ConversationRepositoryPort
     }
 
     @Override
+    public Optional<Conversation> findByStoreAndBuyer(String storeNit, Long buyerId) {
+        return repository.findByStoreNitAndBuyerId(storeNit, buyerId).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<Conversation> findByDonationAndBuyer(Long donationId, Long buyerId) {
+        return repository.findByDonationIdAndBuyerId(donationId, buyerId).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<Conversation> findFirstByDonation(Long donationId) {
+        return repository.findFirstByDonationIdOrderByCreatedAtAsc(donationId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Conversation> findByStore(String storeNit) {
+        return repository.findByStoreNitOrderByCreatedAtDesc(storeNit).stream()
+                .map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Conversation> findByDonation(Long donationId) {
+        return repository.findByDonationIdOrderByCreatedAtDesc(donationId).stream()
+                .map(mapper::toDomain).toList();
+    }
+
+    @Override
     public List<Conversation> findByParticipant(Long userId) {
         return repository.findByParticipant(userId).stream().map(mapper::toDomain).toList();
     }
@@ -47,10 +74,22 @@ public class ConversationRepositoryAdapter implements ConversationRepositoryPort
         try {
             return mapper.toDomain(repository.saveAndFlush(mapper.toEntity(conversation)));
         } catch (DataIntegrityViolationException e) {
-            return repository.findByListingIdAndBuyerId(conversation.getListingId(),
-                            conversation.getBuyerId())
-                    .map(mapper::toDomain)
-                    .orElseThrow(() -> e);
+            if (conversation.getListingId() != null) {
+                return repository.findByListingIdAndBuyerId(conversation.getListingId(), conversation.getBuyerId())
+                        .map(mapper::toDomain)
+                        .orElseThrow(() -> e);
+            }
+            if (conversation.getStoreNit() != null) {
+                return repository.findByStoreNitAndBuyerId(conversation.getStoreNit(), conversation.getBuyerId())
+                        .map(mapper::toDomain)
+                        .orElseThrow(() -> e);
+            }
+            if (conversation.getDonationId() != null) {
+                return repository.findByDonationIdAndBuyerId(conversation.getDonationId(), conversation.getBuyerId())
+                        .map(mapper::toDomain)
+                        .orElseThrow(() -> e);
+            }
+            throw e;
         }
     }
 }

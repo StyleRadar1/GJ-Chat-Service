@@ -4,6 +4,8 @@ import edu.dosw.styleradar.chat.domain.exception.SelfChatException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.ListingUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -116,5 +118,85 @@ class ConversationTest {
         assertThatThrownBy(() -> Conversation.start(null, BUYER, NOW)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> Conversation.start(listing(ListingStatus.AVAILABLE), null, NOW))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void startsStoreConversation() {
+        StoreSummary store = new StoreSummary("900123-1", "Tienda Moda", true);
+        Conversation c = Conversation.startStore(store, BUYER, null, NOW);
+
+        assertThat(c.getType()).isEqualTo(ConversationType.ALMACEN);
+        assertThat(c.getStoreNit()).isEqualTo("900123-1");
+        assertThat(c.getBuyerId()).isEqualTo(BUYER);
+        assertThat(c.getSellerId()).isNull();
+        assertThat(c.recipientOf(BUYER)).isEqualTo(0L);
+
+        c.assignSellerIfUnassigned(2L);
+        assertThat(c.getSellerId()).isEqualTo(2L);
+        assertThat(c.recipientOf(BUYER)).isEqualTo(2L);
+    }
+
+    @Test
+    void rejectsStoreConversationWhenStoreNotAvailable() {
+        StoreSummary store = new StoreSummary("900123-1", "Tienda Moda", false);
+        assertThatThrownBy(() -> Conversation.startStore(store, BUYER, null, NOW))
+                .isInstanceOf(StoreUnavailableException.class);
+    }
+
+    @Test
+    void startsDonationConversation() {
+        DonationSummary donation = new DonationSummary(50L, BUYER, 2L, "APPROVED");
+        Conversation c = Conversation.startDonation(donation, BUYER, NOW);
+
+        assertThat(c.getType()).isEqualTo(ConversationType.DONACION);
+        assertThat(c.getDonationId()).isEqualTo(50L);
+        assertThat(c.getBuyerId()).isEqualTo(BUYER);
+        assertThat(c.getSellerId()).isEqualTo(2L);
+    }
+
+    @Test
+    void rejectsDonationConversationWhenCompleted() {
+        DonationSummary donation = new DonationSummary(50L, BUYER, 2L, "REJECTED");
+        assertThatThrownBy(() -> Conversation.startDonation(donation, BUYER, NOW))
+                .isInstanceOf(DonationUnavailableException.class);
+    }
+
+    @Test
+    void rejectsDonationConversationWhenCallerNotParticipant() {
+        DonationSummary donation = new DonationSummary(50L, BUYER, 2L, "APPROVED");
+        assertThatThrownBy(() -> Conversation.startDonation(donation, OUTSIDER, NOW))
+                .isInstanceOf(edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException.class);
+    }
+
+    @Test
+    void isParticipantReturnsFalseForNull() {
+        Conversation c = conversation(7L, ConversationStatus.OPEN);
+        assertThat(c.isParticipant(null)).isFalse();
+    }
+
+    @Test
+    void realtimeAccessToAStoreRequiresTheBuyerOrTheMatchingStoreNit() {
+        Conversation c = Conversation.startStore(new StoreSummary("900123-1", "Tienda Moda", true), BUYER, null, NOW);
+
+        assertThat(c.allowsRealtimeAccess(BUYER, false, null)).isTrue();
+        c.assignSellerIfUnassigned(SELLER);
+        assertThat(c.allowsRealtimeAccess(SELLER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, false, null)).isFalse();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "900123-1")).isTrue();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "otro-nit")).isFalse();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, null)).isFalse();
+        assertThat(c.allowsRealtimeAccess(null, true, "900123-1")).isFalse();
+        assertThat(c.belongsToStore("900123-1")).isTrue();
+        assertThat(c.belongsToStore(null)).isFalse();
+    }
+
+    @Test
+    void realtimeAccessOutsideAStoreRequiresParticipation() {
+        Conversation c = conversation(7L, ConversationStatus.OPEN);
+
+        assertThat(c.allowsRealtimeAccess(BUYER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(SELLER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "900123-1")).isFalse();
+        assertThat(c.belongsToStore("900123-1")).isFalse();
     }
 }
