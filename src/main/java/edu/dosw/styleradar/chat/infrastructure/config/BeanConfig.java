@@ -67,16 +67,19 @@ public class BeanConfig {
 
     @Bean
     public GetMessagesUseCase getMessagesUseCase(ConversationRepositoryPort conversations,
-                                                 MessageRepositoryPort messages) {
-        return new GetMessagesUseCaseImpl(conversations, messages);
+                                                 MessageRepositoryPort messages,
+                                                 StoreQueryPort stores) {
+        return new GetMessagesUseCaseImpl(conversations, messages, stores);
     }
 
     @Bean
     public SendMessageUseCase sendMessageUseCase(ConversationRepositoryPort conversations,
                                                  MessageRepositoryPort messages,
-                                                 ListingQueryPort listings, EventPublisherPort events,
+                                                 ListingQueryPort listings,
+                                                 StoreQueryPort stores,
+                                                 EventPublisherPort events,
                                                  Clock clock) {
-        return new SendMessageUseCaseImpl(conversations, messages, listings, events, clock);
+        return new SendMessageUseCaseImpl(conversations, messages, listings, stores, events, clock);
     }
 
     @Bean

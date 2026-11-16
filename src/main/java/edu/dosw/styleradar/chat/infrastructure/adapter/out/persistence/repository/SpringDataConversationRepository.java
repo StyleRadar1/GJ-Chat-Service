@@ -19,6 +19,8 @@ public interface SpringDataConversationRepository extends JpaRepository<Conversa
 
     Optional<ConversationJpaEntity> findByDonationIdAndBuyerId(Long donationId, Long buyerId);
 
+    Optional<ConversationJpaEntity> findFirstByDonationIdOrderByCreatedAtAsc(Long donationId);
+
     List<ConversationJpaEntity> findByStoreNitOrderByCreatedAtDesc(String storeNit);
 
     List<ConversationJpaEntity> findByDonationIdOrderByCreatedAtDesc(Long donationId);

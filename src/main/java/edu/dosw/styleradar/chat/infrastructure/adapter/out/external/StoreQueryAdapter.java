@@ -34,7 +34,10 @@ public class StoreQueryAdapter implements StoreQueryPort {
         if (response == null || response.nit() == null) {
             throw new ExternalServiceUnavailableException("Respuesta incompleta del servicio de tiendas");
         }
-        return new StoreSummary(response.nit(), response.nombreComercial(), true);
+        boolean verified = Boolean.TRUE.equals(response.verificado())
+                || "APROBADO".equalsIgnoreCase(response.estadoVerificacion())
+                || Boolean.TRUE.equals(response.activo());
+        return new StoreSummary(response.nit(), response.nombreComercial(), verified);
     }
 
     @Override

@@ -17,6 +17,8 @@ public interface ConversationRepositoryPort {
 
     Optional<Conversation> findByDonationAndBuyer(Long donationId, Long buyerId);
 
+    Optional<Conversation> findFirstByDonation(Long donationId);
+
     List<Conversation> findByStore(String storeNit);
 
     List<Conversation> findByDonation(Long donationId);

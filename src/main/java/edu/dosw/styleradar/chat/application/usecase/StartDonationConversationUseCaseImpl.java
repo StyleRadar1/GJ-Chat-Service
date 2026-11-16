@@ -27,10 +27,15 @@ public class StartDonationConversationUseCaseImpl implements StartDonationConver
         Objects.requireNonNull(callerId, "El usuario participante es obligatorio");
         Objects.requireNonNull(donationId, "El identificador de la donación es obligatorio");
 
-        return conversations.findByDonationAndBuyer(donationId, callerId).orElseGet(() -> {
-            DonationSummary donation = donations.fetch(donationId);
-            Conversation created = Conversation.startDonation(donation, callerId, clock.instant());
-            return conversations.save(created);
-        });
+        return conversations.findFirstByDonation(donationId)
+                .map(existing -> {
+                    existing.verifyParticipant(callerId);
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    DonationSummary donation = donations.fetch(donationId);
+                    Conversation created = Conversation.startDonation(donation, callerId, clock.instant());
+                    return conversations.save(created);
+                });
     }
 }

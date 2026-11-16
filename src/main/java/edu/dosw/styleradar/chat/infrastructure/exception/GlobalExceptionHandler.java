@@ -11,6 +11,7 @@ import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -78,8 +79,8 @@ public class GlobalExceptionHandler {
                 "La solicitud está mal formada", request.getRequestURI());
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ProblemDetail accessDenied(AccessDeniedException e, HttpServletRequest request) {
+    @ExceptionHandler({AccessDeniedException.class, AccessDeniedDomainException.class})
+    public ProblemDetail accessDenied(Exception e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.FORBIDDEN, "acceso-denegado", "Acceso denegado",
                 "No tiene permiso para realizar esta acción", request.getRequestURI());
     }

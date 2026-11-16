@@ -8,6 +8,9 @@ public record ExternalStoreResponse(
         String nit,
         String nombreComercial,
         String descripcion,
-        Double reputacion
+        Double reputacion,
+        String estadoVerificacion,
+        Boolean verificado,
+        Boolean activo
 ) {
 }

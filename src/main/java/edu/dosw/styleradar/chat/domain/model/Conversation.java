@@ -82,7 +82,7 @@ public final class Conversation {
         Long donorId = donation.donorId();
         Long foundationId = donation.foundationId();
         if (!callerId.equals(donorId) && (foundationId == null || !callerId.equals(foundationId))) {
-            throw new SelfChatException("Solo el donante o la fundación receptora pueden participar en este chat");
+            throw new edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException("Solo el donante o la fundación receptora pueden participar en este chat");
         }
         return new Conversation(null, ConversationType.DONACION, null, "Donación #" + donation.id(),
                 donorId, foundationId, null, null, donation.id(), ConversationStatus.OPEN, now);
@@ -93,6 +93,16 @@ public final class Conversation {
             return false;
         }
         return buyerId.equals(userId) || (sellerId != null && sellerId.equals(userId));
+    }
+
+    public boolean isParticipantOrStoreAdmin(Long userId, String storeNitOfUser) {
+        if (userId == null) {
+            return false;
+        }
+        if (isParticipant(userId)) {
+            return true;
+        }
+        return type == ConversationType.ALMACEN && storeNit != null && storeNit.equals(storeNitOfUser);
     }
 
     public void verifyParticipant(Long userId) {

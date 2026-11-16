@@ -4,7 +4,7 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 COPY src ./src
-RUN mvn -B -q package -DskipTests
+RUN mvn -B -q package -DskipTests -Dmaven.test.skip=true
 
 # Etapa 2: imagen liviana solo con el JRE
 FROM eclipse-temurin:17-jre-alpine

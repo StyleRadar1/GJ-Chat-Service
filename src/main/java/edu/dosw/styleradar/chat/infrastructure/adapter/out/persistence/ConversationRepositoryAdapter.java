@@ -48,6 +48,11 @@ public class ConversationRepositoryAdapter implements ConversationRepositoryPort
     }
 
     @Override
+    public Optional<Conversation> findFirstByDonation(Long donationId) {
+        return repository.findFirstByDonationIdOrderByCreatedAtAsc(donationId).map(mapper::toDomain);
+    }
+
+    @Override
     public List<Conversation> findByStore(String storeNit) {
         return repository.findByStoreNitOrderByCreatedAtDesc(storeNit).stream()
                 .map(mapper::toDomain).toList();
