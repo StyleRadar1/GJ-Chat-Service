@@ -1,8 +1,11 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity;
 
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Convert;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -27,7 +30,11 @@ public class ConversationJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "publicacion_id", nullable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", length = 30)
+    private ConversationType type = ConversationType.SEGUNDA_MANO;
+
+    @Column(name = "publicacion_id", updatable = false)
     private Long listingId;
 
     @Column(name = "prenda_nombre", length = 200)
@@ -36,8 +43,17 @@ public class ConversationJpaEntity {
     @Column(name = "comprador_id", nullable = false, updatable = false)
     private Long buyerId;
 
-    @Column(name = "vendedor_id", nullable = false, updatable = false)
+    @Column(name = "vendedor_id")
     private Long sellerId;
+
+    @Column(name = "almacen_nit", length = 50)
+    private String storeNit;
+
+    @Column(name = "almacen_nombre", length = 200)
+    private String storeName;
+
+    @Column(name = "donacion_id")
+    private Long donationId;
 
     @Convert(converter = ConversationStatusConverter.class)
     @Column(name = "estado", nullable = false, length = 20)

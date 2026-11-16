@@ -3,18 +3,26 @@ package edu.dosw.styleradar.chat.infrastructure.config;
 import edu.dosw.styleradar.chat.application.usecase.CloseConversationsOnSaleUseCaseImpl;
 import edu.dosw.styleradar.chat.application.usecase.GetMessagesUseCaseImpl;
 import edu.dosw.styleradar.chat.application.usecase.GetMyConversationsUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.GetStoreConversationsUseCaseImpl;
 import edu.dosw.styleradar.chat.application.usecase.SendMessageUseCaseImpl;
 import edu.dosw.styleradar.chat.application.usecase.StartConversationUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.StartDonationConversationUseCaseImpl;
+import edu.dosw.styleradar.chat.application.usecase.StartStoreConversationUseCaseImpl;
 import edu.dosw.styleradar.chat.domain.port.in.CloseConversationsOnSaleUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetStoreConversationsUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartDonationConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartStoreConversationUseCase;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
+import edu.dosw.styleradar.chat.domain.port.out.DonationQueryPort;
 import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
+import edu.dosw.styleradar.chat.domain.port.out.ListingQueryPort;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.ProcessedEventPort;
-import edu.dosw.styleradar.chat.domain.port.out.ListingQueryPort;
+import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -30,8 +38,26 @@ public class BeanConfig {
 
     @Bean
     public StartConversationUseCase startConversationUseCase(ConversationRepositoryPort conversations,
-                                                                 ListingQueryPort listings, Clock clock) {
+                                                             ListingQueryPort listings, Clock clock) {
         return new StartConversationUseCaseImpl(conversations, listings, clock);
+    }
+
+    @Bean
+    public StartStoreConversationUseCase startStoreConversationUseCase(ConversationRepositoryPort conversations,
+                                                                       StoreQueryPort stores, Clock clock) {
+        return new StartStoreConversationUseCaseImpl(conversations, stores, clock);
+    }
+
+    @Bean
+    public StartDonationConversationUseCase startDonationConversationUseCase(ConversationRepositoryPort conversations,
+                                                                             DonationQueryPort donations, Clock clock) {
+        return new StartDonationConversationUseCaseImpl(conversations, donations, clock);
+    }
+
+    @Bean
+    public GetStoreConversationsUseCase getStoreConversationsUseCase(ConversationRepositoryPort conversations,
+                                                                     StoreQueryPort stores) {
+        return new GetStoreConversationsUseCaseImpl(conversations, stores);
     }
 
     @Bean
@@ -41,15 +67,15 @@ public class BeanConfig {
 
     @Bean
     public GetMessagesUseCase getMessagesUseCase(ConversationRepositoryPort conversations,
-                                                             MessageRepositoryPort messages) {
+                                                 MessageRepositoryPort messages) {
         return new GetMessagesUseCaseImpl(conversations, messages);
     }
 
     @Bean
     public SendMessageUseCase sendMessageUseCase(ConversationRepositoryPort conversations,
-                                                     MessageRepositoryPort messages,
-                                                     ListingQueryPort listings, EventPublisherPort events,
-                                                     Clock clock) {
+                                                 MessageRepositoryPort messages,
+                                                 ListingQueryPort listings, EventPublisherPort events,
+                                                 Clock clock) {
         return new SendMessageUseCaseImpl(conversations, messages, listings, events, clock);
     }
 

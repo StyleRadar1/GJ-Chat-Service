@@ -20,7 +20,7 @@ public class RabbitConfig {
     public static final String SECOND_HAND_QUEUE = "q.chat.segunda-mano";
     public static final String SECOND_HAND_DEAD_LETTER_QUEUE = "q.chat.segunda-mano.dlq";
     public static final String MESSAGE_SENT_ROUTING_KEY = "styleradar.chat.mensaje.enviado";
-    public static final String LISTING_SOLD_ROUTING_KEY = "styleradar.segundavida.prenda.vendida";
+    public static final String LISTING_SOLD_ROUTING_KEY = "segunda-mano.prenda.vendida";
 
     @Bean
     public TopicExchange eventsExchange() {

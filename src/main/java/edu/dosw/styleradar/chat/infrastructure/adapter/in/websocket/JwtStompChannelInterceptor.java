@@ -2,6 +2,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.in.websocket;
 
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtTokenAdapter;
@@ -104,6 +105,13 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
         if (!conversation.isParticipant(user.userId())) {
+            if (conversation.getType() == ConversationType.ALMACEN
+                    && (user.roles().contains("ADMIN_ALMACEN") || user.roles().contains("TIENDA"))
+                    && conversation.getSellerId() == null) {
+                conversation.assignSellerIfUnassigned(user.userId());
+                conversations.save(conversation);
+                return;
+            }
             LOGGER.warn("Acceso STOMP rechazado: userId={} no participa en conversationId={}",
                     user.userId(), conversationId);
             throw new MessagingException("No tiene acceso a esta conversación");

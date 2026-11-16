@@ -15,6 +15,14 @@ public interface SpringDataConversationRepository extends JpaRepository<Conversa
 
     Optional<ConversationJpaEntity> findByListingIdAndBuyerId(Long listingId, Long buyerId);
 
+    Optional<ConversationJpaEntity> findByStoreNitAndBuyerId(String storeNit, Long buyerId);
+
+    Optional<ConversationJpaEntity> findByDonationIdAndBuyerId(Long donationId, Long buyerId);
+
+    List<ConversationJpaEntity> findByStoreNitOrderByCreatedAtDesc(String storeNit);
+
+    List<ConversationJpaEntity> findByDonationIdOrderByCreatedAtDesc(Long donationId);
+
     @Query("select c from ConversationJpaEntity c where c.buyerId = :userId or c.sellerId = :userId "
             + "order by c.createdAt desc, c.id desc")
     List<ConversationJpaEntity> findByParticipant(@Param("userId") Long userId);

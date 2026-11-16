@@ -24,7 +24,7 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
     private final Clock clock;
 
     public SendMessageUseCaseImpl(ConversationRepositoryPort conversations, MessageRepositoryPort messages,
-                                    ListingQueryPort listings, EventPublisherPort events, Clock clock) {
+                                  ListingQueryPort listings, EventPublisherPort events, Clock clock) {
         this.conversations = conversations;
         this.messages = messages;
         this.listings = listings;
@@ -41,8 +41,15 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
     public Message send(Long userId, Long conversationId, MessageText text) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
+
+        if (conversation.getSellerId() == null && !conversation.getBuyerId().equals(userId)) {
+            conversation.assignSellerIfUnassigned(userId);
+            conversations.save(conversation);
+        }
+
         conversation.verifyParticipant(userId);
-        if (conversation.isOpen() && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
+        if (conversation.isOpen() && conversation.getListingId() != null
+                && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
             conversation.close();
             conversations.save(conversation);
         }

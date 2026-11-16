@@ -13,6 +13,14 @@ public interface ConversationRepositoryPort {
 
     Optional<Conversation> findByListingAndBuyer(Long listingId, Long buyerId);
 
+    Optional<Conversation> findByStoreAndBuyer(String storeNit, Long buyerId);
+
+    Optional<Conversation> findByDonationAndBuyer(Long donationId, Long buyerId);
+
+    List<Conversation> findByStore(String storeNit);
+
+    List<Conversation> findByDonation(Long donationId);
+
     List<Conversation> findByParticipant(Long userId);
 
     Conversation save(Conversation conversation);

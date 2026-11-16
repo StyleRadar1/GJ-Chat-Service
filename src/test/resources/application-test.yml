@@ -12,6 +12,10 @@ styleradar:
   services:
     second-hand:
       url: http://localhost:1
+    stores:
+      url: http://localhost:1
+    donations:
+      url: http://localhost:1
 
 management:
   health:

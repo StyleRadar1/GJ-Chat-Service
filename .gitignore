@@ -6,3 +6,6 @@ logs/
 *.iml
 .DS_Store
 .env
+.m2-cache/
+output/
+tmp/

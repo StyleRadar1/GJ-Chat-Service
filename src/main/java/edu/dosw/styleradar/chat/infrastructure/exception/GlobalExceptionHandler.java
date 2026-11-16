@@ -5,6 +5,10 @@ import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.ListingUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.ListingNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,13 +35,15 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
     private static final Map<String, String> FIELD_NAMES = Map.of("text", "texto");
 
-    @ExceptionHandler({ConversationNotFoundException.class, ListingNotFoundException.class})
+    @ExceptionHandler({ConversationNotFoundException.class, ListingNotFoundException.class,
+            StoreNotFoundException.class, DonationNotFoundException.class})
     public ProblemDetail notFound(RuntimeException e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.NOT_FOUND, "recurso-no-encontrado", "Recurso no encontrado",
                 e.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler({ListingUnavailableException.class, SelfChatException.class})
+    @ExceptionHandler({ListingUnavailableException.class, SelfChatException.class,
+            StoreUnavailableException.class, DonationUnavailableException.class})
     public ProblemDetail businessRule(RuntimeException e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.UNPROCESSABLE_ENTITY, "regla-de-negocio", "Regla de negocio incumplida",
                 e.getMessage(), request.getRequestURI());
