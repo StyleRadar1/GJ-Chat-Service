@@ -45,7 +45,7 @@ class StartDonationConversationUseCaseImplTest {
     void returnsExistingConversationIfAlreadyOpen() {
         Conversation existing = new Conversation(1L, ConversationType.DONACION, null, "Donación #20",
                 1L, 2L, null, null, 20L, ConversationStatus.OPEN, NOW);
-        when(conversations.findByDonationAndBuyer(20L, 1L)).thenReturn(Optional.of(existing));
+        when(conversations.findFirstByDonation(20L)).thenReturn(Optional.of(existing));
 
         Conversation result = useCase.start(1L, 20L);
 
@@ -54,7 +54,7 @@ class StartDonationConversationUseCaseImplTest {
 
     @Test
     void createsNewConversationWhenNotExisting() {
-        when(conversations.findByDonationAndBuyer(20L, 1L)).thenReturn(Optional.empty());
+        when(conversations.findFirstByDonation(20L)).thenReturn(Optional.empty());
         when(donations.fetch(20L)).thenReturn(DONATION);
         when(conversations.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

@@ -165,7 +165,7 @@ class ConversationTest {
     void rejectsDonationConversationWhenCallerNotParticipant() {
         DonationSummary donation = new DonationSummary(50L, BUYER, 2L, "APPROVED");
         assertThatThrownBy(() -> Conversation.startDonation(donation, OUTSIDER, NOW))
-                .isInstanceOf(SelfChatException.class);
+                .isInstanceOf(edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException.class);
     }
 
     @Test

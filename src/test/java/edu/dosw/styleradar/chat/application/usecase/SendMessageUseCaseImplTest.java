@@ -51,12 +51,14 @@ class SendMessageUseCaseImplTest {
     @Mock
     private ListingQueryPort listings;
     @Mock
+    private edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort stores;
+    @Mock
     private EventPublisherPort events;
     private SendMessageUseCaseImpl useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new SendMessageUseCaseImpl(conversations, messages, listings, events, Clock.fixed(NOW, ZoneOffset.UTC));
+        useCase = new SendMessageUseCaseImpl(conversations, messages, listings, stores, events, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
