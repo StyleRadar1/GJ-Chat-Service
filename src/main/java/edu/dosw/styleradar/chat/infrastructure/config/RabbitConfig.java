@@ -15,12 +15,12 @@ import org.springframework.context.annotation.Configuration;
 /** Declares the exchanges, queues and dead-letter routing used by the chat; messages are JSON. */
 @Configuration
 public class RabbitConfig {
-    public static final String EVENTS_EXCHANGE = "styleradar.events";
+    public static final String EVENTS_EXCHANGE = "styleradar.exchange";
     public static final String DEAD_LETTER_EXCHANGE = "styleradar.dlx";
     public static final String SECOND_HAND_QUEUE = "q.chat.segunda-mano";
     public static final String SECOND_HAND_DEAD_LETTER_QUEUE = "q.chat.segunda-mano.dlq";
-    public static final String MESSAGE_SENT_ROUTING_KEY = "chat.mensaje.enviado";
-    public static final String LISTING_SOLD_ROUTING_KEY = "segunda-mano.prenda.vendida";
+    public static final String MESSAGE_SENT_ROUTING_KEY = "styleradar.chat.mensaje.enviado";
+    public static final String LISTING_SOLD_ROUTING_KEY = "styleradar.segundavida.prenda.vendida";
 
     @Bean
     public TopicExchange eventsExchange() {

@@ -50,7 +50,7 @@ class ChatIntegrationTest {
     private EventPublisherPort eventPublisher;
 
     private static ExternalListingResponse listing(Long id, Long seller, String status) {
-        return new ExternalListingResponse(id, seller, new ExternalListingResponse.Garment("Chaqueta"), status);
+        return new ExternalListingResponse(id, seller, new ExternalListingResponse.Garment("Chaqueta"), status, null);
     }
 
     @Test
@@ -100,7 +100,7 @@ class ChatIntegrationTest {
         when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "RETIRADA"));
         mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", buyer)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isConflict());
 
         mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", buyer))
                 .andExpect(jsonPath("$[0].estado").value("CERRADA"));

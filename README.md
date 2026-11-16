@@ -28,7 +28,7 @@
       <img src="https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg" alt="CI QA" />
     </a>
     <a href="#10-cicd-con-el-badge-del-pipeline">
-      <img src="https://img.shields.io/badge/QA_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA Deployment" />
+      <img src="https://img.shields.io/badge/QA_Azure-JWT_QA_pendiente-D97706?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA deployment pending official identity JWT secret" />
     </a>
     <a href="#10-cicd-con-el-badge-del-pipeline">
       <img src="https://img.shields.io/badge/PROD_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="PROD Deployment" />
@@ -118,11 +118,11 @@ Desarrollado y mantenido por el **Equipo `GJ`** (prefijo `GJ`) para la asignatur
 
 <div align="center">
 
-| Rol | Nombre Completo | Usuario GitHub |
-| :---: | :---: | :---: |
-| **Backend Developer · Responsable de ms-chat** | `Santiago Andrés García Almario` | `<@usuario-github>` |
-| **Líder del Paquete 3** | `Paula Alejandra Díaz` | `<@usuario-github>` |
-| **Backend Developer** | `Óscar Lasso` | `<@usuario-github>` |
+| Rol | Responsable |
+| :---: | :---: |
+| **Responsable de ms-chat** | `Santiago Andres Garcia Almario` (`SantiagoAndresGarciaAlmario01`) |
+| **Líder del equipo / Paquete 3** | `Paula Díaz` |
+| **Colaborador backend** | `Óscar Lasso` |
 
 </div>
 
@@ -144,7 +144,7 @@ El microservicio implementa **Arquitectura Hexagonal (Puertos y Adaptadores)** c
 
 </div>
 
-Las líneas punteadas son los adaptadores que se completan en el Sprint 2 (RabbitMQ) y el Sprint 3 (WebSocket). Sus paquetes ya existen en el repositorio.
+Los adaptadores de RabbitMQ y WebSocket STOMP están implementados; las conexiones en QA usan RabbitMQ por TLS y el endpoint STOMP autentica con JWT.
 
 **Diagramas específicos con su explicación** (en [`docs/SR_GJ_DocumentoTecnico_v1.md`](docs/SR_GJ_DocumentoTecnico_v1.md)):
 
@@ -177,7 +177,7 @@ src/main/java/edu/dosw/styleradar/chat/
     │   ├── in/
     │   │   ├── rest/ (+ doc/)               <-- ChatController y documentación OpenAPI
     │   │   ├── amqp/                        <-- Consumidor RabbitMQ de la venta de una prenda
-    │   │   └── websocket/                   <-- STOMP en tiempo real (Sprint 3)
+    │   │   └── websocket/                   <-- STOMP en tiempo real autenticado por JWT
     │   └── out/
     │       ├── persistence/                 <-- Entidades JPA, Spring Data y adaptadores
     │       ├── external/                    <-- Cliente Feign del servicio de publicaciones
@@ -200,7 +200,7 @@ La documentación interactiva OpenAPI 3.0 trae, para cada endpoint, descripción
 | Entorno | Estado | Propósito | URL Base del Servicio | Swagger OpenAPI UI | Health Check |
 | :--- | :---: | :--- | :--- | :--- | :--- |
 | **Producción (PROD)** | Pendiente | Despliegue productivo | Se publica con el tag `v*.*.*` (`ci-prod.yml`) | — | — |
-| **Calidad / Pruebas (QA)** | Pendiente | Pruebas integradas del sprint | Se publica desde `master` con `DEPLOY_ENABLED=true` (`ci-qa.yml`) | — | — |
+| **Calidad / Pruebas (QA)** | CI listo; despliegue Azure bloqueado | Pruebas integradas del sprint | App Service `gj-chat-service-qa-santi` y PostgreSQL QA creados. Build, pruebas, análisis y publicación de la imagen completados; falta completar el despliegue Azure. | Pendiente hasta completar el despliegue | Pendiente hasta completar el despliegue |
 | **Desarrollo Local (DEV)** | Activo | Desarrollo en la máquina local | `http://localhost:8320` | [Swagger UI Local](http://localhost:8320/swagger-ui.html) | [`/actuator/health`](http://localhost:8320/actuator/health) |
 
 * **Especificación OpenAPI (Contrato JSON):** `http://localhost:8320/v3/api-docs`
@@ -237,7 +237,7 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 | `POST` | `/api/v1/segunda-mano/{publicacionId}/conversaciones` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
 | `GET` | `/api/v1/usuarios/me/conversaciones` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
 | `GET` | `/api/v1/conversaciones/{id}/mensajes` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
-| `POST` | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `422`, `503` |
+| `POST` | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `503` |
 
 <details>
 <summary><b>Click para ver Ejemplos de Request y Response JSON (Payloads)</b></summary>
@@ -309,7 +309,7 @@ curl -X POST "http://localhost:8320/api/v1/conversaciones/7/mensajes" \
 
 La comunicación asíncrona usa **RabbitMQ** con Topic Exchanges durables desde el **Sprint 2**: el chat publica `MensajeEnviadoEvent` al guardar un mensaje y consume `PrendaSegundaManoVendidaEvent` para cerrar las conversaciones de los demás compradores. El consumidor es idempotente (tabla `processed_events` por `eventId`) y, tras 3 reintentos, los mensajes fallidos van a `q.chat.segunda-mano.dlq` por `styleradar.dlx`. El cierre por retiro sigue detectándose con la consulta Feign en cada envío.
 
-* **Exchange Principal de Dominio:** `styleradar.events` (`topic`, durable)
+* **Exchange Principal de Dominio:** `styleradar.exchange` (`topic`, durable)
 * **Exchange de Auditoría:** `styleradar.audit` (`fanout`, durable)
 * **Dead Letter Exchange (DLX):** `styleradar.dlx`
 
@@ -317,8 +317,8 @@ La comunicación asíncrona usa **RabbitMQ** con Topic Exchanges durables desde 
 
 | Tipo | Evento | Routing Key | Cola (Queue) | Microservicio Emisor / Receptor | Cuándo se Dispara / Acción |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **PUBLICA** | `MensajeEnviadoEvent` | `chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. Notificaciones avisa al destinatario. |
-| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `segunda-mano.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones de los demás compradores; la del comprador que se quedó con la prenda sigue abierta para coordinar la entrega. |
+| **PUBLICA** | `MensajeEnviadoEvent` | `styleradar.chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. Notificaciones avisa al destinatario. |
+| **CONSUME** | `PrendaSegundaManoVendidaEvent` | `styleradar.segundavida.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones de los demás compradores; la del comprador que se quedó con la prenda sigue abierta para coordinar la entrega. |
 | **CONSUME** | `PrendaSegundaManoRetiradaEvent` *(propuesto)* | `segunda-mano.prenda.retirada` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones cuando el vendedor retira la publicación. |
 
 El detalle de cada campo, las reglas de idempotencia y el estado de aprobación con los equipos productores y consumidores están en [`docs/SR_GJ_ContratosEventos_v1.md`](docs/SR_GJ_ContratosEventos_v1.md).
@@ -331,7 +331,7 @@ El detalle de cada campo, las reglas de idempotencia y el estado de aprobación 
 ```json
 {
   "eventId": "018f2c1a-7b3e-7000-8000-00000000a001",
-  "eventType": "chat.mensaje.enviado",
+  "eventType": "styleradar.chat.mensaje.enviado",
   "version": 1,
   "timestamp": "2026-11-10T15:05:00Z",
   "producer": "ms-chat",
@@ -476,11 +476,15 @@ Las configuraciones sensibles se externalizan como variables de entorno (*Twelve
 | `RABBITMQ_PORT` | Puerto AMQP del broker | `5672` | No |
 | `RABBITMQ_USER` | Usuario del broker | `guest` | Sí |
 | `RABBITMQ_PASSWORD` | Contraseña del broker | `guest` | Sí |
-| `JWT_ROL_POR_DEFECTO` | Rol asumido si el token no trae el claim `roles` | `COMPRADOR` | No |
+| `JWT_ROL_POR_DEFECTO` | Rol heredado si el token no trae `role` ni `roles` | `COMPRADOR` | No |
 | `SEGUNDA_MANO_URL` | URL base del servicio de publicaciones de segunda mano | `http://localhost:8080` | Sí |
 | `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` | Tiempo límite de conexión de Feign | `3000` | No |
 | `SEGUNDA_MANO_READ_TIMEOUT_MS` | Tiempo límite de lectura de Feign | `5000` | No |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por coma | vacío | Sí |
+
+#### Claims JWT aceptados por ms-chat
+
+El adaptador acepta el ID numérico del usuario en `userId` y permite que `sub` sea el correo; por compatibilidad, también acepta el formato heredado con `sub` numérico. Para roles admite `role` como texto o `roles` como lista. El rol compartido `USER` se traduce a `COMPRADOR` en ms-chat; los demás roles no se elevan. Este soporte transicional no sustituye el acuerdo del contrato canónico con ms-identidad. El secreto debe seguir siendo la llave HS256 oficial del ambiente.
 
 <details>
 <summary><b>Click para ver la Plantilla de Archivo .env.example</b></summary>
@@ -498,9 +502,9 @@ RABBITMQ_PORT=5672
 RABBITMQ_MANAGEMENT_PORT=15672
 RABBITMQ_USER=guest
 RABBITMQ_PASSWORD=change-me
-# Debe ser la MISMA llave con la que el servicio de identidad (hoy el monolito) firma los tokens.
+# Debe ser la misma llave con la que ms-identidad firma los tokens.
 JWT_SECRET_BASE64=change-me-base64-key
-# Servicio dueño de las publicaciones de segunda mano. Sprint 1: el monolito.
+# Servicio dueño de las publicaciones de segunda mano: ms-segunda-vida-donaciones.
 SEGUNDA_MANO_URL=http://host.docker.internal:8080
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
@@ -575,7 +579,7 @@ mvn jacoco:report
 
 | Pipeline | Entorno Destino | Desencadenador (Trigger) | Quality Gate Exigido |
 | :--- | :--- | :--- | :--- |
-| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build OK + pruebas unitarias e integración + JaCoCo ≥ 85 % + Checkstyle + imagen Docker. En `master`, con `DEPLOY_ENABLED=true`, publica en Docker Hub y despliega en Azure QA. |
+| **CI - QA** (`ci-qa.yml`) | Calidad (`QA`) | Push a `master`, `develop` o `feature/**` y Pull Requests | Build, pruebas, JaCoCo, Checkstyle, imagen, publicación Docker Hub y despliegue QA. |
 | **CD - Producción** (`ci-prod.yml`) | Producción (`PROD`) | Tag `v*.*.*` creado al pasar `develop` a `master` | Pruebas + imagen de versión + aprobación manual del ambiente `production` en Azure App Service. |
 
 ### Diagrama del Flujo Automatizado (Pipeline Stages)
@@ -588,7 +592,20 @@ mvn jacoco:report
 
 </div>
 
-**Para activar el despliegue** en Azure: cargar los secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `AZURE_WEBAPP_NAME_QA`, `DB_URL_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`, `JWT_SECRET_QA` y `SEGUNDA_MANO_URL_QA`, y crear la variable de repositorio `DEPLOY_ENABLED=true`.
+**Estado actual de QA:** el run `CI QA #20` de `feature/websocket-realtime-qa` terminó en verde el 12 de noviembre de 2026, incluyendo el smoke test de `/actuator/health`. El App Service `gj-chat-service-qa-santi` usa una instancia; se mantiene así hasta provisionar y validar Redis Pub/Sub en QA. No registrar secretos en este repositorio.
+
+El workflow configura App Service en el puerto 8320 y habilita WebSockets.
+
+### Chat WebSocket STOMP
+
+- Endpoint de conexión: `/ws` (WebSocket nativo con STOMP).
+- En `CONNECT`, enviar `Authorization: Bearer <JWT>` como cabecera nativa STOMP.
+- Suscribirse a `/topic/conversations/{conversationId}`; solo se permiten conversaciones en las que participa el usuario autenticado.
+- Enviar a `/app/conversations/{conversationId}/messages` con cuerpo JSON `{"text":"Hola"}`. El servicio persiste el mensaje antes de difundirlo al tópico.
+- Suscribirse también a `/user/queue/conversations/acks` para recibir la confirmación privada del mensaje guardado, y a `/user/queue/conversations/errors` para errores del emisor. Una conversación cerrada responde con conflicto lógico `409`; no guarda ni distribuye el mensaje.
+- Configurar `WEBSOCKET_ALLOWED_ORIGINS` con los orígenes exactos del cliente, separados por comas. Si se omite, usa `CORS_ALLOWED_ORIGINS`.
+- Contrato completo, esquema JSON, recuperación tras reconexión y configuración de Redis: [`docs/contrato-websocket-stomp.md`](docs/contrato-websocket-stomp.md).
+- Redis Pub/Sub se activa con `WEBSOCKET_REDIS_ENABLED=true` y `REDIS_URL`; mientras no exista Redis de QA, mantener una sola instancia.
 
 <div align="center">
   <table width="100%" style="margin: 18px 0; border: 2px dashed #5600EF; border-radius: 8px; background-color: #FBFBFE;">
@@ -599,12 +616,12 @@ mvn jacoco:report
           <strong><font color="#5600EF" size="3">EJECUCIÓN DEL PIPELINE CI/CD EN VERDE</font></strong>
         </p>
         <p>
-          <sub>Captura de la pestaña Actions con el workflow <b>CI QA</b> finalizado con éxito en todas sus etapas.</sub>
+          <sub>El build, las pruebas, el análisis y la publicación de la imagen pasaron. Azure QA está pendiente de la llave oficial JWT de ms-identidad.</sub>
         </p>
         <p>
 <!-- Al generar tu captura, descomenta la siguiente línea y guarda la imagen en la ruta indicada: -->
 <!-- <img src="docs/evidencias/pipeline-ci-cd.png" width="90%" alt="Pipeline CI/CD" /><br /> -->
-          <code>[ Pegar captura del Pipeline CI/CD en verde aquí · docs/evidencias/pipeline-ci-cd.png ]</code>
+          <code>[ Agregar captura de Actions cuando Azure QA también finalice · docs/evidencias/pipeline-ci-cd.png ]</code>
         </p>
       </td>
     </tr>

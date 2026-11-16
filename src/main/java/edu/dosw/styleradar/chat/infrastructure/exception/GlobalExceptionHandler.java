@@ -37,11 +37,16 @@ public class GlobalExceptionHandler {
                 e.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler({ListingUnavailableException.class, SelfChatException.class,
-            ConversationClosedException.class})
+    @ExceptionHandler({ListingUnavailableException.class, SelfChatException.class})
     public ProblemDetail businessRule(RuntimeException e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.UNPROCESSABLE_ENTITY, "regla-de-negocio", "Regla de negocio incumplida",
                 e.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ConversationClosedException.class)
+    public ProblemDetail conversationConflict(ConversationClosedException e, HttpServletRequest request) {
+        return ProblemDetails.of(HttpStatus.CONFLICT, "conflicto", "Conflicto", e.getMessage(),
+                request.getRequestURI());
     }
 
     @ExceptionHandler(InvalidMessageTextException.class)

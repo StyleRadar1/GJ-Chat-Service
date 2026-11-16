@@ -124,7 +124,7 @@
       ]
     },
     {
-      "name": "Send message (publishes chat.mensaje.enviado)",
+      "name": "Send message (publishes styleradar.chat.mensaje.enviado)",
       "request": {
         "method": "POST",
         "header": [

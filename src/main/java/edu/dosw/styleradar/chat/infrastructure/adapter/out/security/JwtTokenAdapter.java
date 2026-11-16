@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /** Validates HS256 tokens and extracts the authenticated user. */
@@ -54,24 +55,50 @@ public class JwtTokenAdapter {
                 || !claims.getExpiration().after(now) || claims.getIssuedAt().after(now)) {
             throw new JwtException("Fechas JWT inválidas");
         }
-        String subject = claims.getSubject();
-        if (subject == null || !subject.matches("[1-9]\\d{0,18}")) {
-            throw new JwtException("Subject JWT inválido");
-        }
-        return new AuthenticatedUser(Long.valueOf(subject), roles(claims.get("roles")));
+        return new AuthenticatedUser(userId(claims), roles(claims));
     }
 
-    private Set<String> roles(Object claim) {
-        Set<String> roles = new LinkedHashSet<>();
-        if (claim instanceof Collection<?> list) {
-            list.stream().filter(String.class::isInstance).map(String.class::cast)
-                    .map(role -> role.startsWith("ROLE_") ? role.substring(5) : role)
-                    .filter(role -> !role.isBlank())
-                    .forEach(roles::add);
+    private Long userId(Claims claims) {
+        Object idClaim = claims.get("userId");
+        String candidate = idClaim == null ? claims.getSubject() : idClaim.toString();
+        if (candidate == null || !candidate.matches("[1-9]\\d{0,18}")) {
+            throw new JwtException("El JWT debe incluir userId numérico o un sub numérico heredado");
         }
+        try {
+            return Long.valueOf(candidate);
+        } catch (NumberFormatException exception) {
+            throw new JwtException("userId JWT inválido", exception);
+        }
+    }
+
+    private Set<String> roles(Claims claims) {
+        Set<String> roles = new LinkedHashSet<>();
+        addRoles(roles, claims.get("roles"));
+        addRoles(roles, claims.get("role"));
         if (roles.isEmpty()) {
             roles.add(defaultRole);
         }
         return Set.copyOf(roles);
+    }
+
+    private void addRoles(Set<String> roles, Object claim) {
+        if (claim instanceof Collection<?> values) {
+            values.stream().filter(String.class::isInstance).map(String.class::cast)
+                    .map(this::toChatRole).filter(role -> !role.isBlank()).forEach(roles::add);
+        } else if (claim instanceof String role) {
+            String normalized = toChatRole(role);
+            if (!normalized.isBlank()) {
+                roles.add(normalized);
+            }
+        }
+    }
+
+    private String toChatRole(String role) {
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring(5);
+        }
+        // The shared identity model calls ordinary marketplace users USER; ms-chat calls them COMPRADOR.
+        return normalized.equals("USER") ? "COMPRADOR" : normalized;
     }
 }
