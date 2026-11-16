@@ -2,6 +2,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence;
 
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity.ConversationJpaEntity;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.repository.SpringDataConversationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,8 +32,8 @@ class ConversationRepositoryAdapterTest {
     private static final Instant NOW = Instant.parse("2026-11-01T15:00:00Z");
     private static final Conversation CONVERSATION = new Conversation(7L, 10L, "Chaqueta", 1L, 2L,
             ConversationStatus.OPEN, NOW);
-    private static final ConversationJpaEntity ENTITY = new ConversationJpaEntity(7L, 10L, "Chaqueta", 1L, 2L,
-            ConversationStatus.OPEN, NOW);
+    private static final ConversationJpaEntity ENTITY = new ConversationJpaEntity(7L, ConversationType.SEGUNDA_MANO,
+            10L, "Chaqueta", 1L, 2L, null, null, null, ConversationStatus.OPEN, NOW);
 
     @BeforeEach
     void setUp() {

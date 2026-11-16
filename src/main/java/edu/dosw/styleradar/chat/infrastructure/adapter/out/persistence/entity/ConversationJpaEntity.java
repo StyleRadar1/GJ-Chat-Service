@@ -61,4 +61,9 @@ public class ConversationJpaEntity {
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private Instant createdAt;
+
+    public ConversationJpaEntity(Long id, Long listingId, String garmentName, Long buyerId, Long sellerId,
+                                 ConversationStatus status, Instant createdAt) {
+        this(id, ConversationType.SEGUNDA_MANO, listingId, garmentName, buyerId, sellerId, null, null, null, status, createdAt);
+    }
 }
