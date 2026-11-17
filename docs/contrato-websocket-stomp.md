@@ -34,7 +34,7 @@ Ejemplo del objeto difundido (los nombres JSON se conservan para coincidir con l
 
 ## Reconexión e historial
 
-Redis Pub/Sub es un canal de distribución en vivo, no una cola durable. Después de reconectar, el cliente debe recuperar mensajes persistidos mediante `GET /api/v1/conversaciones/{id}/mensajes` con el mismo JWT. La API REST verifica que el usuario participe en esa conversación.
+Redis Pub/Sub es un canal de distribución en vivo, no una cola durable. Después de reconectar, el cliente debe recuperar mensajes persistidos mediante `GET /api/v1/conversations/{id}/messages` con el mismo JWT. La API REST verifica que el usuario participe en esa conversación.
 
 ## Despliegue entre instancias
 

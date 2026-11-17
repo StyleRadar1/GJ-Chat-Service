@@ -43,16 +43,16 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/segunda-mano/{{listingId}}/conversaciones",
+          "raw": "{{baseUrl}}/api/v1/second-hand/{{listingId}}/conversations",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "segunda-mano",
+            "second-hand",
             "{{listingId}}",
-            "conversaciones"
+            "conversations"
           ]
         },
         "auth": {
@@ -87,16 +87,15 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/usuarios/me/conversaciones",
+          "raw": "{{baseUrl}}/api/v1/users/conversations",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "usuarios",
-            "me",
-            "conversaciones"
+            "users",
+            "conversations"
           ]
         },
         "auth": {
@@ -134,16 +133,16 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/conversaciones/{{conversationId}}/mensajes",
+          "raw": "{{baseUrl}}/api/v1/conversations/{{conversationId}}/messages",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "conversaciones",
+            "conversations",
             "{{conversationId}}",
-            "mensajes"
+            "messages"
           ]
         },
         "auth": {
@@ -180,16 +179,16 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/conversaciones/{{conversationId}}/mensajes",
+          "raw": "{{baseUrl}}/api/v1/conversations/{{conversationId}}/messages",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "conversaciones",
+            "conversations",
             "{{conversationId}}",
-            "mensajes"
+            "messages"
           ]
         },
         "auth": {
@@ -227,16 +226,16 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/conversaciones/{{conversationId}}/mensajes",
+          "raw": "{{baseUrl}}/api/v1/conversations/{{conversationId}}/messages",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "conversaciones",
+            "conversations",
             "{{conversationId}}",
-            "mensajes"
+            "messages"
           ]
         },
         "auth": {
@@ -273,16 +272,15 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/usuarios/me/conversaciones",
+          "raw": "{{baseUrl}}/api/v1/users/conversations",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "usuarios",
-            "me",
-            "conversaciones"
+            "users",
+            "conversations"
           ]
         },
         "auth": {

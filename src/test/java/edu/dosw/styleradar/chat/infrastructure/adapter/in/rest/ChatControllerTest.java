@@ -58,9 +58,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         MessageDtoInMapperImpl.class, ConversationDtoOutMapperImpl.class, MessageDtoOutMapperImpl.class,
         ChatControllerTest.FixedClockConfig.class})
 class ChatControllerTest {
-    private static final String START = "/api/v1/segunda-mano/10/conversaciones";
-    private static final String MESSAGES = "/api/v1/conversaciones/7/mensajes";
-    private static final String MY_CONVERSATIONS = "/api/v1/usuarios/me/conversaciones";
+    private static final String START = "/api/v1/second-hand/10/conversations";
+    private static final String MESSAGES = "/api/v1/conversations/7/messages";
+    private static final String MY_CONVERSATIONS = "/api/v1/users/conversations";
 
     @TestConfiguration
     static class FixedClockConfig {
@@ -184,7 +184,7 @@ class ChatControllerTest {
 
     @Test
     void aNonNumericIdRespondsWith400() throws Exception {
-        mvc.perform(get("/api/v1/conversaciones/abc/mensajes").header("Authorization", buyer()))
+        mvc.perform(get("/api/v1/conversations/abc/messages").header("Authorization", buyer()))
                 .andExpect(status().isBadRequest());
     }
 

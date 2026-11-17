@@ -70,32 +70,32 @@ class ChatIntegrationTest {
         String seller = Tokens.bearer(Tokens.forUser(200L));
         String outsider = Tokens.bearer(Tokens.forUser(400L));
 
-        String response = mvc.perform(post("/api/v1/segunda-mano/100/conversaciones").header("Authorization", buyer))
+        String response = mvc.perform(post("/api/v1/second-hand/100/conversations").header("Authorization", buyer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vendedorId").value(200))
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
-        mvc.perform(post("/api/v1/segunda-mano/100/conversaciones").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/second-hand/100/conversations").header("Authorization", buyer))
                 .andExpect(jsonPath("$.id").value(id));
 
-        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", buyer)
+        mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", buyer)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"¿Sigue disponible?\"}"))
                 .andExpect(status().isCreated());
-        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", seller)
+        mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", seller)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Sí, en Chapinero\"}"))
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", seller))
+        mvc.perform(get("/api/v1/conversations/" + id + "/messages").header("Authorization", seller))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].texto").value("¿Sigue disponible?"))
                 .andExpect(jsonPath("$[1].autorId").value(200));
 
-        mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", seller))
+        mvc.perform(get("/api/v1/users/conversations").header("Authorization", seller))
                 .andExpect(jsonPath("$[0].id").value(id));
 
-        mvc.perform(get("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", outsider))
+        mvc.perform(get("/api/v1/conversations/" + id + "/messages").header("Authorization", outsider))
                 .andExpect(status().isNotFound());
     }
 
@@ -103,16 +103,16 @@ class ChatIntegrationTest {
     void ifListingIsWithdrawnConversationIsClosed() throws Exception {
         when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "DISPONIBLE"));
         String buyer = Tokens.bearer(Tokens.forUser(301L));
-        String response = mvc.perform(post("/api/v1/segunda-mano/101/conversaciones").header("Authorization", buyer))
+        String response = mvc.perform(post("/api/v1/second-hand/101/conversations").header("Authorization", buyer))
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
         when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "RETIRADA"));
-        mvc.perform(post("/api/v1/conversaciones/" + id + "/mensajes").header("Authorization", buyer)
+        mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", buyer)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isConflict());
 
-        mvc.perform(get("/api/v1/usuarios/me/conversaciones").header("Authorization", buyer))
+        mvc.perform(get("/api/v1/users/conversations").header("Authorization", buyer))
                 .andExpect(jsonPath("$[0].estado").value("CERRADA"));
     }
 
@@ -132,7 +132,7 @@ class ChatIntegrationTest {
                 new ExternalStoreResponse("900123456-1", "Atelier Urbano", "Ropa", 4.8));
         String buyer = Tokens.bearer(Tokens.withRoles(310L, List.of("COMPRADOR")));
 
-        mvc.perform(post("/api/v1/almacenes/900123456-1/conversaciones").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/stores/900123456-1/conversations").header("Authorization", buyer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tipo").value("ALMACEN"))
                 .andExpect(jsonPath("$.almacenNit").value("900123456-1"))
@@ -145,7 +145,7 @@ class ChatIntegrationTest {
         when(stores.getStore("999999-9")).thenThrow(storesError(404));
         String buyer = Tokens.bearer(Tokens.withRoles(311L, List.of("COMPRADOR")));
 
-        mvc.perform(post("/api/v1/almacenes/999999-9/conversaciones").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/stores/999999-9/conversations").header("Authorization", buyer))
                 .andExpect(status().isNotFound());
     }
 
@@ -154,7 +154,7 @@ class ChatIntegrationTest {
         when(stores.getStore("900123456-2")).thenThrow(storesError(503));
         String buyer = Tokens.bearer(Tokens.withRoles(312L, List.of("COMPRADOR")));
 
-        mvc.perform(post("/api/v1/almacenes/900123456-2/conversaciones").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/stores/900123456-2/conversations").header("Authorization", buyer))
                 .andExpect(status().isServiceUnavailable());
     }
 

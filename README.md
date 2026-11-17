@@ -234,20 +234,20 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 | Método | Endpoint | Descripción | Rol Requerido | Códigos HTTP |
 | :---: | :--- | :--- | :--- | :---: |
 | `GET` | `/actuator/health` | Estado del microservicio | Público | `200` |
-| `POST` | `/api/v1/segunda-mano/{publicacionId}/conversaciones` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
-| `GET` | `/api/v1/usuarios/me/conversaciones` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
-| `GET` | `/api/v1/conversaciones/{id}/mensajes` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
-| `POST` | `/api/v1/conversaciones/{id}/mensajes` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `503` |
+| `POST` | `/api/v1/second-hand/{publicacionId}/conversations` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
+| `GET` | `/api/v1/users/conversations` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
+| `GET` | `/api/v1/conversations/{id}/messages` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
+| `POST` | `/api/v1/conversations/{id}/messages` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `503` |
 
 <details>
 <summary><b>Click para ver Ejemplos de Request y Response JSON (Payloads)</b></summary>
 
 <br>
 
-#### Ejemplo Request (`POST /api/v1/segunda-mano/10/conversaciones`)
+#### Ejemplo Request (`POST /api/v1/second-hand/10/conversations`)
 
 ```bash
-curl -X POST "http://localhost:8320/api/v1/segunda-mano/10/conversaciones" \
+curl -X POST "http://localhost:8320/api/v1/second-hand/10/conversations" \
   -H "Authorization: Bearer <JWT_TOKEN>"
 ```
 
@@ -265,10 +265,10 @@ curl -X POST "http://localhost:8320/api/v1/segunda-mano/10/conversaciones" \
 }
 ```
 
-#### Ejemplo Request (`POST /api/v1/conversaciones/7/mensajes`)
+#### Ejemplo Request (`POST /api/v1/conversations/7/messages`)
 
 ```bash
-curl -X POST "http://localhost:8320/api/v1/conversaciones/7/mensajes" \
+curl -X POST "http://localhost:8320/api/v1/conversations/7/messages" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <JWT_TOKEN>" \
   -d '{ "texto": "¿Sigue disponible? Podría recogerla el sábado en Chapinero." }'
@@ -294,7 +294,7 @@ curl -X POST "http://localhost:8320/api/v1/conversaciones/7/mensajes" \
   "title": "Regla de negocio incumplida",
   "status": 422,
   "detail": "No puede iniciar un chat sobre su propia publicación",
-  "instance": "/api/v1/segunda-mano/10/conversaciones",
+  "instance": "/api/v1/second-hand/10/conversations",
   "timestamp": "2026-11-01T15:00:00Z"
 }
 ```
