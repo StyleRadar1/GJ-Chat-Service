@@ -3,6 +3,8 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.out.messaging;
 import edu.dosw.styleradar.chat.domain.event.MessageSentEvent;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.messaging.dto.EventEnvelope;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.messaging.dto.MessageSentData;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.AmqpConnectException;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.ReturnedMessage;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.io.IOException;
@@ -24,7 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
-/** Tests for the RabbitMQ publisher adapter. */
+/** Pruebas del publicador de RabbitMQ con confirmaciones. */
 @ExtendWith(MockitoExtension.class)
 class RabbitMqEventPublisherAdapterTest {
     private static final MessageSentEvent EVENT = new MessageSentEvent(20L, 7L, 10L, "Chaqueta de jean", 1L, 2L,
@@ -32,11 +37,26 @@ class RabbitMqEventPublisherAdapterTest {
 
     @Mock
     private RabbitTemplate rabbitTemplate;
+    private SimpleMeterRegistry registry;
     private RabbitMqEventPublisherAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new RabbitMqEventPublisherAdapter(rabbitTemplate, Clock.fixed(NOW, ZoneOffset.UTC));
+        registry = new SimpleMeterRegistry();
+        adapter = new RabbitMqEventPublisherAdapter(rabbitTemplate, Clock.fixed(NOW, ZoneOffset.UTC),
+                new ChatMetrics(registry));
+    }
+
+    private CorrelationData publishAndCaptureCorrelation() {
+        adapter.publish(EVENT);
+        ArgumentCaptor<CorrelationData> correlation = ArgumentCaptor.forClass(CorrelationData.class);
+        verify(rabbitTemplate).convertAndSend(eq("styleradar.exchange"), eq("styleradar.chat.mensaje.enviado"),
+                any(Object.class), correlation.capture());
+        return correlation.getValue();
+    }
+
+    private double failures(String reason) {
+        return registry.get("chat.events.publish.failed").tag("reason", reason).counter().count();
     }
 
     @Test
@@ -45,8 +65,9 @@ class RabbitMqEventPublisherAdapterTest {
         adapter.publish(EVENT);
 
         ArgumentCaptor<Object> sent = ArgumentCaptor.forClass(Object.class);
+        ArgumentCaptor<CorrelationData> correlation = ArgumentCaptor.forClass(CorrelationData.class);
         verify(rabbitTemplate).convertAndSend(eq("styleradar.exchange"),
-                eq("styleradar.chat.mensaje.enviado"), sent.capture());
+                eq("styleradar.chat.mensaje.enviado"), sent.capture(), correlation.capture());
         EventEnvelope<MessageSentData> envelope = (EventEnvelope<MessageSentData>) sent.getValue();
         assertThat(envelope.eventId()).isNotBlank();
         assertThat(envelope.eventType()).isEqualTo("styleradar.chat.mensaje.enviado");
@@ -57,13 +78,54 @@ class RabbitMqEventPublisherAdapterTest {
         assertThat(envelope.data().messageId()).isEqualTo(20L);
         assertThat(envelope.data().recipientId()).isEqualTo(2L);
         assertThat(envelope.data().preview()).isEqualTo("Hola");
+        assertThat(correlation.getValue().getId()).isEqualTo(envelope.eventId());
     }
 
     @Test
     void aBrokerFailureDoesNotBreakTheCaller() {
         doThrow(new AmqpConnectException(new IOException("down")))
-                .when(rabbitTemplate).convertAndSend(any(String.class), any(String.class), any(Object.class));
+                .when(rabbitTemplate).convertAndSend(any(String.class), any(String.class), any(Object.class),
+                        any(CorrelationData.class));
 
         assertThatCode(() -> adapter.publish(EVENT)).doesNotThrowAnyException();
+        assertThat(failures("excepcion")).isEqualTo(1.0);
+    }
+
+    @Test
+    void aConfirmedAndRoutedEventIsNotReportedAsFailure() {
+        CorrelationData correlation = publishAndCaptureCorrelation();
+
+        correlation.getFuture().complete(new CorrelationData.Confirm(true, null));
+
+        assertThat(registry.find("chat.events.publish.failed").counter()).isNull();
+    }
+
+    @Test
+    void aNackedEventIsReportedAsFailure() {
+        CorrelationData correlation = publishAndCaptureCorrelation();
+
+        correlation.getFuture().complete(new CorrelationData.Confirm(false, "broker lleno"));
+
+        assertThat(failures("nack")).isEqualTo(1.0);
+    }
+
+    @Test
+    void anUnroutableEventIsReportedAsFailure() {
+        CorrelationData correlation = publishAndCaptureCorrelation();
+        correlation.setReturned(new ReturnedMessage(new Message(new byte[0]), 312, "NO_ROUTE",
+                "styleradar.exchange", "styleradar.chat.mensaje.enviado"));
+
+        correlation.getFuture().complete(new CorrelationData.Confirm(true, null));
+
+        assertThat(failures("sin-ruta")).isEqualTo(1.0);
+    }
+
+    @Test
+    void aMissingConfirmationIsReportedAsFailure() {
+        CorrelationData correlation = publishAndCaptureCorrelation();
+
+        correlation.getFuture().completeExceptionally(new IllegalStateException("tiempo agotado"));
+
+        assertThat(failures("sin-confirmacion")).isEqualTo(1.0);
     }
 }

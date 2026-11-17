@@ -3,6 +3,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.in.websocket;
 import edu.dosw.styleradar.chat.application.dto.request.RealtimeMessageRequest;
 import edu.dosw.styleradar.chat.application.dto.response.MessageResponse;
 import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
+import edu.dosw.styleradar.chat.domain.exception.TooManyMessagesException;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
@@ -57,6 +58,12 @@ public class RealtimeChatController {
     @SendToUser(value = "/queue/conversations/errors", broadcast = false)
     public RealtimeErrorResponse handleClosedConversation(ConversationClosedException exception) {
         return new RealtimeErrorResponse(409, "conflicto", exception.getMessage());
+    }
+
+    @MessageExceptionHandler(TooManyMessagesException.class)
+    @SendToUser(value = "/queue/conversations/errors", broadcast = false)
+    public RealtimeErrorResponse handleTooManyMessages(TooManyMessagesException exception) {
+        return new RealtimeErrorResponse(429, "demasiadas-solicitudes", exception.getMessage());
     }
 
     private AuthenticatedUser authenticatedUser(Principal principal) {

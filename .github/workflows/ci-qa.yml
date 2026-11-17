@@ -110,6 +110,9 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD_QA }}
           JWT_SECRET_BASE64: ${{ secrets.JWT_SECRET_QA }}
           SEGUNDA_MANO_URL: ${{ secrets.SEGUNDA_MANO_URL_QA }}
+          TIENDAS_URL: ${{ secrets.TIENDAS_URL_QA || 'https://styleradar-tiendas-qa.azurewebsites.net' }}
+          DONACIONES_URL: ${{ secrets.DONACIONES_URL_QA || 'https://styleradar-donaciones-qa-jmunar.azurewebsites.net' }}
+          REDIS_URL: ${{ secrets.REDIS_URL_QA }}
           RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST_QA || 'styleradar-rabbitmq-qa.northcentralus.cloudapp.azure.com' }}
           RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT_QA || '5671' }}
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST_QA || '/' }}
@@ -139,6 +142,8 @@ jobs:
                 DB_PASSWORD="$DB_PASSWORD" \
                 JWT_SECRET_BASE64="$JWT_SECRET_BASE64" \
                 SEGUNDA_MANO_URL="$SEGUNDA_MANO_URL" \
+                TIENDAS_URL="$TIENDAS_URL" \
+                DONACIONES_URL="$DONACIONES_URL" \
                 RABBITMQ_HOST="$RABBITMQ_HOST" \
                 RABBITMQ_PORT="$RABBITMQ_PORT" \
                 RABBITMQ_VHOST="$RABBITMQ_VHOST" \
@@ -153,6 +158,16 @@ jobs:
                 DOCKER_REGISTRY_SERVER_USERNAME="$DOCKERHUB_USERNAME" \
                 DOCKER_REGISTRY_SERVER_PASSWORD="$DOCKERHUB_TOKEN" \
                 WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+            # Redis (GJ-55): solo se activa si existe el secret REDIS_URL_QA
+            if [ -n "$REDIS_URL" ]; then
+              az webapp config appsettings set \
+                --name "$WEBAPP_NAME" \
+                --resource-group "$RG" \
+                --output none \
+                --settings \
+                  REDIS_URL="$REDIS_URL" \
+                  WEBSOCKET_REDIS_ENABLED=true
+            fi
             az webapp config set --name "$WEBAPP_NAME" --resource-group "$RG" \
               --web-sockets-enabled true --output none
 

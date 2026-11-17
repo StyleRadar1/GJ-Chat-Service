@@ -43,6 +43,23 @@ public class ChatMetrics {
                 .record(durationMs, TimeUnit.MILLISECONDS);
     }
 
+    /** Registra un mensaje rechazado porque el usuario superó el límite de envío. */
+    public void recordMessageRateLimited() {
+        Counter.builder("chat.messages.rate_limited")
+                .description("Mensajes rechazados por superar el límite por usuario")
+                .register(registry)
+                .increment();
+    }
+
+    /** Registra un evento que el broker no confirmó o no pudo enrutar. */
+    public void recordEventPublishFailed(String reason) {
+        Counter.builder("chat.events.publish.failed")
+                .description("Eventos que RabbitMQ no confirmó o no pudo enrutar")
+                .tag("reason", reason)
+                .register(registry)
+                .increment();
+    }
+
     /** Records a realtime message broadcasted via WebSocket. */
     public void recordRealtimeMessageSent() {
         Counter.builder("chat.websocket.messages.sent")
