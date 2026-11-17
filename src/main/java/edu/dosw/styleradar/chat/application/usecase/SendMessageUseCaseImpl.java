@@ -49,17 +49,18 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
-        if (conversation.getSellerId() == null && !conversation.getBuyerId().equals(userId)) {
-            if (conversation.getType() == ConversationType.ALMACEN) {
-                StoreSummary myStore;
-                try {
-                    myStore = stores.fetchMyStore(userId);
-                } catch (Exception e) {
-                    throw new AccessDeniedDomainException("No administra ningún almacén aliado");
-                }
-                if (myStore == null || !conversation.getStoreNit().equals(myStore.nit())) {
-                    throw new AccessDeniedDomainException("No tiene permisos para responder por este almacén aliado");
-                }
+        // Solo en un chat de almacén sin vendedor se asigna al primer administrador del NIT. En las demás
+        // conversaciones, quien no participa queda fuera y recibe 404 al verificar la participación.
+        if (conversation.getType() == ConversationType.ALMACEN && conversation.getSellerId() == null
+                && !conversation.getBuyerId().equals(userId)) {
+            StoreSummary myStore;
+            try {
+                myStore = stores.fetchMyStore(userId);
+            } catch (Exception e) {
+                throw new AccessDeniedDomainException("No administra ningún almacén aliado");
+            }
+            if (myStore == null || !conversation.getStoreNit().equals(myStore.nit())) {
+                throw new AccessDeniedDomainException("No tiene permisos para responder por este almacén aliado");
             }
             conversation.assignSellerIfUnassigned(userId);
             conversations.save(conversation);

@@ -28,6 +28,11 @@ spring:
     virtual-host: ${RABBITMQ_VHOST:/}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:false}
+    # Confirmaciones del publicador: el broker avisa si recibió y si pudo enrutar cada evento.
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
     listener:
       simple:
         default-requeue-rejected: false
@@ -62,6 +67,9 @@ styleradar:
       url: ${DONACIONES_URL:http://localhost:8080}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  rate-limit:
+    messages-per-window: ${CHAT_RATE_LIMIT_MESSAGES:30}
+    window-seconds: ${CHAT_RATE_LIMIT_WINDOW_SECONDS:60}
   websocket:
     allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:${CORS_ALLOWED_ORIGINS:}}
     redis:

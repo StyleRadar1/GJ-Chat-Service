@@ -28,10 +28,10 @@
       <img src="https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg" alt="CI QA" />
     </a>
     <a href="#10-cicd-con-el-badge-del-pipeline">
-      <img src="https://img.shields.io/badge/QA_Azure-JWT_QA_pendiente-D97706?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA deployment pending official identity JWT secret" />
+      <img src="https://img.shields.io/badge/QA_Azure-Desplegado-16A34A?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="QA desplegado en Azure" />
     </a>
     <a href="#10-cicd-con-el-badge-del-pipeline">
-      <img src="https://img.shields.io/badge/PROD_Azure-Pendiente-9CA3AF?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="PROD Deployment" />
+      <img src="https://img.shields.io/badge/PROD_Azure-v1.0.0-16A34A?style=for-the-badge&logo=azure-app-services&logoColor=white" alt="PROD desplegado en Azure (v1.0.0)" />
     </a>
     <a href="#9-pruebas-y-cobertura">
       <img src="https://img.shields.io/badge/JaCoCo_Coverage-%E2%89%A5_85%25-16A34A?style=for-the-badge&logo=codecov&logoColor=white" alt="Coverage" />
@@ -85,7 +85,7 @@
 * **Puerto de Escucha Oficial:** `8320` (bloque 8300 del equipo; `ms-notificaciones` `8300`, broker RabbitMQ `5672`)
 * **Base de Datos Asignada:** `PostgreSQL 15` (`chat_db`), aislada bajo el patrón *Database-per-Service*.
 * **Bounded Context:** `Mensajería (Chat)`
-* **Requerimientos:** `SR-RF-40` Iniciar chat con vendedor · `SR-RF-41` Coordinar entrega mediante chat interno
+* **Requerimientos:** `SR-RF-40` Iniciar chat con vendedor · `SR-RF-41` Coordinar entrega mediante chat interno · `SR-RF-73` Chat con almacén aliado
 
 ### Responsabilidades del Dominio
 
@@ -199,8 +199,8 @@ La documentación interactiva OpenAPI 3.0 trae, para cada endpoint, descripción
 
 | Entorno | Estado | Propósito | URL Base del Servicio | Swagger OpenAPI UI | Health Check |
 | :--- | :---: | :--- | :--- | :--- | :--- |
-| **Producción (PROD)** | Pendiente | Despliegue productivo | Se publica con el tag `v*.*.*` (`ci-prod.yml`) | — | — |
-| **Calidad / Pruebas (QA)** | CI listo; despliegue Azure bloqueado | Pruebas integradas del sprint | App Service `gj-chat-service-qa-santi` y PostgreSQL QA creados. Build, pruebas, análisis y publicación de la imagen completados; falta completar el despliegue Azure. | Pendiente hasta completar el despliegue | Pendiente hasta completar el despliegue |
+| **Producción (PROD)** | Desplegado (`v1.0.0`) | Despliegue productivo | [`gj-chat-service-prod-santi.azurewebsites.net`](https://gj-chat-service-prod-santi.azurewebsites.net) · se publica con el tag `v*.*.*` (`ci-prod.yml`) | [Swagger UI PROD](https://gj-chat-service-prod-santi.azurewebsites.net/swagger-ui/index.html) | [`/actuator/health`](https://gj-chat-service-prod-santi.azurewebsites.net/actuator/health) |
+| **Calidad / Pruebas (QA)** | Desplegado | Pruebas integradas del sprint | [`gj-chat-service-qa-santi-gxhjccffcxdgbfcj.canadacentral-01.azurewebsites.net`](https://gj-chat-service-qa-santi-gxhjccffcxdgbfcj.canadacentral-01.azurewebsites.net) · el pipeline de `develop` construye, publica la imagen, despliega en Azure y pasa el smoke test. | [Swagger UI QA](https://gj-chat-service-qa-santi-gxhjccffcxdgbfcj.canadacentral-01.azurewebsites.net/swagger-ui/index.html) | [`/actuator/health`](https://gj-chat-service-qa-santi-gxhjccffcxdgbfcj.canadacentral-01.azurewebsites.net/actuator/health) |
 | **Desarrollo Local (DEV)** | Activo | Desarrollo en la máquina local | `http://localhost:8320` | [Swagger UI Local](http://localhost:8320/swagger-ui.html) | [`/actuator/health`](http://localhost:8320/actuator/health) |
 
 * **Especificación OpenAPI (Contrato JSON):** `http://localhost:8320/v3/api-docs`
@@ -236,8 +236,9 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 | `GET` | `/actuator/health` | Estado del microservicio | Público | `200` |
 | `POST` | `/api/v1/second-hand/{publicacionId}/conversations` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
 | `GET` | `/api/v1/users/conversations` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
+| `GET` | `/api/v1/users/{id}/conversations` | Lo mismo con el id en la ruta, como en ms-notificaciones. El id debe ser el del token; si es otro, `403`. | `COMPRADOR` | `200`, `401`, `403` |
 | `GET` | `/api/v1/conversations/{id}/messages` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
-| `POST` | `/api/v1/conversations/{id}/messages` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `503` |
+| `POST` | `/api/v1/conversations/{id}/messages` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `429`, `503` |
 
 <details>
 <summary><b>Click para ver Ejemplos de Request y Response JSON (Payloads)</b></summary>
@@ -481,6 +482,20 @@ Las configuraciones sensibles se externalizan como variables de entorno (*Twelve
 | `SEGUNDA_MANO_CONNECT_TIMEOUT_MS` | Tiempo límite de conexión de Feign | `3000` | No |
 | `SEGUNDA_MANO_READ_TIMEOUT_MS` | Tiempo límite de lectura de Feign | `5000` | No |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por coma | vacío | Sí |
+| `TIENDAS_URL` | URL base de ms-tiendas (chat con almacén aliado) | `http://localhost:8330` | Sí |
+| `DONACIONES_URL` | URL base de ms-donaciones (chat de donaciones) | `http://localhost:8080` | Sí |
+| `RABBITMQ_SSL_ENABLED` | Activa TLS hacia RabbitMQ (puerto `5671`); con truststore en `RABBITMQ_TRUSTSTORE_BASE64` | `false` | Sí en QA y PROD |
+| `REDIS_URL` | URL de Redis (`rediss://` en Azure) para distribuir mensajes entre instancias | `redis://localhost:6379` | Solo con Redis |
+| `WEBSOCKET_REDIS_ENABLED` | Activa Redis Pub/Sub entre instancias | `false` | No |
+| `CHAT_RATE_LIMIT_MESSAGES` | Mensajes permitidos por usuario en cada ventana | `30` | No |
+| `CHAT_RATE_LIMIT_WINDOW_SECONDS` | Duración de la ventana del límite, en segundos | `60` | No |
+
+#### Límite de mensajes, métricas y alertas
+
+* **Límite por usuario:** cada usuario puede enviar `CHAT_RATE_LIMIT_MESSAGES` mensajes por ventana de `CHAT_RATE_LIMIT_WINDOW_SECONDS` (30 por minuto por defecto). Al superarlo, REST responde `429` con `application/problem+json` y STOMP envía el error al emisor por `/user/queue/conversations/errors`. El contador es por instancia.
+* **Métricas protegidas:** `/actuator/metrics` y `/actuator/prometheus` exigen `Authorization: Bearer <JWT>`. Solo `/actuator/health`, `/actuator/info` y la documentación son públicos.
+* **Confirmaciones del publicador:** RabbitMQ confirma cada evento publicado y avisa si no pudo enrutarlo. Un evento sin confirmar o sin ruta se registra en el log y suma a la métrica `chat.events.publish.failed`.
+* **Alertas:** las reglas de Prometheus están en [`docs/observabilidad/alertas-prometheus.yml`](docs/observabilidad/alertas-prometheus.yml): servicio caído, eventos no publicados, picos de mensajes limitados y latencia alta.
 
 #### Claims JWT aceptados por ms-chat
 
@@ -715,10 +730,12 @@ docs(readme): aplicar la plantilla oficial del README
 | :---: | :--- | :--- | :--- |
 | `SR-RF-40` | Iniciar chat con vendedor | Comprador | Solo sobre una publicación disponible y ajena; si la conversación ya existe, devuelve la misma. |
 | `SR-RF-41` | Coordinar entrega mediante chat interno | Comprador y vendedor | Solo los participantes leen y escriben; máximo 1.000 caracteres; no se escribe si la prenda ya no está disponible. |
+| `SR-RF-73` | Chat con almacén aliado | Comprador y administrador del almacén | Implementado (`v1.0.0`). El almacén está disponible si ms-tiendas responde `200` con NIT; el administrador solo responde las conversaciones de su propio NIT, por REST y por STOMP. |
 
 | Historia | Descripción | Requerimiento |
 | :---: | :--- | :---: |
 | `HU-01` | Iniciar chat con el vendedor | `SR-RF-40` |
 | `HU-02` | Coordinar la entrega por chat | `SR-RF-41` |
 | `HU-03` | Ver mis conversaciones | `SR-RF-41` |
+| `HU-04` | Iniciar chat con un almacén aliado | `SR-RF-73` |
 | `HT-01` | Servicio de chat independiente (base, pipeline e imagen propios) | — |

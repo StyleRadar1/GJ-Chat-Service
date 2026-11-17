@@ -11,6 +11,7 @@ import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
+import edu.dosw.styleradar.chat.domain.exception.TooManyMessagesException;
 import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +55,12 @@ public class GlobalExceptionHandler {
     public ProblemDetail conversationConflict(ConversationClosedException e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.CONFLICT, "conflicto", "Conflicto", e.getMessage(),
                 request.getRequestURI());
+    }
+
+    @ExceptionHandler(TooManyMessagesException.class)
+    public ProblemDetail tooManyMessages(TooManyMessagesException e, HttpServletRequest request) {
+        return ProblemDetails.of(HttpStatus.TOO_MANY_REQUESTS, "demasiadas-solicitudes", "Demasiadas solicitudes",
+                e.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(InvalidMessageTextException.class)

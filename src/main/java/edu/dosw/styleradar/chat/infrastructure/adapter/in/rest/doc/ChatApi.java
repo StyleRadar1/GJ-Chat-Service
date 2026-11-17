@@ -129,6 +129,22 @@ public interface ChatApi {
     ResponseEntity<List<ConversationResponse>> getMyConversations(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user);
 
+    @Operation(summary = "Consultar las conversaciones de un usuario (SR-RF-41)",
+            description = "Igual que GET /api/v1/users/conversations, con el id del usuario en la ruta. "
+                    + "El id debe ser el del token; si es otro, responde 403.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Conversaciones del usuario"),
+            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
+            @ApiResponse(responseCode = "403", description = "Rol sin permiso o id distinto del token",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403)))
+    })
+    @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
+    @GetMapping("/api/v1/users/{id}/conversations")
+    ResponseEntity<List<ConversationResponse>> getUserConversations(
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("id") Long id);
+
     @Operation(summary = "Consultar mensajes (SR-RF-41)",
             description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes de la conversación.")
     @ApiResponses({

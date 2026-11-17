@@ -7,4 +7,7 @@ import java.util.List;
 /** Input port to list the conversations of a user. */
 public interface GetMyConversationsUseCase {
     List<Conversation> fetch(Long userId);
+
+    /** Lista las conversaciones de {@code ownerId}; solo el propio usuario puede consultarlas. */
+    List<Conversation> fetchOwn(Long requesterId, Long ownerId);
 }

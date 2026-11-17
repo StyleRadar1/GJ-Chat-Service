@@ -92,6 +92,11 @@ public class ChatController implements ChatApi {
     }
 
     @Override
+    public ResponseEntity<List<ConversationResponse>> getUserConversations(AuthenticatedUser user, Long id) {
+        return ResponseEntity.ok(conversationOut.toResponse(getMyConversations.fetchOwn(user.userId(), id)));
+    }
+
+    @Override
     public ResponseEntity<List<MessageResponse>> getMessages(AuthenticatedUser user, Long id) {
         return ResponseEntity.ok(messageOut.toResponse(getMessages.fetch(user.userId(), id)));
     }

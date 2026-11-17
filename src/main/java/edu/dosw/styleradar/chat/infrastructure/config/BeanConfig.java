@@ -23,8 +23,12 @@ import edu.dosw.styleradar.chat.domain.port.out.ListingQueryPort;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.ProcessedEventPort;
 import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
+import edu.dosw.styleradar.chat.application.usecase.RateLimitedSendMessageUseCase;
+import edu.dosw.styleradar.chat.domain.port.out.MessageRateLimiterPort;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.time.Clock;
 
@@ -80,6 +84,13 @@ public class BeanConfig {
                                                  EventPublisherPort events,
                                                  Clock clock) {
         return new SendMessageUseCaseImpl(conversations, messages, listings, stores, events, clock);
+    }
+
+    @Bean
+    @Primary
+    public SendMessageUseCase rateLimitedSendMessageUseCase(
+            @Qualifier("sendMessageUseCase") SendMessageUseCase delegate, MessageRateLimiterPort rateLimiter) {
+        return new RateLimitedSendMessageUseCase(delegate, rateLimiter);
     }
 
     @Bean
