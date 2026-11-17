@@ -58,8 +58,8 @@ public class RabbitMqEventPublisherAdapter implements EventPublisherPort {
                                    CorrelationData.Confirm confirm, Throwable error) {
         if (error != null) {
             reportFailure("sin-confirmacion", event, error.getMessage());
-        } else if (!confirm.ack()) {
-            reportFailure("nack", event, confirm.reason());
+        } else if (!confirm.isAck()) {
+            reportFailure("nack", event, confirm.getReason());
         } else if (correlation.getReturned() != null) {
             reportFailure("sin-ruta", event, correlation.getReturned().getReplyText());
         }
