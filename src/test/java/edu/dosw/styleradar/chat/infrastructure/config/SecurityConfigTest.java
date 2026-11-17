@@ -26,7 +26,7 @@ class SecurityConfigTest {
     void configuresCorsWithAllowedOrigins() {
         CorsConfigurationSource source = config.corsConfigurationSource("http://localhost:3000, https://styleradar.com ");
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRequestURI("/api/v1/conversaciones");
+        request.setRequestURI("/api/v1/conversations");
 
         CorsConfiguration corsConfig = source.getCorsConfiguration(request);
         assertThat(corsConfig).isNotNull();

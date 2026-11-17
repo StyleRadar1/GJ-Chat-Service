@@ -141,7 +141,7 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 
 **Explicación.** Los adaptadores de entrada traducen HTTP: `JwtAuthenticationFilter` valida el token y deja al usuario en el contexto, y `ChatController` solo conoce las interfaces de `port/in`. Cada caso de uso es una interfaz con su `*UseCaseImpl` en `application/usecase`, registrado como `@Bean` en `BeanConfig` (sin `@Service`). Las reglas del negocio viven en el dominio y no dependen de Spring ni de JPA. Los casos de uso piden lo externo por puertos de salida, que implementan los adaptadores: JPA para la base y Feign para el servicio de publicaciones.
 
-**Flujo de una petición (enviar mensaje):** `POST /api/v1/conversaciones/7/mensajes` → `JwtAuthenticationFilter` (usuario 1 desde el JWT) → `ChatController` convierte el JSON a `MessageText` con `MessageDtoInMapper` → `SendMessageUseCase.send(1, 7, texto)` → `SendMessageUseCaseImpl` busca la conversación por `ConversationRepositoryPort`, verifica que el usuario participe y, si sigue abierta, consulta la publicación por `ListingQueryPort` → `Conversation.write(...)` aplica las reglas y crea el `Message` → `MessageRepositoryPort.save` → `MessageRepositoryAdapter` lo convierte a `MessageJpaEntity` y lo persiste → la respuesta vuelve como `MessageResponse` (201).
+**Flujo de una petición (enviar mensaje):** `POST /api/v1/conversations/7/messages` → `JwtAuthenticationFilter` (usuario 1 desde el JWT) → `ChatController` convierte el JSON a `MessageText` con `MessageDtoInMapper` → `SendMessageUseCase.send(1, 7, texto)` → `SendMessageUseCaseImpl` busca la conversación por `ConversationRepositoryPort`, verifica que el usuario participe y, si sigue abierta, consulta la publicación por `ListingQueryPort` → `Conversation.write(...)` aplica las reglas y crea el `Message` → `MessageRepositoryPort.save` → `MessageRepositoryAdapter` lo convierte a `MessageJpaEntity` y lo persiste → la respuesta vuelve como `MessageResponse` (201).
 
 **Justificación.** Separar así permite cambiar de dónde sale la publicación (hoy el monolito, después el servicio de Catálogo, o un evento) cambiando solo un adaptador, y probar todas las reglas con JUnit y Mockito sin levantar Spring ni una base de datos.
 
@@ -209,10 +209,10 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 
 | Método | Ruta | Descripción | Rol | HTTP |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/segunda-mano/{publicacionId}/conversaciones` | Iniciar chat con el vendedor (idempotente) | COMPRADOR | 200, 401, 403, 404, 422, 503 |
-| GET | `/api/v1/usuarios/me/conversaciones` | Mis conversaciones | COMPRADOR | 200, 401, 403 |
-| GET | `/api/v1/conversaciones/{id}/mensajes` | Mensajes en orden de envío | COMPRADOR (participante) | 200, 401, 403, 404 |
-| POST | `/api/v1/conversaciones/{id}/mensajes` | Enviar mensaje | COMPRADOR (participante) | 201, 400, 401, 403, 404, 422, 503 |
+| POST | `/api/v1/second-hand/{publicacionId}/conversations` | Iniciar chat con el vendedor (idempotente) | COMPRADOR | 200, 401, 403, 404, 422, 503 |
+| GET | `/api/v1/users/conversations` | Mis conversaciones | COMPRADOR | 200, 401, 403 |
+| GET | `/api/v1/conversations/{id}/messages` | Mensajes en orden de envío | COMPRADOR (participante) | 200, 401, 403, 404 |
+| POST | `/api/v1/conversations/{id}/messages` | Enviar mensaje | COMPRADOR (participante) | 201, 400, 401, 403, 404, 422, 503 |
 
 | Evento | Dirección | Exchange · routing key | Payload resumido | Sprint |
 | --- | --- | --- | --- | --- |

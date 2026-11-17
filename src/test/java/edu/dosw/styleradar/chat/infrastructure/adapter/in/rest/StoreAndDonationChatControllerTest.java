@@ -102,7 +102,7 @@ class StoreAndDonationChatControllerTest {
 
         when(startStoreConversation.start(100L, "900123456-1")).thenReturn(conv);
 
-        mvc.perform(post("/api/v1/almacenes/900123456-1/conversaciones")
+        mvc.perform(post("/api/v1/stores/900123456-1/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
@@ -119,7 +119,7 @@ class StoreAndDonationChatControllerTest {
         when(startStoreConversation.start(100L, "999999-9"))
                 .thenThrow(new StoreNotFoundException("No existe el almacén"));
 
-        mvc.perform(post("/api/v1/almacenes/999999-9/conversaciones")
+        mvc.perform(post("/api/v1/stores/999999-9/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title", is("Recurso no encontrado")));
@@ -132,7 +132,7 @@ class StoreAndDonationChatControllerTest {
         when(startStoreConversation.start(100L, "900123456-1"))
                 .thenThrow(new StoreUnavailableException("Este almacén no está disponible para chat"));
 
-        mvc.perform(post("/api/v1/almacenes/900123456-1/conversaciones")
+        mvc.perform(post("/api/v1/stores/900123456-1/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title", is("Regla de negocio incumplida")));
@@ -147,7 +147,7 @@ class StoreAndDonationChatControllerTest {
 
         when(getStoreConversations.fetchForStoreAdmin(200L)).thenReturn(List.of(conv));
 
-        mvc.perform(get("/api/v1/almacenes/me/conversaciones")
+        mvc.perform(get("/api/v1/stores/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -159,7 +159,7 @@ class StoreAndDonationChatControllerTest {
     void getStoreConversationsForbidden() throws Exception {
         String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
 
-        mvc.perform(get("/api/v1/almacenes/me/conversaciones")
+        mvc.perform(get("/api/v1/stores/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isForbidden());
     }
@@ -173,7 +173,7 @@ class StoreAndDonationChatControllerTest {
 
         when(startDonationConversation.start(100L, 5L)).thenReturn(conv);
 
-        mvc.perform(post("/api/v1/donaciones/5/conversaciones")
+        mvc.perform(post("/api/v1/donations/5/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(2)))
@@ -189,7 +189,7 @@ class StoreAndDonationChatControllerTest {
         when(startDonationConversation.start(100L, 999L))
                 .thenThrow(new DonationNotFoundException("No existe la solicitud de donación 999"));
 
-        mvc.perform(post("/api/v1/donaciones/999/conversaciones")
+        mvc.perform(post("/api/v1/donations/999/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isNotFound());
     }
@@ -201,7 +201,7 @@ class StoreAndDonationChatControllerTest {
         when(startDonationConversation.start(100L, 5L))
                 .thenThrow(new DonationUnavailableException("La donación ya finalizó"));
 
-        mvc.perform(post("/api/v1/donaciones/5/conversaciones")
+        mvc.perform(post("/api/v1/donations/5/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isUnprocessableEntity());
     }
@@ -214,7 +214,7 @@ class StoreAndDonationChatControllerTest {
 
         when(sendMessage.send(eq(200L), eq(1L), any(MessageText.class))).thenReturn(msg);
 
-        mvc.perform(post("/api/v1/conversaciones/1/mensajes")
+        mvc.perform(post("/api/v1/conversations/1/messages")
                         .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"texto\":\"Hola, tenemos stock disponible\"}"))
