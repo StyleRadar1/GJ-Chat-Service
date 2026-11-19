@@ -2,6 +2,15 @@
 
 Fecha de revisión inicial: 12 de noviembre de 2026. Última actualización: 18 de noviembre de 2026. Fuente de actualización funcional: PDF SR-RF-40/41/73 recibido el 18 de noviembre. Este documento registra evidencia de esta copia del repositorio; no actualiza Jira ni implica que los cambios estén desplegados.
 
+## Ajustes SR-RF-40/41 en esta copia local
+
+- `POST /api/v1/second-hand/publications/{publicationId}/conversations` recibe `{"texto":"..."}` y persiste el mensaje inicial cuando crea una conversación.
+- La consulta idempotente de conversación existente ocurre antes de consultar la publicación, así se puede recuperar su historial aunque ya no esté disponible.
+- Los historiales REST de mensajes, conversaciones propias y bandeja del almacén usan paginación de base de datos (`page`, `size`, máximo 100), con orden estable.
+- El código actual solo valida JWT (firma, expiración e identidad/roles). Rechazar una cuenta bloqueada aunque el JWT vigente no refleje el cambio sigue pendiente del contrato de estado/revocación de ms-auth.
+- El cliente frontend debe enviar el texto inicial a la ruta C2C y consumir el sobre de paginación en las tres consultas; no se actualizó el repositorio frontend en esta tarea.
+- Compilación de fuentes y tests con `mvn -q -DskipTests test-compile`: correcta. Las pruebas no se ejecutaron. Esta copia no tiene `.git`; los cambios aún deben copiarse a la rama de trabajo y pasar CI.
+
 ## Avance de implementación
 
 - `ConversationClosedException` se traduce a HTTP `409`; por STOMP el emisor recibe el conflicto en `/user/queue/conversations/errors`. El mensaje no se confirma ni se difunde.

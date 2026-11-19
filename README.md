@@ -234,9 +234,9 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 | Método | Endpoint | Descripción | Rol Requerido | Códigos HTTP |
 | :---: | :--- | :--- | :--- | :---: |
 | `GET` | `/actuator/health` | Estado del microservicio | Público | `200` |
-| `POST` | `/api/v1/second-hand/publications/{publicationId}/conversations` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
-| `GET` | `/api/v1/users/conversations` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
-| `GET` | `/api/v1/conversations/{id}/messages` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
+| `POST` | `/api/v1/second-hand/publications/{publicationId}/conversations` | Recibe `{"texto":"..."}` y persiste el mensaje inicial al crear. Si ya existe el chat, permite recuperarlo aunque la publicación ya no esté disponible. | `COMPRADOR` | `200`, `400`, `401`, `403`, `404`, `422`, `503` |
+| `GET` | `/api/v1/users/conversations?page=0&size=20` | Conversaciones propias paginadas; `size` máximo 100 | Participante autenticado | `200`, `400`, `401`, `403` |
+| `GET` | `/api/v1/conversations/{id}/messages?page=0&size=50` | Mensajes paginados, orden cronológico ascendente; `size` máximo 100 | Participante autenticado | `200`, `400`, `401`, `403`, `404` |
 | `POST` | `/api/v1/conversations/{id}/messages` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `429`, `503` |
 
 <details>
@@ -244,11 +244,13 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 
 <br>
 
-#### Ejemplo Request (`POST /api/v1/second-hand/10/conversations`)
+#### Ejemplo Request (`POST /api/v1/second-hand/publications/10/conversations`)
 
 ```bash
-curl -X POST "http://localhost:8320/api/v1/second-hand/10/conversations" \
-  -H "Authorization: Bearer <JWT_TOKEN>"
+curl -X POST "http://localhost:8320/api/v1/second-hand/publications/10/conversations" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"texto":"Hola, ¿sigue disponible?"}'
 ```
 
 #### Ejemplo Response Exitoso (`200 OK`)

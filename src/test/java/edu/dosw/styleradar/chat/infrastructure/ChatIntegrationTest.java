@@ -73,17 +73,21 @@ class ChatIntegrationTest {
         String seller = Tokens.bearer(Tokens.forUser(200L));
         String outsider = Tokens.bearer(Tokens.forUser(400L));
 
-        String response = mvc.perform(post("/api/v1/second-hand/publications/100/conversations").header("Authorization", buyer))
+        String response = mvc.perform(post("/api/v1/second-hand/publications/100/conversations")
+                        .header("Authorization", buyer).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Hola, ¿sigue disponible?\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vendedorId").value(200))
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
-        mvc.perform(post("/api/v1/second-hand/publications/100/conversations").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/second-hand/publications/100/conversations")
+                        .header("Authorization", buyer).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Quisiera coordinar la entrega\"}"))
                 .andExpect(jsonPath("$.id").value(id));
 
         mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", buyer)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"¿Sigue disponible?\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Puedo recogerla mañana\"}"))
                 .andExpect(status().isCreated());
         mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", seller)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Sí, en Chapinero\"}"))
@@ -91,12 +95,13 @@ class ChatIntegrationTest {
 
         mvc.perform(get("/api/v1/conversations/" + id + "/messages").header("Authorization", seller))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].texto").value("¿Sigue disponible?"))
-                .andExpect(jsonPath("$[1].autorId").value(200));
+                .andExpect(jsonPath("$.content", hasSize(3)))
+                .andExpect(jsonPath("$.content[0].texto").value("Hola, ¿sigue disponible?"))
+                .andExpect(jsonPath("$.content[1].texto").value("Puedo recogerla mañana"))
+                .andExpect(jsonPath("$.content[2].autorId").value(200));
 
         mvc.perform(get("/api/v1/users/conversations").header("Authorization", seller))
-                .andExpect(jsonPath("$[0].id").value(id));
+                .andExpect(jsonPath("$.content[0].id").value(id));
 
         mvc.perform(get("/api/v1/conversations/" + id + "/messages").header("Authorization", outsider))
                 .andExpect(status().isNotFound());
@@ -106,7 +111,9 @@ class ChatIntegrationTest {
     void ifListingIsWithdrawnConversationIsClosed() throws Exception {
         when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "DISPONIBLE"));
         String buyer = Tokens.bearer(Tokens.forUser(301L));
-        String response = mvc.perform(post("/api/v1/second-hand/publications/101/conversations").header("Authorization", buyer))
+        String response = mvc.perform(post("/api/v1/second-hand/publications/101/conversations")
+                        .header("Authorization", buyer).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Hola, coordinemos la entrega\"}"))
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
@@ -116,7 +123,7 @@ class ChatIntegrationTest {
                 .andExpect(status().isConflict());
 
         mvc.perform(get("/api/v1/users/conversations").header("Authorization", buyer))
-                .andExpect(jsonPath("$[0].estado").value("CERRADA"));
+                .andExpect(jsonPath("$.content[0].estado").value("CERRADA"));
     }
 
     @Test

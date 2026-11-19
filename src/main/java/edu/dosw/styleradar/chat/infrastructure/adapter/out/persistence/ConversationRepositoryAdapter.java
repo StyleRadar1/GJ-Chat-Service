@@ -2,10 +2,12 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence;
 
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
+import edu.dosw.styleradar.chat.domain.model.PageResult;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.repository.SpringDataConversationRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +69,20 @@ public class ConversationRepositoryAdapter implements ConversationRepositoryPort
     @Override
     public List<Conversation> findByParticipant(Long userId) {
         return repository.findByParticipant(userId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public PageResult<Conversation> findByParticipant(Long userId, int page, int size) {
+        var result = repository.findByParticipant(userId, PageRequest.of(page, size));
+        return new PageResult<>(result.getContent().stream().map(mapper::toDomain).toList(), page, size,
+                result.getTotalElements(), result.getTotalPages());
+    }
+
+    @Override
+    public PageResult<Conversation> findByStore(String storeNit, int page, int size) {
+        var result = repository.findByStoreNitOrderByCreatedAtDescIdDesc(storeNit, PageRequest.of(page, size));
+        return new PageResult<>(result.getContent().stream().map(mapper::toDomain).toList(), page, size,
+                result.getTotalElements(), result.getTotalPages());
     }
 
     @Override

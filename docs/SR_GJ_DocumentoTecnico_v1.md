@@ -209,9 +209,9 @@ En local, `docker compose up --build` levanta la base y el servicio; el servicio
 
 | Método | Ruta | Descripción | Rol | HTTP |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/second-hand/publications/{publicationId}/conversations` | Iniciar chat con el vendedor (idempotente) | COMPRADOR | 200, 401, 403, 404, 422, 503 |
-| GET | `/api/v1/users/conversations` | Mis conversaciones | COMPRADOR | 200, 401, 403 |
-| GET | `/api/v1/conversations/{id}/messages` | Mensajes en orden de envío | COMPRADOR (participante) | 200, 401, 403, 404 |
+| POST | `/api/v1/second-hand/publications/{publicationId}/conversations` | Iniciar chat con JSON `{"texto":"..."}`; persiste el mensaje inicial, reutiliza conversación existente incluso con publicación no disponible | COMPRADOR | 200, 400, 401, 403, 404, 422, 503 |
+| GET | `/api/v1/users/conversations?page=0&size=20` | Mis conversaciones paginadas (`size` máximo 100) | Participante | 200, 400, 401, 403 |
+| GET | `/api/v1/conversations/{id}/messages?page=0&size=50` | Mensajes paginados en orden cronológico (`size` máximo 100) | Participante | 200, 400, 401, 403, 404 |
 | POST | `/api/v1/conversations/{id}/messages` | Enviar mensaje | COMPRADOR (participante) | 201, 400, 401, 403, 404, 422, 503 |
 
 | Evento | Dirección | Exchange · routing key | Payload resumido | Sprint |

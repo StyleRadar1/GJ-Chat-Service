@@ -52,14 +52,19 @@ Este objeto se devuelve al consultar o enviar mensajes.
 | `texto` | Texto | Contenido del mensaje. |
 | `fechaEnvio` | Texto (fecha y hora ISO-8601) | Fecha en que se guardó el mensaje. |
 
+### Sobre de salida paginado
+
+Los endpoints de historial devuelven un objeto con `content` (elementos), `page` (base cero), `size`, `totalElements` y `totalPages`. Se puede solicitar `?page=0&size=20`; el máximo permitido es 100. Los mensajes mantienen orden cronológico ascendente dentro de cada página.
+
 ## SR-RF-40 · Iniciar chat con el vendedor
 
 | Aspecto | Definición |
 | --- | --- |
 | Actor | Comprador (`USER` en el token de identidad). |
 | Operación | `POST /api/v1/second-hand/publications/{publicationId}/conversations` |
-| Regla | La publicación debe estar disponible y pertenecer a otra persona. Si ya existe la conversación, se devuelve la existente. |
-| Éxito | `200 OK`. Devuelve los campos de **Datos de salida de una conversación**. |
+| Solicitud | JSON `{"texto":"..."}`. Texto inicial obligatorio de 1 a 1.000 caracteres. |
+| Regla | Para crear una conversación nueva, la publicación debe estar disponible y pertenecer a otra persona. Si ya existe una conversación para ese comprador y publicación, se devuelve sin consultar disponibilidad; esto permite recuperar el historial de una publicación vendida o retirada. |
+| Éxito | `200 OK`. Devuelve los campos de **Datos de salida de una conversación**. Al crearla, también persiste el mensaje inicial y lo publica por el mismo caso de uso de envío. |
 | Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso; `404` publicación inexistente; `422` publicación propia o no disponible; `503` servicio de publicaciones no disponible. El cuerpo sigue **Datos de salida en error**. |
 | Implementación relacionada | `StartConversationUseCaseImpl`; pruebas en `ChatControllerTest` y `ChatIntegrationTest`. |
 
@@ -71,7 +76,8 @@ Este objeto se devuelve al consultar o enviar mensajes.
 | --- | --- |
 | Actores | Comprador y vendedor que participan en la conversación. Ambos usan el rol oficial `USER`; la participación se valida por usuario y conversación. |
 | Operación | `GET /api/v1/conversations/{id}/messages` |
-| Éxito | `200 OK`. Devuelve una lista de mensajes; cada elemento contiene los campos de **Datos de salida de un mensaje**. |
+| Parámetros | `page` (base cero, predeterminado `0`) y `size` (predeterminado `50`, máximo `100`). |
+| Éxito | `200 OK`. Devuelve el **Sobre de salida paginado**, con mensajes en orden cronológico ascendente; `content` contiene los campos de **Datos de salida de un mensaje**. |
 | Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso; `404` conversación inexistente o ajena. El cuerpo sigue **Datos de salida en error**. |
 
 ### Enviar mensaje
@@ -89,7 +95,8 @@ Este objeto se devuelve al consultar o enviar mensajes.
 | Aspecto | Definición |
 | --- | --- |
 | Operación | `GET /api/v1/users/conversations`. El usuario se obtiene del JWT; no se recibe un identificador de usuario en la ruta. |
-| Éxito | `200 OK`. Devuelve una lista de conversaciones; cada elemento contiene los campos de **Datos de salida de una conversación**. |
+| Parámetros | `page` (base cero, predeterminado `0`) y `size` (predeterminado `20`, máximo `100`). |
+| Éxito | `200 OK`. Devuelve el **Sobre de salida paginado**; `content` contiene los campos de **Datos de salida de una conversación**. |
 | Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso. El cuerpo sigue **Datos de salida en error**. |
 
 ### Mensajería en tiempo real
@@ -112,7 +119,7 @@ Solo los participantes autorizados pueden suscribirse o enviar mensajes. El mens
 | Iniciar conversación | `POST /api/v1/stores/{nit}/conversations`, con JSON `{"texto":"..."}` (1–1.000 caracteres). |
 | Consultar bandeja | `GET /api/v1/stores/conversations`, para un administrador asociado a un almacén aprobado. |
 | Salida al iniciar | `200 OK`. Devuelve los campos de **Datos de salida de una conversación**. La conversación se crea o reutiliza por comprador y NIT, y el mensaje inicial queda guardado. |
-| Salida de bandeja | `200 OK`. Devuelve una lista de conversaciones; cada elemento contiene los campos de **Datos de salida de una conversación**. |
+| Salida de bandeja | `200 OK`. Devuelve el **Sobre de salida paginado** (`page`, `size`, `totalElements`, `totalPages` y `content`); `content` contiene conversaciones. `size` admite hasta 100. |
 | Errores al iniciar | `400` texto inválido; `401` JWT ausente, inválido o expirado; `403` rol sin permiso; `422` almacén inexistente o no disponible para chat; `503` ms-tiendas no disponible. El cuerpo sigue **Datos de salida en error**. |
 | Errores de bandeja | `401` JWT ausente, inválido o expirado; `403` usuario sin almacén aprobado o sin autorización; `503` ms-tiendas no disponible. El cuerpo sigue **Datos de salida en error**. |
 | Seguridad | La identidad del administrador y el NIT se verifican con ms-tiendas. Por STOMP, el administrador solo accede a conversaciones del mismo NIT. |

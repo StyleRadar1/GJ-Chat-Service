@@ -42,6 +42,13 @@ public class BeanConfig {
 
     @Bean
     public StartConversationUseCase startConversationUseCase(ConversationRepositoryPort conversations,
+                                                             ListingQueryPort listings, Clock clock,
+                                                             SendMessageUseCase sendMessage) {
+        return new StartConversationUseCaseImpl(conversations, listings, clock, sendMessage);
+    }
+
+    /** Backwards-compatible factory used by existing configuration tests. */
+    public StartConversationUseCase startConversationUseCase(ConversationRepositoryPort conversations,
                                                              ListingQueryPort listings, Clock clock) {
         return new StartConversationUseCaseImpl(conversations, listings, clock);
     }

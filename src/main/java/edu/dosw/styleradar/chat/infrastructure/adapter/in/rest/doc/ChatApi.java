@@ -3,6 +3,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.in.rest.doc;
 import edu.dosw.styleradar.chat.application.dto.request.SendMessageRequest;
 import edu.dosw.styleradar.chat.application.dto.response.ConversationResponse;
 import edu.dosw.styleradar.chat.application.dto.response.MessageResponse;
+import edu.dosw.styleradar.chat.application.dto.response.PageResponse;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -37,9 +41,9 @@ public interface ChatApi {
     String EX_503 = "{\"type\":\"https://styleradar.dosw/errores/servicio-no-disponible\",\"title\":\"Servicio no disponible\",\"status\":503,\"detail\":\"El servicio externo no está disponible\",\"instance\":\"/api/v1/second-hand/publications/10/conversations\"}";
 
     @Operation(summary = "Iniciar chat con el vendedor (SR-RF-40)",
-            description = "Rol COMPRADOR. Publicación DISPONIBLE y ajena. Si ya existe la conversación, la devuelve.")
+            description = "Rol COMPRADOR. Recibe y persiste el primer mensaje al crear el chat. Si ya existe una conversación del comprador para la publicación, la devuelve sin exigir que siga disponible.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversación iniciada o existente"),
+            @ApiResponse(responseCode = "200", description = "Conversación iniciada o existente con el primer mensaje guardado al crearla"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
             @ApiResponse(responseCode = "403", description = "Rol sin permiso",
@@ -55,7 +59,8 @@ public interface ChatApi {
     @PostMapping("/api/v1/second-hand/publications/{publicationId}/conversations")
     ResponseEntity<ConversationResponse> start(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable Long publicationId);
+            @PathVariable Long publicationId,
+            @Valid @RequestBody SendMessageRequest request);
 
     @Operation(summary = "Iniciar chat con almacén aliado (SR-RF-73 / GJ-56)",
             description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén aliado esté disponible. Crea o reutiliza una conversación por comprador y NIT, guarda el mensaje inicial y lo incluye en el historial.")
@@ -78,7 +83,7 @@ public interface ChatApi {
             @Valid @RequestBody SendMessageRequest request);
 
     @Operation(summary = "Consultar bandeja de conversaciones del almacén aliado (SR-RF-73 / GJ-56)",
-            description = "Rol STORE_ADMIN (se conserva compatibilidad con ADMIN_ALMACEN/TIENDA). Resuelve el NIT del administrador autenticado y lista las conversaciones de ese almacén.")
+            description = "Rol STORE_ADMIN (se conserva compatibilidad con ADMIN_ALMACEN/TIENDA). Resuelve el NIT del administrador autenticado. Admite page (base cero) y size (1–100; predeterminado 20).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conversaciones recibidas por el almacén"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
@@ -92,8 +97,10 @@ public interface ChatApi {
     })
     @PreAuthorize("hasAnyRole('ADMIN_ALMACEN', 'TIENDA')")
     @GetMapping("/api/v1/stores/conversations")
-    ResponseEntity<List<ConversationResponse>> getStoreConversations(
-            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user);
+    ResponseEntity<PageResponse<ConversationResponse>> getStoreConversations(
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
 
     @Operation(summary = "Iniciar chat sobre solicitud de donación (GJ-57)",
             description = "Rol COMPRADOR o REPRESENTANTE_FUNDACION. Valida con ms-donaciones que la donación esté activa.")
@@ -117,7 +124,7 @@ public interface ChatApi {
             @PathVariable Long donationId);
 
     @Operation(summary = "Consultar mis conversaciones (SR-RF-41)",
-            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Incluye conversaciones donde el usuario participa.")
+            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Incluye conversaciones donde el usuario participa. Admite page (base cero) y size (1–100; predeterminado 20).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conversaciones propias"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
@@ -127,11 +134,13 @@ public interface ChatApi {
     })
     @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
     @GetMapping("/api/v1/users/conversations")
-    ResponseEntity<List<ConversationResponse>> getMyConversations(
-            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user);
+    ResponseEntity<PageResponse<ConversationResponse>> getMyConversations(
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
 
     @Operation(summary = "Consultar mensajes (SR-RF-41)",
-            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes de la conversación.")
+            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes de la conversación. Admite page (base cero) y size (1–100; predeterminado 50); los mensajes se ordenan del más antiguo al más nuevo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Mensajes de la conversación"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
@@ -143,9 +152,11 @@ public interface ChatApi {
     })
     @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
     @GetMapping("/api/v1/conversations/{id}/messages")
-    ResponseEntity<List<MessageResponse>> getMessages(
+    ResponseEntity<PageResponse<MessageResponse>> getMessages(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable Long id);
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size);
 
     @Operation(summary = "Enviar mensaje (SR-RF-41)",
             description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes; conversación cerrada responde 409.")

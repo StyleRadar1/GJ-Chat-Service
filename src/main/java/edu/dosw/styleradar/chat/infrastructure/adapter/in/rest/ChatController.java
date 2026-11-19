@@ -3,6 +3,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.in.rest;
 import edu.dosw.styleradar.chat.application.dto.request.SendMessageRequest;
 import edu.dosw.styleradar.chat.application.dto.response.ConversationResponse;
 import edu.dosw.styleradar.chat.application.dto.response.MessageResponse;
+import edu.dosw.styleradar.chat.application.dto.response.PageResponse;
 import edu.dosw.styleradar.chat.application.mapper.in.MessageDtoInMapper;
 import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapper;
 import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapper;
@@ -18,12 +19,15 @@ import edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+
 /** REST adapter that exposes chat use cases across second-hand, ally stores, and donations. */
 @RestController
+@Validated
 public class ChatController implements ChatApi {
     private final StartConversationUseCase startConversation;
     private final StartStoreConversationUseCase startStoreConversation;
@@ -60,6 +64,14 @@ public class ChatController implements ChatApi {
     }
 
     @Override
+    public ResponseEntity<ConversationResponse> start(AuthenticatedUser user, Long publicationId,
+                                                       SendMessageRequest request) {
+        var conversation = startConversation.start(user.userId(), publicationId, messageIn.toText(request));
+        metrics.recordConversationCreated(conversation.getType());
+        return ResponseEntity.ok(conversationOut.toResponse(conversation));
+    }
+
+    /** Compatibility overload for pre-existing internal tests/callers; REST uses the initial-message request. */
     public ResponseEntity<ConversationResponse> start(AuthenticatedUser user, Long publicationId) {
         var conversation = startConversation.start(user.userId(), publicationId);
         metrics.recordConversationCreated(conversation.getType());
@@ -75,6 +87,13 @@ public class ChatController implements ChatApi {
     }
 
     @Override
+    public ResponseEntity<PageResponse<ConversationResponse>> getStoreConversations(AuthenticatedUser user,
+                                                                                     int page, int size) {
+        var result = getStoreConversations.fetchForStoreAdmin(user.userId(), page, size);
+        return ResponseEntity.ok(PageResponse.map(result, conversationOut::toResponse));
+    }
+
+    /** Compatibility overload for unit callers; the REST route uses paged results. */
     public ResponseEntity<List<ConversationResponse>> getStoreConversations(AuthenticatedUser user) {
         return ResponseEntity.ok(conversationOut.toResponse(
                 getStoreConversations.fetchForStoreAdmin(user.userId())));
@@ -88,11 +107,25 @@ public class ChatController implements ChatApi {
     }
 
     @Override
+    public ResponseEntity<PageResponse<ConversationResponse>> getMyConversations(AuthenticatedUser user,
+                                                                                  int page, int size) {
+        var result = getMyConversations.fetch(user.userId(), page, size);
+        return ResponseEntity.ok(PageResponse.map(result, conversationOut::toResponse));
+    }
+
+    /** Compatibility overload for unit callers; the REST route uses paged results. */
     public ResponseEntity<List<ConversationResponse>> getMyConversations(AuthenticatedUser user) {
         return ResponseEntity.ok(conversationOut.toResponse(getMyConversations.fetch(user.userId())));
     }
 
     @Override
+    public ResponseEntity<PageResponse<MessageResponse>> getMessages(AuthenticatedUser user, Long id,
+                                                                      int page, int size) {
+        var result = getMessages.fetch(user.userId(), id, page, size);
+        return ResponseEntity.ok(PageResponse.map(result, messageOut::toResponse));
+    }
+
+    /** Compatibility overload for unit callers; the REST route uses paged results. */
     public ResponseEntity<List<MessageResponse>> getMessages(AuthenticatedUser user, Long id) {
         return ResponseEntity.ok(messageOut.toResponse(getMessages.fetch(user.userId(), id)));
     }
