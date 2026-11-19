@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** Pruebas de GET /api/v1/users/{id}/conversations: solo el dueño del id puede consultar. */
+/** Pruebas de la regla interna que impide consultar conversaciones de otro usuario. */
 @ExtendWith(MockitoExtension.class)
 class GetMyConversationsOwnershipTest {
     @Mock

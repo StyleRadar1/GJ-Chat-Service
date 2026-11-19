@@ -57,7 +57,7 @@ Este objeto se devuelve al consultar o enviar mensajes.
 | Aspecto | Definición |
 | --- | --- |
 | Actor | Comprador (`USER` en el token de identidad). |
-| Operación | `POST /api/v1/second-hand/{listingId}/conversations` |
+| Operación | `POST /api/v1/second-hand/publications/{publicationId}/conversations` |
 | Regla | La publicación debe estar disponible y pertenecer a otra persona. Si ya existe la conversación, se devuelve la existente. |
 | Éxito | `200 OK`. Devuelve los campos de **Datos de salida de una conversación**. |
 | Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso; `404` publicación inexistente; `422` publicación propia o no disponible; `503` servicio de publicaciones no disponible. El cuerpo sigue **Datos de salida en error**. |
@@ -88,9 +88,9 @@ Este objeto se devuelve al consultar o enviar mensajes.
 
 | Aspecto | Definición |
 | --- | --- |
-| Operaciones | `GET /api/v1/users/conversations` y `GET /api/v1/users/{id}/conversations`. El identificador de la segunda ruta debe coincidir con el usuario autenticado. |
+| Operación | `GET /api/v1/users/conversations`. El usuario se obtiene del JWT; no se recibe un identificador de usuario en la ruta. |
 | Éxito | `200 OK`. Devuelve una lista de conversaciones; cada elemento contiene los campos de **Datos de salida de una conversación**. |
-| Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso o identificador distinto del usuario autenticado. El cuerpo sigue **Datos de salida en error**. |
+| Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso. El cuerpo sigue **Datos de salida en error**. |
 
 ### Mensajería en tiempo real
 

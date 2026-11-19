@@ -234,9 +234,8 @@ Todos exigen `Authorization: Bearer <JWT>`. El usuario se toma siempre del token
 | Método | Endpoint | Descripción | Rol Requerido | Códigos HTTP |
 | :---: | :--- | :--- | :--- | :---: |
 | `GET` | `/actuator/health` | Estado del microservicio | Público | `200` |
-| `POST` | `/api/v1/second-hand/{publicacionId}/conversations` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
+| `POST` | `/api/v1/second-hand/publications/{publicationId}/conversations` | Inicia el chat con el vendedor. Si ya existe, devuelve la misma conversación. | `COMPRADOR` | `200`, `401`, `403`, `404`, `422`, `503` |
 | `GET` | `/api/v1/users/conversations` | Conversaciones donde participo, como comprador o vendedor | `COMPRADOR` | `200`, `401`, `403` |
-| `GET` | `/api/v1/users/{id}/conversations` | Lo mismo con el id en la ruta, como en ms-notificaciones. El id debe ser el del token; si es otro, `403`. | `COMPRADOR` | `200`, `401`, `403` |
 | `GET` | `/api/v1/conversations/{id}/messages` | Mensajes de la conversación en orden de envío | `COMPRADOR` (participante) | `200`, `401`, `403`, `404` |
 | `POST` | `/api/v1/conversations/{id}/messages` | Envía un mensaje de hasta 1.000 caracteres; una conversación cerrada no acepta escritura | `COMPRADOR` (participante) | `201`, `400`, `401`, `403`, `404`, `409`, `429`, `503` |
 
