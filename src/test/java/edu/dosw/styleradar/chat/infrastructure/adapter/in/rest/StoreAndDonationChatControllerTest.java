@@ -12,6 +12,7 @@ import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
 import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.domain.model.PageResult;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetStoreConversationsUseCase;
@@ -151,13 +152,14 @@ class StoreAndDonationChatControllerTest {
         Conversation conv = new Conversation(1L, ConversationType.ALMACEN, null, null, 100L, 200L,
                 "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, Instant.now());
 
-        when(getStoreConversations.fetchForStoreAdmin(200L)).thenReturn(List.of(conv));
+        when(getStoreConversations.fetchForStoreAdmin(200L, 0, 20)).thenReturn(
+                new PageResult<>(List.of(conv), 0, 20, 1, 1));
 
         mvc.perform(get("/api/v1/stores/conversations")
                         .header("Authorization", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].almacenNit", is("900123456-1")));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].almacenNit", is("900123456-1")));
     }
 
     @Test

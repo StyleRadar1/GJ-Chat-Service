@@ -65,6 +65,15 @@
               "type": "string"
             }
           ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"texto\":\"Hola, ¿sigue disponible?\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         }
       },
       "event": [

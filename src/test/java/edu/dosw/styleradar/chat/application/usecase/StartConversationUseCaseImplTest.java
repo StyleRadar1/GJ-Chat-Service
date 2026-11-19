@@ -63,7 +63,6 @@ class StartConversationUseCaseImplTest {
 
     @Test
     void returnsExistingConversationWithoutCreatingAnother() {
-        when(listings.fetch(LISTING)).thenReturn(listing(ListingStatus.AVAILABLE));
         when(conversations.findByListingAndBuyer(LISTING, BUYER))
                 .thenReturn(Optional.of(conversation(7L, ConversationStatus.OPEN)));
 

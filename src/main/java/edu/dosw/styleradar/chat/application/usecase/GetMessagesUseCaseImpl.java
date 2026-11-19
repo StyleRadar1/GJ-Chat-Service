@@ -4,6 +4,7 @@ import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Message;
+import edu.dosw.styleradar.chat.domain.model.PageResult;
 import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
@@ -27,6 +28,18 @@ public class GetMessagesUseCaseImpl implements GetMessagesUseCase {
 
     @Override
     public List<Message> fetch(Long userId, Long conversationId) {
+        authorize(userId, conversationId);
+        return messages.findByConversation(conversationId);
+    }
+
+    @Override
+    public PageResult<Message> fetch(Long userId, Long conversationId, int page, int size) {
+        validatePage(page, size);
+        authorize(userId, conversationId);
+        return messages.findByConversation(conversationId, page, size);
+    }
+
+    private void authorize(Long userId, Long conversationId) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
@@ -45,7 +58,11 @@ public class GetMessagesUseCaseImpl implements GetMessagesUseCase {
         if (!conversation.isParticipantOrStoreAdmin(userId, storeNitOfUser)) {
             throw new ConversationNotFoundException(conversationId);
         }
+    }
 
-        return messages.findByConversation(conversationId);
+    private static void validatePage(int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("page debe ser >= 0 y size debe estar entre 1 y 100");
+        }
     }
 }
