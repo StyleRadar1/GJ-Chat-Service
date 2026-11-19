@@ -62,7 +62,12 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
                 return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
             }
             Long conversationId = conversationId(accessor.getDestination(), command);
-            verifyParticipant(user, conversationId);
+            String storeNit = verifyParticipant(user, conversationId);
+            if (storeNit != null) {
+                AuthenticatedUser authorizedUser = user.withStoreNit(storeNit);
+                accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(
+                        authorizedUser, null, authorizedUser.authorities()));
+            }
         }
         return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
     }
@@ -107,7 +112,7 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
         }
     }
 
-    private void verifyParticipant(AuthenticatedUser user, Long conversationId) {
+    private String verifyParticipant(AuthenticatedUser user, Long conversationId) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
@@ -115,7 +120,7 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
         String storeNit = null;
         if (storeAdmin && conversation.getType() == ConversationType.ALMACEN
                 && !conversation.isParticipant(user.userId())) {
-            storeNit = storeNitOf(user.userId());
+            storeNit = storeNitOf(user);
         }
 
         if (!conversation.allowsRealtimeAccess(user.userId(), storeAdmin, storeNit)) {
@@ -124,11 +129,7 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
             throw new MessagingException("No tiene acceso a esta conversación",
                     new AccessDeniedDomainException("No tiene acceso a esta conversación"));
         }
-
-        if (storeAdmin && conversation.getSellerId() == null && conversation.belongsToStore(storeNit)) {
-            conversation.assignSellerIfUnassigned(user.userId());
-            conversations.save(conversation);
-        }
+        return storeAdmin && conversation.getType() == ConversationType.ALMACEN ? storeNit : null;
     }
 
     private static boolean isStoreAdmin(AuthenticatedUser user) {
@@ -137,15 +138,15 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
                 || user.roles().contains("TIENDA");
     }
 
-    private String storeNitOf(Long userId) {
+    private String storeNitOf(AuthenticatedUser user) {
         try {
-            StoreSummary store = stores.fetchMyStore(userId);
-            if (store == null || store.nit() == null) {
+            StoreSummary store = stores.fetchMyStore(user.userId(), user.authorizationHeader());
+            if (store == null || store.nit() == null || !store.isAvailable()) {
                 return null;
             }
             return store.nit();
         } catch (RuntimeException exception) {
-            LOGGER.warn("No se pudo resolver el almacén del usuario {}: {}", userId, exception.getMessage());
+            LOGGER.warn("No se pudo resolver el almacén del usuario {}: {}", user.userId(), exception.getMessage());
             return null;
         }
     }

@@ -11,6 +11,7 @@ import feign.FeignException;
 import feign.Request;
 import feign.Response;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.ConversationRepositoryAdapter;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.MessageRepositoryAdapter;
 import edu.dosw.styleradar.chat.support.Tokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,8 @@ class ChatIntegrationTest {
     private MockMvc mvc;
     @Autowired
     private ConversationRepositoryAdapter conversations;
+    @Autowired
+    private MessageRepositoryAdapter messages;
     @MockBean
     private SecondHandFeignClient secondHand;
     @MockBean
@@ -132,12 +135,17 @@ class ChatIntegrationTest {
                 new ExternalStoreResponse("900123456-1", "Atelier Urbano", "Ropa", 4.8));
         String buyer = Tokens.bearer(Tokens.withRoles(310L, List.of("COMPRADOR")));
 
-        mvc.perform(post("/api/v1/stores/900123456-1/conversations").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/stores/900123456-1/conversations").header("Authorization", buyer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"¿Tienen disponibilidad?\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tipo").value("ALMACEN"))
                 .andExpect(jsonPath("$.almacenNit").value("900123456-1"))
                 .andExpect(jsonPath("$.almacenNombre").value("Atelier Urbano"))
                 .andExpect(jsonPath("$.estado").value("ABIERTA"));
+        Conversation conversation = conversations.findByStoreAndBuyer("900123456-1", 310L).orElseThrow();
+        assertThat(messages.findByConversation(conversation.getId())).hasSize(1);
+        assertThat(messages.findByConversation(conversation.getId()).get(0).getText().value())
+                .isEqualTo("¿Tienen disponibilidad?");
     }
 
     @Test
@@ -145,8 +153,9 @@ class ChatIntegrationTest {
         when(stores.getStore("999999-9")).thenThrow(storesError(404));
         String buyer = Tokens.bearer(Tokens.withRoles(311L, List.of("COMPRADOR")));
 
-        mvc.perform(post("/api/v1/stores/999999-9/conversations").header("Authorization", buyer))
-                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/stores/999999-9/conversations").header("Authorization", buyer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
@@ -154,7 +163,8 @@ class ChatIntegrationTest {
         when(stores.getStore("900123456-2")).thenThrow(storesError(503));
         String buyer = Tokens.bearer(Tokens.withRoles(312L, List.of("COMPRADOR")));
 
-        mvc.perform(post("/api/v1/stores/900123456-2/conversations").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/stores/900123456-2/conversations").header("Authorization", buyer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isServiceUnavailable());
     }
 

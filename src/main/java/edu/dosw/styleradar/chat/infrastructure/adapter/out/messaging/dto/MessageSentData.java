@@ -11,6 +11,7 @@ public record MessageSentData(@JsonProperty("mensajeId") Long messageId,
                               @JsonProperty("prendaNombre") String garmentName,
                               @JsonProperty("autorId") Long authorId,
                               @JsonProperty("destinatarioId") Long recipientId,
+                              @JsonProperty("almacenNit") String storeNit,
                               @JsonProperty("vistaPrevia") String preview,
                               @JsonProperty("fechaEnvio") Instant sentAt) {
 }

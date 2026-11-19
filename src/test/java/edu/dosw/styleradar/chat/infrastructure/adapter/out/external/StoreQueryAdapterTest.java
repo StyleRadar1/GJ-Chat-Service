@@ -2,6 +2,7 @@ package edu.dosw.styleradar.chat.infrastructure.adapter.out.external;
 
 import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalMyStoreResponse;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalStoreResponse;
@@ -42,10 +43,10 @@ class StoreQueryAdapterTest {
     }
 
     @Test
-    void a404MeansTheStoreDoesNotExist() {
+    void a404MeansTheStoreDoesNotExistOrIsNotAChatPartner() {
         when(client.getStore("999999-9")).thenThrow(error(404));
 
-        assertThatThrownBy(() -> adapter.fetch("999999-9")).isInstanceOf(StoreNotFoundException.class);
+        assertThatThrownBy(() -> adapter.fetch("999999-9")).isInstanceOf(StoreUnavailableException.class);
     }
 
     @Test
@@ -74,7 +75,7 @@ class StoreQueryAdapterTest {
 
     @Test
     void myStoreIsAvailableWhenTheStoresServiceReturns200() {
-        when(client.getMyStore(9L)).thenReturn(new ExternalMyStoreResponse("900123456-1", "Atelier Urbano"));
+        when(client.getMyStore(9L, 9L)).thenReturn(new ExternalMyStoreResponse("900123456-1", "Atelier Urbano"));
 
         StoreSummary store = adapter.fetchMyStore(9L);
 
@@ -83,15 +84,25 @@ class StoreQueryAdapterTest {
     }
 
     @Test
+    void forwardsExplicitBearerWhenResolvingStoreFromStomp() {
+        when(client.getMyStoreWithAuthorization(9L, 9L, "Bearer signed-token"))
+                .thenReturn(new ExternalMyStoreResponse("900123456-1", "Atelier Urbano"));
+
+        StoreSummary store = adapter.fetchMyStore(9L, "Bearer signed-token");
+
+        assertThat(store.nit()).isEqualTo("900123456-1");
+    }
+
+    @Test
     void aUserWithoutStoreGetsStoreNotFound() {
-        when(client.getMyStore(9L)).thenThrow(error(404));
+        when(client.getMyStore(9L, 9L)).thenThrow(error(404));
 
         assertThatThrownBy(() -> adapter.fetchMyStore(9L)).isInstanceOf(StoreNotFoundException.class);
     }
 
     @Test
     void myStoreFailsWhenTheStoresServiceIsDown() {
-        when(client.getMyStore(9L)).thenThrow(error(503));
+        when(client.getMyStore(9L, 9L)).thenThrow(error(503));
 
         assertThatThrownBy(() -> adapter.fetchMyStore(9L))
                 .isInstanceOf(ExternalServiceUnavailableException.class);
@@ -99,7 +110,7 @@ class StoreQueryAdapterTest {
 
     @Test
     void myStoreWithoutNitIsUnavailable() {
-        when(client.getMyStore(9L)).thenReturn(new ExternalMyStoreResponse(null, "Atelier"));
+        when(client.getMyStore(9L, 9L)).thenReturn(new ExternalMyStoreResponse(null, "Atelier"));
 
         assertThatThrownBy(() -> adapter.fetchMyStore(9L))
                 .isInstanceOf(ExternalServiceUnavailableException.class);

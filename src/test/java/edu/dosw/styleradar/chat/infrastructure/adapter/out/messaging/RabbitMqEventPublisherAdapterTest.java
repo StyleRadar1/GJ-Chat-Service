@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class RabbitMqEventPublisherAdapterTest {
     private static final MessageSentEvent EVENT = new MessageSentEvent(20L, 7L, 10L, "Chaqueta de jean", 1L, 2L,
-            "Hola", NOW);
+            null, "Hola", NOW);
 
     @Mock
     private RabbitTemplate rabbitTemplate;

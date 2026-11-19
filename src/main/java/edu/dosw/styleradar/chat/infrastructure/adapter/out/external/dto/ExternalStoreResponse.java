@@ -1,13 +1,14 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Representación mínima de AlmacenResponseDTO de ms-tiendas. */
+/** Minimal representation of ms-tiendas AlmacenResponseDTO. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ExternalStoreResponse(
         String nit,
-        String nombreComercial,
-        String descripcion,
-        Double reputacion
+        @JsonProperty("tradeName") String nombreComercial,
+        @JsonProperty("description") String descripcion,
+        @JsonProperty("rating") Double reputacion
 ) {
 }

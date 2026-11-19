@@ -10,9 +10,15 @@ import org.springframework.web.bind.annotation.RequestHeader;
 /** Feign client to interact with ms-tiendas. */
 @FeignClient(name = "stores", url = "${styleradar.services.stores.url:http://localhost:8330}")
 public interface StoresFeignClient {
-    @GetMapping("/api/v1/almacenes/{nit}")
+    @GetMapping("/api/v1/stores/{nit}")
     ExternalStoreResponse getStore(@PathVariable("nit") String nit);
 
-    @GetMapping("/api/v1/almacenes/mi-almacen")
-    ExternalMyStoreResponse getMyStore(@RequestHeader("X-User-Id") Long userId);
+    @GetMapping("/api/v1/users/{userId}/store")
+    ExternalMyStoreResponse getMyStore(@PathVariable("userId") Long userId,
+                                       @RequestHeader("X-User-Id") Long authenticatedUserId);
+
+    @GetMapping("/api/v1/users/{userId}/store")
+    ExternalMyStoreResponse getMyStoreWithAuthorization(@PathVariable("userId") Long userId,
+                                                        @RequestHeader("X-User-Id") Long authenticatedUserId,
+                                                        @RequestHeader("Authorization") String authorizationHeader);
 }

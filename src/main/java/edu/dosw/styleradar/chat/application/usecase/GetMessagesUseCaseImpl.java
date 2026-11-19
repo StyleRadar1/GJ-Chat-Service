@@ -34,7 +34,7 @@ public class GetMessagesUseCaseImpl implements GetMessagesUseCase {
         if (conversation.getType() == ConversationType.ALMACEN && !conversation.isParticipant(userId)) {
             try {
                 StoreSummary myStore = stores.fetchMyStore(userId);
-                if (myStore != null) {
+                if (myStore != null && myStore.isAvailable()) {
                     storeNitOfUser = myStore.nit();
                 }
             } catch (Exception ignored) {

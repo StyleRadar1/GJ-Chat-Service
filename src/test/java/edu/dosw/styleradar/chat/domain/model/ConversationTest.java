@@ -129,11 +129,7 @@ class ConversationTest {
         assertThat(c.getStoreNit()).isEqualTo("900123-1");
         assertThat(c.getBuyerId()).isEqualTo(BUYER);
         assertThat(c.getSellerId()).isNull();
-        assertThat(c.recipientOf(BUYER)).isEqualTo(0L);
-
-        c.assignSellerIfUnassigned(2L);
-        assertThat(c.getSellerId()).isEqualTo(2L);
-        assertThat(c.recipientOf(BUYER)).isEqualTo(2L);
+        assertThat(c.recipientOf(BUYER)).isNull();
     }
 
     @Test
@@ -179,8 +175,7 @@ class ConversationTest {
         Conversation c = Conversation.startStore(new StoreSummary("900123-1", "Tienda Moda", true), BUYER, null, NOW);
 
         assertThat(c.allowsRealtimeAccess(BUYER, false, null)).isTrue();
-        c.assignSellerIfUnassigned(SELLER);
-        assertThat(c.allowsRealtimeAccess(SELLER, false, null)).isTrue();
+        assertThat(c.allowsRealtimeAccess(SELLER, false, null)).isFalse();
         assertThat(c.allowsRealtimeAccess(OUTSIDER, false, null)).isFalse();
         assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "900123-1")).isTrue();
         assertThat(c.allowsRealtimeAccess(OUTSIDER, true, "otro-nit")).isFalse();

@@ -67,8 +67,9 @@ public class ChatController implements ChatApi {
     }
 
     @Override
-    public ResponseEntity<ConversationResponse> startStoreConversation(AuthenticatedUser user, String nit) {
-        var conversation = startStoreConversation.start(user.userId(), nit);
+    public ResponseEntity<ConversationResponse> startStoreConversation(AuthenticatedUser user, String nit,
+                                                                       SendMessageRequest request) {
+        var conversation = startStoreConversation.start(user.userId(), nit, messageIn.toText(request));
         metrics.recordConversationCreated(conversation.getType());
         return ResponseEntity.ok(conversationOut.toResponse(conversation));
     }

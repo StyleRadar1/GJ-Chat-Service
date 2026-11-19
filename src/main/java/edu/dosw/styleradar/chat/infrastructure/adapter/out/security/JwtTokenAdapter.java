@@ -55,7 +55,7 @@ public class JwtTokenAdapter {
                 || !claims.getExpiration().after(now) || claims.getIssuedAt().after(now)) {
             throw new JwtException("Fechas JWT inválidas");
         }
-        return new AuthenticatedUser(userId(claims), roles(claims));
+        return new AuthenticatedUser(userId(claims), roles(claims), "Bearer " + token, null);
     }
 
     private Long userId(Claims claims) {
@@ -98,7 +98,13 @@ public class JwtTokenAdapter {
         if (normalized.startsWith("ROLE_")) {
             normalized = normalized.substring(5);
         }
-        // The shared identity model calls ordinary marketplace users USER; ms-chat calls them COMPRADOR.
-        return normalized.equals("USER") ? "COMPRADOR" : normalized;
+        // Translate current identity-package roles into the authorities accepted by ms-chat.
+        return switch (normalized) {
+            case "USER", "BUYER" -> "COMPRADOR";
+            case "STORE", "STORE_ADMIN" -> "ADMIN_ALMACEN";
+            case "FOUNDATION", "FOUNDATION_REPRESENTATIVE" -> "REPRESENTANTE_FUNDACION";
+            case "ADMIN", "STYLERADAR_ADMIN" -> "ADMIN_STYLERADAR";
+            default -> normalized;
+        };
     }
 }

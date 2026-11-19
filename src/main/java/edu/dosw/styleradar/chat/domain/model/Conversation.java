@@ -139,17 +139,15 @@ public final class Conversation {
     }
 
     public Long recipientOf(Long authorId) {
+        if (type == ConversationType.ALMACEN && buyerId.equals(authorId)) {
+            // Aún no se conoce un usuario receptor único: la notificación se enruta por NIT del almacén.
+            return sellerId;
+        }
         verifyParticipant(authorId);
         if (buyerId.equals(authorId)) {
-            return sellerId != null ? sellerId : 0L;
+            return sellerId;
         }
         return buyerId;
-    }
-
-    public void assignSellerIfUnassigned(Long adminId) {
-        if (this.sellerId == null && adminId != null) {
-            this.sellerId = adminId;
-        }
     }
 
     public boolean isOpen() {
@@ -162,6 +160,18 @@ public final class Conversation {
 
     public Message write(Long authorId, MessageText text, Instant now) {
         verifyParticipant(authorId);
+        return writeAuthorized(authorId, text, now);
+    }
+
+    /** Writes for an administrator already authorized against this store's NIT by the application layer. */
+    public Message writeAsStoreAdmin(Long adminId, MessageText text, Instant now) {
+        if (type != ConversationType.ALMACEN || adminId == null) {
+            throw new ConversationNotFoundException(id);
+        }
+        return writeAuthorized(adminId, text, now);
+    }
+
+    private Message writeAuthorized(Long authorId, MessageText text, Instant now) {
         if (!isOpen()) {
             throw new ConversationClosedException("La conversación está cerrada");
         }

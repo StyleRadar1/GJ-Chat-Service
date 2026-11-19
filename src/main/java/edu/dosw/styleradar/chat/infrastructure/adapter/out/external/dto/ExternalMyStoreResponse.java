@@ -1,11 +1,17 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Representación mínima de la respuesta de mi-almacen de ms-tiendas (solo NIT y nombre comercial). */
+/** Minimal representation of ms-tiendas VerificacionAlmacenResponseDTO. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ExternalMyStoreResponse(
         String nit,
-        String nombreComercial
+        @JsonProperty("tradeName") String nombreComercial,
+        @JsonProperty("verificationStatus") String estadoVerificacion,
+        @JsonProperty("legacyUnverified") boolean legadoSinVerificacion
 ) {
+    public ExternalMyStoreResponse(String nit, String nombreComercial) {
+        this(nit, nombreComercial, "APPROVED", false);
+    }
 }

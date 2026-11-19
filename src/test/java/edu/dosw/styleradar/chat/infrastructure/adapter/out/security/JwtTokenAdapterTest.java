@@ -31,6 +31,13 @@ class JwtTokenAdapterTest {
     }
 
     @Test
+    void mapsCurrentIdentityPackageStoreAdminRole() {
+        AuthenticatedUser user = adapter.validate(Tokens.withRoles(9L, List.of("STORE_ADMIN")));
+
+        assertThat(user.roles()).containsExactly("ADMIN_ALMACEN");
+    }
+
+    @Test
     void rejectsExpiredToken() {
         assertThatThrownBy(() -> adapter.validate(Tokens.expired(5L))).isInstanceOf(JwtException.class);
     }

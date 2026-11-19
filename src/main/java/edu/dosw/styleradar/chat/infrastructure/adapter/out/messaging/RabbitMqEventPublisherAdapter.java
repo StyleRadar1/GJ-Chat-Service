@@ -39,7 +39,7 @@ public class RabbitMqEventPublisherAdapter implements EventPublisherPort {
     public void publish(MessageSentEvent event) {
         String correlationId = MDC.get("correlationId") != null ? MDC.get("correlationId") : UUID.randomUUID().toString();
         MessageSentData data = new MessageSentData(event.messageId(), event.conversationId(), event.listingId(),
-                event.garmentName(), event.authorId(), event.recipientId(), event.preview(), event.sentAt());
+                event.garmentName(), event.authorId(), event.recipientId(), event.storeNit(), event.preview(), event.sentAt());
         EventEnvelope<MessageSentData> envelope = new EventEnvelope<>(UUID.randomUUID().toString(),
                 RabbitConfig.MESSAGE_SENT_ROUTING_KEY, 1, clock.instant(), PRODUCER, correlationId, data);
         CorrelationData correlation = new CorrelationData(envelope.eventId());
