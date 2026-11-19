@@ -13,7 +13,7 @@ Fecha de revisión inicial: 12 de noviembre de 2026. Última actualización: 18 
 - Se implementaron métricas con Micrometer/Prometheus (`ChatMetrics`, endpoint `/actuator/prometheus`). Desde el 17 de noviembre `/actuator/metrics` y `/actuator/prometheus` exigen JWT; solo salud y documentación son públicas.
 - Límite de mensajes por usuario (30 por minuto, configurable): `RateLimitedSendMessageUseCase` lo aplica antes del caso de uso real y responde `429` por REST y por STOMP.
 - Confirmaciones del publicador de RabbitMQ (`publisher-confirm-type: correlated`, `publisher-returns` y `mandatory`): un evento sin confirmar o sin ruta se registra y suma a `chat.events.publish.failed`. Reglas de alerta en `docs/observabilidad/alertas-prometheus.yml`.
-- Nueva ruta `GET /api/v1/users/{id}/conversations` (mismo formato que ms-notificaciones; `403` si el id no es el del token). Se conserva `GET /api/v1/users/conversations`.
+- La consulta de conversaciones propias queda únicamente en `GET /api/v1/users/conversations`; el usuario se determina a partir del JWT.
 - Corrección en progreso para GJ-56: el comprador debe enviar el primer mensaje al crear el chat; administradores del mismo NIT pueden responder sin que el primero quede asignado como único vendedor. Los eventos de mensajes de tienda incluyen `almacenNit` para permitir notificación a los administradores; falta validar el consumidor de ms-notificaciones.
 - Pipelines: smoke test posterior al despliegue de PROD, `TIENDAS_URL` y `DONACIONES_URL` en el despliegue de QA, Redis opcional en QA (secret `REDIS_URL_QA`), CodeQL y Dependabot.
 - Verificación completa con Docker: `mvn clean verify` termina en BUILD SUCCESS con 179 pruebas, 0 fallos y 0 omitidas. Incluye Redis Pub/Sub real entre dos instancias y PostgreSQL con Testcontainers; JaCoCo cumple el umbral del 85 % (cobertura global de instrucciones: 88,5 %, 77 clases).
@@ -23,7 +23,7 @@ Fecha de revisión inicial: 12 de noviembre de 2026. Última actualización: 18 
 
 | Operación | Ruta |
 | --- | --- |
-| Iniciar chat con el vendedor de una publicación | `POST /api/v1/second-hand/{listingId}/conversations` |
+| Iniciar chat con el vendedor de una publicación | `POST /api/v1/second-hand/publications/{publicationId}/conversations` |
 | Iniciar chat sobre una donación | `POST /api/v1/donations/{donationId}/conversations` |
 | Iniciar chat con un almacén aliado | `POST /api/v1/stores/{nit}/conversations` |
 | Consultar mensajes | `GET /api/v1/conversations/{id}/messages` |

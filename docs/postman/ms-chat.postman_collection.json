@@ -43,7 +43,7 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/second-hand/{{listingId}}/conversations",
+          "raw": "{{baseUrl}}/api/v1/second-hand/publications/{{publicationId}}/conversations",
           "host": [
             "{{baseUrl}}"
           ],
@@ -51,7 +51,8 @@
             "api",
             "v1",
             "second-hand",
-            "{{listingId}}",
+            "publications",
+            "{{publicationId}}",
             "conversations"
           ]
         },
@@ -310,7 +311,7 @@
       "value": ""
     },
     {
-      "key": "listingId",
+      "key": "publicationId",
       "value": "10"
     },
     {

@@ -60,8 +60,8 @@ public class ChatController implements ChatApi {
     }
 
     @Override
-    public ResponseEntity<ConversationResponse> start(AuthenticatedUser user, Long listingId) {
-        var conversation = startConversation.start(user.userId(), listingId);
+    public ResponseEntity<ConversationResponse> start(AuthenticatedUser user, Long publicationId) {
+        var conversation = startConversation.start(user.userId(), publicationId);
         metrics.recordConversationCreated(conversation.getType());
         return ResponseEntity.ok(conversationOut.toResponse(conversation));
     }
@@ -90,11 +90,6 @@ public class ChatController implements ChatApi {
     @Override
     public ResponseEntity<List<ConversationResponse>> getMyConversations(AuthenticatedUser user) {
         return ResponseEntity.ok(conversationOut.toResponse(getMyConversations.fetch(user.userId())));
-    }
-
-    @Override
-    public ResponseEntity<List<ConversationResponse>> getUserConversations(AuthenticatedUser user, Long id) {
-        return ResponseEntity.ok(conversationOut.toResponse(getMyConversations.fetchOwn(user.userId(), id)));
     }
 
     @Override

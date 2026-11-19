@@ -32,9 +32,9 @@ public interface ChatApi {
     String EX_401 = "{\"type\":\"https://styleradar.dosw/errores/no-autenticado\",\"title\":\"No autenticado\",\"status\":401,\"detail\":\"JWT ausente, inválido o expirado\",\"instance\":\"/api/v1/users/conversations\"}";
     String EX_403 = "{\"type\":\"https://styleradar.dosw/errores/acceso-denegado\",\"title\":\"Acceso denegado\",\"status\":403,\"detail\":\"No tiene permiso para realizar esta acción\",\"instance\":\"/api/v1/users/conversations\"}";
     String EX_404 = "{\"type\":\"https://styleradar.dosw/errores/recurso-no-encontrado\",\"title\":\"Recurso no encontrado\",\"status\":404,\"detail\":\"No existe la conversación 7\",\"instance\":\"/api/v1/conversations/7/messages\"}";
-    String EX_422 = "{\"type\":\"https://styleradar.dosw/errores/regla-de-negocio\",\"title\":\"Regla de negocio incumplida\",\"status\":422,\"detail\":\"No puede iniciar un chat sobre su propia publicación\",\"instance\":\"/api/v1/second-hand/10/conversations\"}";
+    String EX_422 = "{\"type\":\"https://styleradar.dosw/errores/regla-de-negocio\",\"title\":\"Regla de negocio incumplida\",\"status\":422,\"detail\":\"No puede iniciar un chat sobre su propia publicación\",\"instance\":\"/api/v1/second-hand/publications/10/conversations\"}";
     String EX_409 = "{\"type\":\"https://styleradar.dosw/errores/conflicto\",\"title\":\"Conflicto\",\"status\":409,\"detail\":\"La publicación fue retirada; la conversación está cerrada\",\"instance\":\"/api/v1/conversations/7/messages\"}";
-    String EX_503 = "{\"type\":\"https://styleradar.dosw/errores/servicio-no-disponible\",\"title\":\"Servicio no disponible\",\"status\":503,\"detail\":\"El servicio externo no está disponible\",\"instance\":\"/api/v1/second-hand/10/conversations\"}";
+    String EX_503 = "{\"type\":\"https://styleradar.dosw/errores/servicio-no-disponible\",\"title\":\"Servicio no disponible\",\"status\":503,\"detail\":\"El servicio externo no está disponible\",\"instance\":\"/api/v1/second-hand/publications/10/conversations\"}";
 
     @Operation(summary = "Iniciar chat con el vendedor (SR-RF-40)",
             description = "Rol COMPRADOR. Publicación DISPONIBLE y ajena. Si ya existe la conversación, la devuelve.")
@@ -52,10 +52,10 @@ public interface ChatApi {
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasRole('COMPRADOR')")
-    @PostMapping("/api/v1/second-hand/{listingId}/conversations")
+    @PostMapping("/api/v1/second-hand/publications/{publicationId}/conversations")
     ResponseEntity<ConversationResponse> start(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable Long listingId);
+            @PathVariable Long publicationId);
 
     @Operation(summary = "Iniciar chat con almacén aliado (SR-RF-73 / GJ-56)",
             description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén aliado esté disponible. Crea o reutiliza una conversación por comprador y NIT, guarda el mensaje inicial y lo incluye en el historial.")
@@ -129,22 +129,6 @@ public interface ChatApi {
     @GetMapping("/api/v1/users/conversations")
     ResponseEntity<List<ConversationResponse>> getMyConversations(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user);
-
-    @Operation(summary = "Consultar las conversaciones de un usuario (SR-RF-41)",
-            description = "Igual que GET /api/v1/users/conversations, con el id del usuario en la ruta. "
-                    + "El id debe ser el del token; si es otro, responde 403.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversaciones del usuario"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
-                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso o id distinto del token",
-                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403)))
-    })
-    @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
-    @GetMapping("/api/v1/users/{id}/conversations")
-    ResponseEntity<List<ConversationResponse>> getUserConversations(
-            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("id") Long id);
 
     @Operation(summary = "Consultar mensajes (SR-RF-41)",
             description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes de la conversación.")

@@ -73,13 +73,13 @@ class ChatIntegrationTest {
         String seller = Tokens.bearer(Tokens.forUser(200L));
         String outsider = Tokens.bearer(Tokens.forUser(400L));
 
-        String response = mvc.perform(post("/api/v1/second-hand/100/conversations").header("Authorization", buyer))
+        String response = mvc.perform(post("/api/v1/second-hand/publications/100/conversations").header("Authorization", buyer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vendedorId").value(200))
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 
-        mvc.perform(post("/api/v1/second-hand/100/conversations").header("Authorization", buyer))
+        mvc.perform(post("/api/v1/second-hand/publications/100/conversations").header("Authorization", buyer))
                 .andExpect(jsonPath("$.id").value(id));
 
         mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", buyer)
@@ -106,7 +106,7 @@ class ChatIntegrationTest {
     void ifListingIsWithdrawnConversationIsClosed() throws Exception {
         when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "DISPONIBLE"));
         String buyer = Tokens.bearer(Tokens.forUser(301L));
-        String response = mvc.perform(post("/api/v1/second-hand/101/conversations").header("Authorization", buyer))
+        String response = mvc.perform(post("/api/v1/second-hand/publications/101/conversations").header("Authorization", buyer))
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
 

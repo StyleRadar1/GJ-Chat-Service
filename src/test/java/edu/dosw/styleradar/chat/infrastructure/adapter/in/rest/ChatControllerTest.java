@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         MessageDtoInMapperImpl.class, ConversationDtoOutMapperImpl.class, MessageDtoOutMapperImpl.class,
         ChatControllerTest.FixedClockConfig.class})
 class ChatControllerTest {
-    private static final String START = "/api/v1/second-hand/10/conversations";
+    private static final String START = "/api/v1/second-hand/publications/10/conversations";
     private static final String MESSAGES = "/api/v1/conversations/7/messages";
     private static final String MY_CONVERSATIONS = "/api/v1/users/conversations";
 
