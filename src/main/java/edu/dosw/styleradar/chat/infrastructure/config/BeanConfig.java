@@ -48,8 +48,10 @@ public class BeanConfig {
 
     @Bean
     public StartStoreConversationUseCase startStoreConversationUseCase(ConversationRepositoryPort conversations,
-                                                                       StoreQueryPort stores, Clock clock) {
-        return new StartStoreConversationUseCaseImpl(conversations, stores, clock);
+                                                                       StoreQueryPort stores,
+                                                                       SendMessageUseCase sendMessage,
+                                                                       Clock clock) {
+        return new StartStoreConversationUseCaseImpl(conversations, stores, sendMessage, clock);
     }
 
     @Bean

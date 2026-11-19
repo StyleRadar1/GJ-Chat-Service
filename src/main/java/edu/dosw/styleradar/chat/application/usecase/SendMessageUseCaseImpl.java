@@ -3,6 +3,7 @@ package edu.dosw.styleradar.chat.application.usecase;
 import edu.dosw.styleradar.chat.domain.event.MessageSentEvent;
 import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Message;
@@ -46,36 +47,48 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
 
     @Override
     public Message send(Long userId, Long conversationId, MessageText text) {
+        return send(userId, conversationId, text, null);
+    }
+
+    @Override
+    public Message send(Long userId, Long conversationId, MessageText text, String authorizedStoreNit) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
 
-        // Solo en un chat de almacén sin vendedor se asigna al primer administrador del NIT. En las demás
-        // conversaciones, quien no participa queda fuera y recibe 404 al verificar la participación.
-        if (conversation.getType() == ConversationType.ALMACEN && conversation.getSellerId() == null
-                && !conversation.getBuyerId().equals(userId)) {
-            StoreSummary myStore;
-            try {
-                myStore = stores.fetchMyStore(userId);
-            } catch (Exception e) {
-                throw new AccessDeniedDomainException("No administra ningún almacén aliado");
+        StoreSummary storeOfAdmin = null;
+        boolean storeAdmin = conversation.getType() == ConversationType.ALMACEN
+                && !conversation.getBuyerId().equals(userId);
+        if (storeAdmin) {
+            if (authorizedStoreNit != null) {
+                storeOfAdmin = new StoreSummary(authorizedStoreNit, null, true);
+            } else {
+                try {
+                    storeOfAdmin = stores.fetchMyStore(userId);
+                } catch (ExternalServiceUnavailableException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new AccessDeniedDomainException("No administra ningún almacén aliado");
+                }
             }
-            if (myStore == null || !conversation.getStoreNit().equals(myStore.nit())) {
+            if (storeOfAdmin == null || !storeOfAdmin.isAvailable()
+                    || !conversation.belongsToStore(storeOfAdmin.nit())) {
                 throw new AccessDeniedDomainException("No tiene permisos para responder por este almacén aliado");
             }
-            conversation.assignSellerIfUnassigned(userId);
-            conversations.save(conversation);
+        } else {
+            conversation.verifyParticipant(userId);
         }
-
-        conversation.verifyParticipant(userId);
         if (conversation.isOpen() && conversation.getListingId() != null
                 && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
             conversation.close();
             conversations.save(conversation);
         }
-        Message message = conversation.write(userId, text, clock.instant());
+        Message message = storeAdmin
+                ? conversation.writeAsStoreAdmin(userId, text, clock.instant())
+                : conversation.write(userId, text, clock.instant());
         Message saved = messages.save(message);
+        Long recipientId = storeAdmin ? conversation.getBuyerId() : conversation.recipientOf(userId);
         events.publish(new MessageSentEvent(saved.getId(), conversationId, conversation.getListingId(),
-                conversation.getGarmentName(), userId, conversation.recipientOf(userId), preview(text),
+                conversation.getGarmentName(), userId, recipientId, conversation.getStoreNit(), preview(text),
                 saved.getSentAt()));
         return saved;
     }

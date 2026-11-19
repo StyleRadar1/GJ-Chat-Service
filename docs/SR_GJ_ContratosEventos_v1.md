@@ -86,10 +86,11 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 | :--- | :--- | :---: | :--- |
 | `mensajeId` | long | Sí | Id del mensaje en el chat. |
 | `conversacionId` | long | Sí | Conversación a la que pertenece. Notificaciones lo usa para armar el enlace al chat. |
-| `publicacionId` | long | Sí | Publicación de segunda mano sobre la que se conversa. |
-| `prendaNombre` | string (máx. 200) | Sí | Nombre de la prenda, para el texto de la notificación. |
+| `publicacionId` | long | No | Publicación de segunda mano cuando aplica; ausente en chats de almacén. |
+| `prendaNombre` | string (máx. 200) | No | Nombre de la prenda cuando aplica. |
 | `autorId` | long | Sí | Usuario que escribió el mensaje. |
-| `destinatarioId` | long | Sí | Usuario que debe recibir la notificación (el otro participante). |
+| `destinatarioId` | long/null | Condicional | En segunda mano/donaciones, usuario receptor. En chat de almacén puede ser `null` porque la conversación se dirige a la cuenta del almacén y no a un administrador único. |
+| `almacenNit` | string | Condicional | NIT del almacén destino. `ms-notificaciones` debe resolver los administradores activos de ese almacén antes de emitir el aviso. |
 | `vistaPrevia` | string (máx. 80) | No | Primeros 80 caracteres del mensaje. Se puede omitir si se decide no mostrar el texto en la notificación. |
 | `fechaEnvio` | string (ISO-8601 UTC) | Sí | Momento en que se envió el mensaje. |
 
@@ -108,6 +109,7 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
     "prendaNombre": "Chaqueta de jean",
     "autorId": 1,
     "destinatarioId": 2,
+    "almacenNit": null,
     "vistaPrevia": "¿Sigue disponible? Podría recogerla el sábado…",
     "fechaEnvio": "2026-11-10T15:05:00Z"
   }
@@ -117,7 +119,8 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 **Reglas para el consumidor (`ms-notificaciones`):**
 
 - Si llega dos veces el mismo `eventId`, se notifica una sola vez.
-- El destinatario es siempre `destinatarioId`; el autor nunca recibe la notificación de su propio mensaje.
+- En mensajes de segunda mano/donaciones, el destinatario es `destinatarioId`; el autor nunca recibe su propia notificación.
+- En mensajes de almacén, `destinatarioId` puede ser `null` y el consumidor debe usar `almacenNit` para notificar a administradores del almacén. Este soporte debe confirmarse en `ms-notificaciones`.
 - La notificación no debe mostrar datos de contacto ni la dirección de entrega. Por eso `vistaPrevia` va recortada y es opcional.
 
 ---

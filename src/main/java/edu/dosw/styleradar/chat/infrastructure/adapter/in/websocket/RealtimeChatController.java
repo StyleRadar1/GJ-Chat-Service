@@ -45,7 +45,10 @@ public class RealtimeChatController {
                      Principal principal) {
         AuthenticatedUser user = authenticatedUser(principal);
         long start = System.currentTimeMillis();
-        Message saved = sendMessage.send(user.userId(), conversationId, new MessageText(request.text()));
+        MessageText text = new MessageText(request.text());
+        Message saved = user.storeNit() == null
+                ? sendMessage.send(user.userId(), conversationId, text)
+                : sendMessage.send(user.userId(), conversationId, text, user.storeNit());
         metrics.recordMessageLatency(System.currentTimeMillis() - start);
         metrics.recordRealtimeMessageSent();
         MessageResponse response = new MessageResponse(saved.getId(), saved.getConversationId(), saved.getAuthorId(),

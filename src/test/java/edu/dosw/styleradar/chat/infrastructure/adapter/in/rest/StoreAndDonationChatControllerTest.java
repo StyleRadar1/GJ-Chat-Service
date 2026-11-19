@@ -6,7 +6,6 @@ import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapperI
 import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapperImpl;
 import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
-import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
@@ -100,10 +99,13 @@ class StoreAndDonationChatControllerTest {
         Conversation conv = new Conversation(1L, ConversationType.ALMACEN, null, null, 100L, null,
                 "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, Instant.now());
 
-        when(startStoreConversation.start(100L, "900123456-1")).thenReturn(conv);
+        when(startStoreConversation.start(100L, "900123456-1", new MessageText("¿Tienen disponibilidad?")))
+                .thenReturn(conv);
 
         mvc.perform(post("/api/v1/stores/900123456-1/conversations")
-                        .header("Authorization", token))
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"¿Tienen disponibilidad?\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.tipo", is("ALMACEN")))
@@ -113,27 +115,31 @@ class StoreAndDonationChatControllerTest {
     }
 
     @Test
-    @DisplayName("GJ-56: Iniciar chat con almacén inexistente devuelve 404")
-    void startStoreConversationNotFound() throws Exception {
+    @DisplayName("GJ-56: Iniciar chat con almacén inexistente devuelve 422")
+    void startStoreConversationWhenStoreDoesNotExist() throws Exception {
         String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
-        when(startStoreConversation.start(100L, "999999-9"))
-                .thenThrow(new StoreNotFoundException("No existe el almacén"));
+        when(startStoreConversation.start(100L, "999999-9", new MessageText("Hola")))
+                .thenThrow(new StoreUnavailableException("El almacén no existe o no está activo"));
 
         mvc.perform(post("/api/v1/stores/999999-9/conversations")
-                        .header("Authorization", token))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title", is("Recurso no encontrado")));
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Hola\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.title", is("Regla de negocio incumplida")));
     }
 
     @Test
     @DisplayName("GJ-56: Iniciar chat con almacén no verificado devuelve 422")
     void startStoreConversationUnavailable() throws Exception {
         String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
-        when(startStoreConversation.start(100L, "900123456-1"))
+        when(startStoreConversation.start(100L, "900123456-1", new MessageText("Hola")))
                 .thenThrow(new StoreUnavailableException("Este almacén no está disponible para chat"));
 
         mvc.perform(post("/api/v1/stores/900123456-1/conversations")
-                        .header("Authorization", token))
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title", is("Regla de negocio incumplida")));
     }
@@ -141,7 +147,7 @@ class StoreAndDonationChatControllerTest {
     @Test
     @DisplayName("GJ-56: Administrador de almacén consulta bandeja de conversaciones")
     void getStoreConversationsSuccess() throws Exception {
-        String token = Tokens.bearer(Tokens.withRoles(200L, List.of("ADMIN_ALMACEN")));
+        String token = Tokens.bearer(Tokens.withRoles(200L, List.of("STORE_ADMIN")));
         Conversation conv = new Conversation(1L, ConversationType.ALMACEN, null, null, 100L, 200L,
                 "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, Instant.now());
 

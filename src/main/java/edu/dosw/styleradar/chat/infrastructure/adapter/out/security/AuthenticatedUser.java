@@ -8,7 +8,16 @@ import java.util.List;
 import java.util.Set;
 
 /** Identity and roles of the caller, extracted from a validated JWT. */
-public record AuthenticatedUser(Long userId, Set<String> roles) implements Principal {
+public record AuthenticatedUser(Long userId, Set<String> roles, String authorizationHeader,
+                                String storeNit) implements Principal {
+    public AuthenticatedUser(Long userId, Set<String> roles) {
+        this(userId, roles, null, null);
+    }
+
+    public AuthenticatedUser withStoreNit(String nit) {
+        return new AuthenticatedUser(userId, roles, authorizationHeader, nit);
+    }
+
     @Override
     public String getName() {
         return userId.toString();

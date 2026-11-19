@@ -228,12 +228,15 @@ class JwtStompChannelInterceptorTest {
         accessor.setDestination("/topic/conversations/8");
         accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(admin, null, admin.authorities()));
         when(conversations.findById(8L)).thenReturn(Optional.of(storeConversation));
-        when(stores.fetchMyStore(9L)).thenReturn(new StoreSummary("900123456-1", "Atelier", true));
+        when(stores.fetchMyStore(9L, null)).thenReturn(new StoreSummary("900123456-1", "Atelier", true));
 
-        interceptor.preSend(message(accessor), mock(MessageChannel.class));
+        org.springframework.messaging.Message<?> checked = interceptor.preSend(message(accessor), mock(MessageChannel.class));
 
-        assertThat(storeConversation.getSellerId()).isEqualTo(9L);
-        verify(conversations).save(storeConversation);
+        assertThat(storeConversation.getSellerId()).isNull();
+        verify(conversations, never()).save(storeConversation);
+        AuthenticatedUser resolved = (AuthenticatedUser) ((org.springframework.security.core.Authentication)
+                StompHeaderAccessor.wrap(checked).getUser()).getPrincipal();
+        assertThat(resolved.storeNit()).isEqualTo("900123456-1");
     }
 
     @Test
@@ -244,7 +247,7 @@ class JwtStompChannelInterceptorTest {
         accessor.setDestination("/app/conversations/8/messages");
         accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(admin, null, admin.authorities()));
         when(conversations.findById(8L)).thenReturn(Optional.of(storeConversation));
-        when(stores.fetchMyStore(9L)).thenReturn(new StoreSummary("111111-1", "Otra tienda", true));
+        when(stores.fetchMyStore(9L, null)).thenReturn(new StoreSummary("111111-1", "Otra tienda", true));
 
         assertThatThrownBy(() -> interceptor.preSend(message(accessor), mock(MessageChannel.class)))
                 .isInstanceOf(MessagingException.class)
@@ -261,7 +264,7 @@ class JwtStompChannelInterceptorTest {
         accessor.setDestination("/topic/conversations/8");
         accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(admin, null, admin.authorities()));
         when(conversations.findById(8L)).thenReturn(Optional.of(storeConversation(null)));
-        when(stores.fetchMyStore(9L)).thenThrow(new StoreNotFoundException("El usuario no administra ningún almacén"));
+        when(stores.fetchMyStore(9L, null)).thenThrow(new StoreNotFoundException("El usuario no administra ningún almacén"));
 
         assertThatThrownBy(() -> interceptor.preSend(message(accessor), mock(MessageChannel.class)))
                 .isInstanceOf(MessagingException.class)

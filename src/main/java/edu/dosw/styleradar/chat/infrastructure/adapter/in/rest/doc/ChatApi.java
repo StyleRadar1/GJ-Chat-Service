@@ -58,16 +58,14 @@ public interface ChatApi {
             @PathVariable Long listingId);
 
     @Operation(summary = "Iniciar chat con almacén aliado (SR-RF-73 / GJ-56)",
-            description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén exista. Si el servicio responde HTTP 200 con datos, el almacén se considera disponible. Si ya existe conversación con este almacén, la devuelve.")
+            description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén aliado esté disponible. Crea o reutiliza una conversación por comprador y NIT, guarda el mensaje inicial y lo incluye en el historial.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversación iniciada o existente con el almacén"),
+            @ApiResponse(responseCode = "200", description = "Conversación creada o reutilizada con el mensaje inicial persistido"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
             @ApiResponse(responseCode = "403", description = "Rol sin permiso",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "404", description = "Almacén inexistente",
-                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404))),
-            @ApiResponse(responseCode = "422", description = "El almacén no está disponible para chat",
+            @ApiResponse(responseCode = "422", description = "El almacén no existe o no está activo para chat",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_422))),
             @ApiResponse(responseCode = "503", description = "El servicio de tiendas no respondió",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
@@ -76,18 +74,21 @@ public interface ChatApi {
     @PostMapping("/api/v1/stores/{nit}/conversations")
     ResponseEntity<ConversationResponse> startStoreConversation(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable String nit);
+            @PathVariable String nit,
+            @Valid @RequestBody SendMessageRequest request);
 
     @Operation(summary = "Consultar bandeja de conversaciones del almacén aliado (SR-RF-73 / GJ-56)",
-            description = "Rol ADMIN_ALMACEN. Resuelve el almacén del administrador autenticado y lista sus conversaciones.")
+            description = "Rol STORE_ADMIN (se conserva compatibilidad con ADMIN_ALMACEN/TIENDA). Resuelve el NIT del administrador autenticado y lista las conversaciones de ese almacén.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conversaciones recibidas por el almacén"),
             @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
             @ApiResponse(responseCode = "403", description = "Rol sin permiso",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "404", description = "El administrador no tiene almacén asociado",
-                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404)))
+            @ApiResponse(responseCode = "403", description = "El usuario no administra un almacén aliado",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
+            @ApiResponse(responseCode = "503", description = "El servicio de tiendas no respondió",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasAnyRole('ADMIN_ALMACEN', 'TIENDA')")
     @GetMapping("/api/v1/stores/conversations")

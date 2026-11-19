@@ -318,7 +318,7 @@ La comunicación asíncrona usa **RabbitMQ** con Topic Exchanges durables desde 
 
 | Tipo | Evento | Routing Key | Cola (Queue) | Microservicio Emisor / Receptor | Cuándo se Dispara / Acción |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **PUBLICA** | `MensajeEnviadoEvent` | `styleradar.chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. Notificaciones avisa al destinatario. |
+| **PUBLICA** | `MensajeEnviadoEvent` | `styleradar.chat.mensaje.enviado` | N/A (Exchange) | `ms-chat` &rarr; `ms-notificaciones` | Se publica al guardar un mensaje. En chats de almacén incluye `almacenNit`; el consumidor debe resolver a sus administradores. |
 | **CONSUME** | `PrendaSegundaManoVendidaEvent` | `styleradar.segundavida.prenda.vendida` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones de los demás compradores; la del comprador que se quedó con la prenda sigue abierta para coordinar la entrega. |
 | **CONSUME** | `PrendaSegundaManoRetiradaEvent` *(propuesto)* | `segunda-mano.prenda.retirada` | `q.chat.segunda-mano` | Paquete Catálogo &rarr; `ms-chat` | Cierra las conversaciones cuando el vendedor retira la publicación. |
 
@@ -344,6 +344,7 @@ El detalle de cada campo, las reglas de idempotencia y el estado de aprobación 
     "prendaNombre": "Chaqueta de jean",
     "autorId": 1,
     "destinatarioId": 2,
+    "almacenNit": null,
     "vistaPrevia": "¿Sigue disponible? Podría recogerla el sábado…",
     "fechaEnvio": "2026-11-10T15:05:00Z"
   }
@@ -730,7 +731,7 @@ docs(readme): aplicar la plantilla oficial del README
 | :---: | :--- | :--- | :--- |
 | `SR-RF-40` | Iniciar chat con vendedor | Comprador | Solo sobre una publicación disponible y ajena; si la conversación ya existe, devuelve la misma. |
 | `SR-RF-41` | Coordinar entrega mediante chat interno | Comprador y vendedor | Solo los participantes leen y escriben; máximo 1.000 caracteres; no se escribe si la prenda ya no está disponible. |
-| `SR-RF-73` | Chat con almacén aliado | Comprador y administrador del almacén | Implementado (`v1.0.0`). El almacén está disponible si ms-tiendas responde `200` con NIT; el administrador solo responde las conversaciones de su propio NIT, por REST y por STOMP. |
+| `SR-RF-73` | Chat con almacén aliado | Comprador y administrador del almacén | En corrección en esta rama: el inicio requiere y persiste el primer mensaje; el administrador se valida por NIT y `STORE_ADMIN`. Falta compatibilidad del consumidor de notificaciones y del frontend; estos cambios aún requieren PR y despliegue. |
 
 | Historia | Descripción | Requerimiento |
 | :---: | :--- | :---: |
