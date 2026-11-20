@@ -32,15 +32,3 @@
 10. [Ramas y contribución](docs/secciones/10-ramas-y-como-contribuir.md)
 11. [Seguridad y OWASP](docs/secciones/11-seguridad-y-owasp.md)
 12. [Equipo y Jira](docs/secciones/12-equipo-responsables-y-epica-jira.md)
-
-## Documentación de ms-chat
-
-| Documento | Para qué sirve |
-| --- | --- |
-| [Fichas funcionales](docs/fichas-requerimientos-chat.md) | Flujos, entradas, salidas, errores y estado de SR-RF-40/41/73 y GJ-57 |
-| [Trazabilidad Sprint 3](docs/evidencias/sprint-3-trazabilidad.md) | Estado observado, evidencia y dependencias externas |
-| [Contrato STOMP](docs/contrato-websocket-stomp.md) | Destinos, payloads, autenticación y confirmaciones |
-| [Contrato de eventos](docs/SR_GJ_ContratosEventos_v1.md) | RabbitMQ, productores/consumidores y alcance de entrega de notificaciones |
-| [Documento técnico](docs/SR_GJ_DocumentoTecnico_v1.md) | Arquitectura, clases, datos, despliegue y contratos |
-
-> El contenido describe el código y los estados reportados, no certifica que la copia local esté desplegada ni sustituye la aprobación de los responsables. Ver [trazabilidad](docs/evidencias/sprint-3-trazabilidad.md) para los pendientes de integración.
