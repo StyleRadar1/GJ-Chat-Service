@@ -78,7 +78,7 @@ class ListingQueryAdapterTest {
     }
 
     private static FeignException error(int status) {
-        Request request = Request.create(Request.HttpMethod.GET, "http://segunda-mano/api/v1/segunda-mano/10",
+        Request request = Request.create(Request.HttpMethod.GET, "http://segunda-mano/api/v1/second-hand/publications/10",
                 Map.of(), null, StandardCharsets.UTF_8, null);
         Response response = Response.builder().status(status).reason("error").request(request).headers(Map.of()).build();
         return FeignException.errorStatus("SegundaManoFeignClient#obtenerPublicacion", response);

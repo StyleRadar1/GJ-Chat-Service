@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 /** Feign client of the second-hand listings API. */
 @FeignClient(name = "second-hand", url = "${styleradar.services.second-hand.url}")
 public interface SecondHandFeignClient {
-    @GetMapping("/api/v1/segunda-mano/{id}")
+    @GetMapping("/api/v1/second-hand/publications/{id}")
     ExternalListingResponse getListing(@PathVariable("id") Long id);
 }

@@ -1,5 +1,8 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.messaging;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import edu.dosw.styleradar.chat.domain.event.MessageSentEvent;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.messaging.dto.EventEnvelope;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.messaging.dto.MessageSentData;
@@ -78,7 +81,41 @@ class RabbitMqEventPublisherAdapterTest {
         assertThat(envelope.data().messageId()).isEqualTo(20L);
         assertThat(envelope.data().recipientId()).isEqualTo(2L);
         assertThat(envelope.data().preview()).isEqualTo("Hola");
+        assertThat(envelope.destinatarioId()).isEqualTo(2L);
+        assertThat(envelope.conversacionId()).isEqualTo(7L);
+        assertThat(envelope.remitenteId()).isEqualTo(1L);
+        assertThat(envelope.nombreRemitente()).isEqualTo("Usuario 1");
+        assertThat(envelope.resumenContenido()).isEqualTo("Hola");
+        assertThat(envelope.eventoId()).isEqualTo(envelope.eventId());
         assertThat(correlation.getValue().getId()).isEqualTo(envelope.eventId());
+    }
+
+    @Test
+    void serializesHybridPayloadWithEnvelopeAndFlatFields() throws Exception {
+        adapter.publish(EVENT);
+
+        ArgumentCaptor<Object> sent = ArgumentCaptor.forClass(Object.class);
+        verify(rabbitTemplate).convertAndSend(any(String.class), any(String.class),
+                sent.capture(), any(CorrelationData.class));
+
+        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        String json = mapper.writeValueAsString(sent.getValue());
+        JsonNode root = mapper.readTree(json);
+
+        // Standard envelope
+        assertThat(root.has("eventId")).isTrue();
+        assertThat(root.has("data")).isTrue();
+        assertThat(root.get("data").get("mensajeId").asLong()).isEqualTo(20L);
+
+        // Flat fields expected by ms-notificaciones
+        assertThat(root.has("destinatarioId")).isTrue();
+        assertThat(root.get("destinatarioId").asLong()).isEqualTo(2L);
+        assertThat(root.has("conversacionId")).isTrue();
+        assertThat(root.get("conversacionId").asLong()).isEqualTo(7L);
+        assertThat(root.get("remitenteId").asLong()).isEqualTo(1L);
+        assertThat(root.get("nombreRemitente").asText()).isEqualTo("Usuario 1");
+        assertThat(root.get("resumenContenido").asText()).isEqualTo("Hola");
+        assertThat(root.has("eventoId")).isTrue();
     }
 
     @Test
