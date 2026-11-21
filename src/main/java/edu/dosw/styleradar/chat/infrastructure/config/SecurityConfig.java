@@ -23,8 +23,11 @@ import java.util.List;
 @Configuration
 @EnableMethodSecurity(proxyTargetClass = true)
 public class SecurityConfig {
-    private static final String[] PUBLIC_PATHS = {
-            "/actuator/health/**", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+    /** Rutas sin JWT: salud y documentación. Las métricas (/actuator/metrics y /actuator/prometheus) exigen token. */
+    static final String[] PUBLIC_PATHS = {
+            "/actuator/health/**", "/actuator/info",
+            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+            "/ws", "/ws/**"
     };
 
     @Bean

@@ -5,8 +5,14 @@ import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.ListingUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.ListingNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
+import edu.dosw.styleradar.chat.domain.exception.TooManyMessagesException;
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -31,16 +37,29 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
     private static final Map<String, String> FIELD_NAMES = Map.of("text", "texto");
 
-    @ExceptionHandler({ConversationNotFoundException.class, ListingNotFoundException.class})
+    @ExceptionHandler({ConversationNotFoundException.class, ListingNotFoundException.class,
+            StoreNotFoundException.class, DonationNotFoundException.class})
     public ProblemDetail notFound(RuntimeException e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.NOT_FOUND, "recurso-no-encontrado", "Recurso no encontrado",
                 e.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler({ListingUnavailableException.class, SelfChatException.class,
-            ConversationClosedException.class})
+            StoreUnavailableException.class, DonationUnavailableException.class})
     public ProblemDetail businessRule(RuntimeException e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.UNPROCESSABLE_ENTITY, "regla-de-negocio", "Regla de negocio incumplida",
+                e.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ConversationClosedException.class)
+    public ProblemDetail conversationConflict(ConversationClosedException e, HttpServletRequest request) {
+        return ProblemDetails.of(HttpStatus.CONFLICT, "conflicto", "Conflicto", e.getMessage(),
+                request.getRequestURI());
+    }
+
+    @ExceptionHandler(TooManyMessagesException.class)
+    public ProblemDetail tooManyMessages(TooManyMessagesException e, HttpServletRequest request) {
+        return ProblemDetails.of(HttpStatus.TOO_MANY_REQUESTS, "demasiadas-solicitudes", "Demasiadas solicitudes",
                 e.getMessage(), request.getRequestURI());
     }
 
@@ -67,8 +86,8 @@ public class GlobalExceptionHandler {
                 "La solicitud está mal formada", request.getRequestURI());
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ProblemDetail accessDenied(AccessDeniedException e, HttpServletRequest request) {
+    @ExceptionHandler({AccessDeniedException.class, AccessDeniedDomainException.class})
+    public ProblemDetail accessDenied(Exception e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.FORBIDDEN, "acceso-denegado", "Acceso denegado",
                 "No tiene permiso para realizar esta acción", request.getRequestURI());
     }

@@ -31,11 +31,13 @@ class GetMessagesUseCaseImplTest {
     private ConversationRepositoryPort conversations;
     @Mock
     private MessageRepositoryPort messages;
+    @Mock
+    private edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort stores;
     private GetMessagesUseCaseImpl useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new GetMessagesUseCaseImpl(conversations, messages);
+        useCase = new GetMessagesUseCaseImpl(conversations, messages, stores);
     }
 
     @Test

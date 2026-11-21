@@ -43,16 +43,17 @@
         "method": "POST",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/segunda-mano/{{listingId}}/conversaciones",
+          "raw": "{{baseUrl}}/api/v1/second-hand/publications/{{publicationId}}/conversations",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "segunda-mano",
-            "{{listingId}}",
-            "conversaciones"
+            "second-hand",
+            "publications",
+            "{{publicationId}}",
+            "conversations"
           ]
         },
         "auth": {
@@ -64,6 +65,15 @@
               "type": "string"
             }
           ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"texto\":\"Hola, ¿sigue disponible?\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         }
       },
       "event": [
@@ -87,16 +97,15 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/usuarios/me/conversaciones",
+          "raw": "{{baseUrl}}/api/v1/users/conversations",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "usuarios",
-            "me",
-            "conversaciones"
+            "users",
+            "conversations"
           ]
         },
         "auth": {
@@ -124,7 +133,7 @@
       ]
     },
     {
-      "name": "Send message (publishes chat.mensaje.enviado)",
+      "name": "Send message (publishes styleradar.chat.mensaje.enviado)",
       "request": {
         "method": "POST",
         "header": [
@@ -134,16 +143,16 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/conversaciones/{{conversationId}}/mensajes",
+          "raw": "{{baseUrl}}/api/v1/conversations/{{conversationId}}/messages",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "conversaciones",
+            "conversations",
             "{{conversationId}}",
-            "mensajes"
+            "messages"
           ]
         },
         "auth": {
@@ -180,16 +189,16 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/conversaciones/{{conversationId}}/mensajes",
+          "raw": "{{baseUrl}}/api/v1/conversations/{{conversationId}}/messages",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "conversaciones",
+            "conversations",
             "{{conversationId}}",
-            "mensajes"
+            "messages"
           ]
         },
         "auth": {
@@ -227,16 +236,16 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/conversaciones/{{conversationId}}/mensajes",
+          "raw": "{{baseUrl}}/api/v1/conversations/{{conversationId}}/messages",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "conversaciones",
+            "conversations",
             "{{conversationId}}",
-            "mensajes"
+            "messages"
           ]
         },
         "auth": {
@@ -273,16 +282,15 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/usuarios/me/conversaciones",
+          "raw": "{{baseUrl}}/api/v1/users/conversations",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "api",
             "v1",
-            "usuarios",
-            "me",
-            "conversaciones"
+            "users",
+            "conversations"
           ]
         },
         "auth": {
@@ -312,7 +320,7 @@
       "value": ""
     },
     {
-      "key": "listingId",
+      "key": "publicationId",
       "value": "10"
     },
     {
