@@ -21,7 +21,7 @@
 | Microservicio | `ms-chat` (repositorio `GJ-Chat-Service`, puerto 8320) |
 | Equipo | GJ · Responsable: Santiago Andrés García Almario |
 | Equipos que deben aprobar | Paquete Catálogo (productor de los eventos de segunda mano) · `ms-notificaciones` (consumidor de `MensajeEnviadoEvent`) |
-| Versión · Fecha | v1.0 · 3 de noviembre de 2026 |
+| Versión · Fecha | v1.1 · 20 de noviembre de 2026 |
 | Implementación | Sprint 2. En el Sprint 1 el chat consulta la publicación por Feign al enviar cada mensaje |
 
 ---
@@ -31,6 +31,7 @@
 | Versión | Fecha | Autor | Cambio | Estado |
 | :--- | :--- | :--- | :--- | :--- |
 | v1.0 | 03/11/2026 | Santiago García | Primera versión de los contratos. Se reemplaza el nombre provisional `PublicacionRetirada` por `PrendaSegundaManoVendidaEvent`, según la matriz de eventos del curso, y se propone `PrendaSegundaManoRetiradaEvent`. | Pendiente de aprobación |
+| v1.1 | 20/11/2026 | Equipo ms-chat | Se aclara que publisher confirms/returns detectan ciertos fallos de publicación, pero no garantizan la entrega de la notificación al usuario. | Pendiente de aprobación de los equipos consumidores |
 
 ---
 
@@ -47,8 +48,8 @@ Estas reglas aplican a todos los eventos de este documento y siguen la plantilla
 | Cola del consumidor | `q.<servicio-consumidor>.<origen>`, por ejemplo `q.chat.segunda-mano` |
 | Formato | JSON UTF-8 (`content-type: application/json`) |
 | Fechas | ISO-8601 en UTC, por ejemplo `2026-11-10T15:05:00Z` |
-| Garantía de entrega | Al menos una vez. El consumidor debe ser idempotente. |
-| Reintentos | 3 reintentos con espera creciente. Si sigue fallando, el mensaje va a `styleradar.dlx`. |
+| Garantía objetivo | La entrega de la notificación al usuario no queda garantizada por publisher confirms/returns de ms-chat. La política de reintento y recuperación se debe acordar con `ms-notificaciones` y el responsable de mensajería. |
+| Reintentos | La política depende de la configuración del consumidor. No se debe asumir que ms-chat reintenta o recupera automáticamente un evento de salida fallido. |
 
 ### Sobre del evento (envelope)
 
@@ -80,7 +81,13 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 
 **Publica** `ms-chat` · **Consume** `ms-notificaciones` · **Routing key** `styleradar.chat.mensaje.enviado`
 
-**Cuándo se publica:** después de guardar el mensaje en `chat_db`, cuando la transacción ya terminó. Si la transacción falla, no se publica nada.
+**Cuándo se intenta publicar:** después de guardar el mensaje en `chat_db`, cuando la transacción ya terminó. Si falla la transacción, no se intenta publicar. Si la base confirma el mensaje y la publicación a RabbitMQ falla, el mensaje puede quedar guardado sin su evento de notificación.
+
+### Límite actual de fiabilidad de publicación (SR-RNF-15)
+
+`Publisher confirms` indican si RabbitMQ aceptó la publicación; `publisher returns` permiten detectar un mensaje obligatorio que no encontró una cola. El log y la métrica `chat.events.publish.failed` dan observabilidad. Ninguno de estos mecanismos conserva por sí solo el evento para reintentar o recuperarlo después de que falle la publicación. Por ello, no equivalen a una garantía de entrega de la notificación.
+
+**Alcance:** ms-chat registra el resultado del intento de publicación y expone errores de broker mediante logs/métricas. Eso no garantiza que el usuario reciba la notificación. La garantía de entrega, reintentos y recuperación debe acordarse con el equipo de `ms-notificaciones` y el responsable de mensajería; no se asigna aquí una implementación adicional a ms-chat.
 
 | Campo de `data` | Tipo | Obligatorio | Descripción |
 | :--- | :--- | :---: | :--- |
