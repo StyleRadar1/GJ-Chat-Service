@@ -83,13 +83,13 @@ Los endpoints de historial devuelven un objeto con `content` (elementos), `page`
 
 | Aspecto | Definición |
 | --- | --- |
-| Actor | Comprador (`COMPRADOR` en el claim `roles`). |
+| Actor | Usuario comprador (rol `COMPRADOR` en el claim `roles`). |
 | Operación | `POST /api/v1/second-hand/publications/{publicationId}/conversations` |
 | Solicitud | JSON `{"texto":"..."}`. El texto inicial es obligatorio en la petición y admite de 1 a 1.000 caracteres. |
 | Regla | Primero buscar la conversación existente para ese comprador y publicación. Si existe, devolverla aunque la publicación esté vendida o retirada. Solo para crear una nueva, validar que la publicación exista, esté disponible y pertenezca a otra persona. |
 | Éxito | `200 OK`. Devuelve los campos de **Datos de salida de una conversación**. Al crearla, persiste y publica el mensaje inicial mediante el caso de uso de envío. Al reutilizarla, no duplica el mensaje inicial. |
 | Errores | `401` JWT ausente, inválido o expirado; `403` rol sin permiso; `404` publicación inexistente; `422` publicación propia o no disponible; `503` servicio de publicaciones no disponible. El cuerpo sigue **Datos de salida en error**. |
-| Implementación relacionada | `StartConversationUseCaseImpl`; pruebas en `ChatControllerTest` y `ChatIntegrationTest`. |
+| Implementación relacionada | `StartConversationUseCaseImpl`, `SecondHandQueryAdapter` (consulta `GET /api/v1/second-hand/publications/{id}`); pruebas en `ChatControllerTest` y `ChatIntegrationTest`. |
 | Estado | Implementado en el código de esta copia: mensaje inicial obligatorio para REST, búsqueda idempotente previa a consultar disponibilidad y recuperación de conversación existente. La integración cliente y su despliegue deben validarse por separado. |
 | Aprobación | Pendiente de aprobación funcional del responsable del requerimiento. |
 
@@ -103,7 +103,7 @@ Los endpoints de historial devuelven un objeto con `content` (elementos), `page`
 
 | Aspecto | Definición |
 | --- | --- |
-| Actores | Comprador y vendedor participantes; el comprador usa `COMPRADOR`, y el vendedor accede como participante autorizado. La participación se valida por usuario y conversación. |
+| Actores | Usuario comprador (participantes de la conversación: comprador y dueño de la prenda, ambos con rol oficial `COMPRADOR`). La participación se valida por usuario y conversación. |
 | Operación | `GET /api/v1/conversations/{id}/messages` |
 | Parámetros | `page` (base cero, predeterminado `0`) y `size` (predeterminado `50`, máximo `100`). |
 | Éxito | `200 OK`. Devuelve el **Sobre de salida paginado**, con mensajes en orden cronológico ascendente; `content` contiene los campos de **Datos de salida de un mensaje**. |
@@ -116,7 +116,7 @@ Los endpoints de historial devuelven un objeto con `content` (elementos), `page`
 
 | Aspecto | Definición |
 | --- | --- |
-| Actores | Comprador y vendedor participantes. Para ALMACEN se admiten `COMPRADOR` y `ADMIN_ALMACEN` del NIT autorizado; para DONACION, `COMPRADOR` (donante) y `REPRESENTANTE_FUNDACION` vinculados. La participación se verifica por conversación. |
+| Actores | Participantes autorizados según tipo de chat: para segunda mano, `Usuario comprador` (rol `COMPRADOR`); para almacén, `Usuario comprador` (`COMPRADOR`) y `Administrador de almacén` (`ADMIN_ALMACEN`); para donación, `Usuario comprador` (`COMPRADOR`) y `Representante de fundación` (`REPRESENTANTE_FUNDACION`). |
 | Operación | `POST /api/v1/conversations/{id}/messages` |
 | Solicitud | JSON `{"texto":"..."}`. El texto es obligatorio y admite de 1 a 1.000 caracteres. |
 | Éxito | `201 Created`. Devuelve los campos de **Datos de salida de un mensaje** para el mensaje persistido. |
@@ -180,9 +180,35 @@ El identificador de seguimiento disponible en Jira es **GJ-57**. El código form
 | Regla | Para crear una conversación nueva, la solicitud debe existir y estar en estado activo; solo el donante o la fundación vinculados pueden crearla. Si ya existe, el participante vinculado puede recuperarla sin volver a consultar el estado externo. El envío posterior solo comprueba que la conversación local siga abierta; el código actual no recibe eventos de cierre/cambio de estado de la solicitud para cerrar automáticamente el chat. |
 | Éxito | `200 OK`. Devuelve los campos de **Datos de salida de una conversación**. |
 | Errores | `401` JWT ausente, inválido o expirado; `403` usuario ajeno a la donación; `404` solicitud inexistente; `422` donación finalizada; `503` ms-donaciones no disponible. El cuerpo sigue **Datos de salida en error**. |
-| Implementación relacionada | `StartDonationConversationUseCaseImpl`, `DonationQueryAdapter` y pruebas de `StoreAndDonationChatControllerTest`. |
+| Implementación relacionada | `StartDonationConversationUseCaseImpl`, `DonationQueryAdapter` (consulta `GET /api/v1/donations/{id}`) y pruebas de `StoreAndDonationChatControllerTest`. |
 | Estado | GJ-57 está incorporado en el código y en la trazabilidad de ms-chat. Falta validar extremo a extremo con ms-segunda-vida-donaciones y frontend; también debe acordarse si los cambios de estado posteriores deben cerrar el chat y qué evento comunicará ese cierre. |
 | Aprobación | Pendiente de aprobación funcional del responsable del requerimiento. |
+
+## SR-RNF-15 · Resiliencia e idempotencia de eventos (Adenda v4)
+
+Esta ficha incorpora los criterios corregidos en la **Adenda correctiva v4** del documento de requerimientos general de StyleRadar.
+
+| Aspecto | Texto corregido / Definición |
+| --- | --- |
+| Qué demuestran las confirmaciones | `Publisher confirms` permiten saber si RabbitMQ aceptó la publicación; `publisher returns` permiten detectar mensajes no enrutados cuando la publicación es mandatory. |
+| Qué no garantizan | Ni las confirmaciones ni el registro/metricado del error conservan por sí solos un evento que no pudo publicarse. Si falla RabbitMQ después de guardar el mensaje de chat, el mensaje puede quedar persistido sin aviso asociado. |
+| Estado actual | Parcial: los fallos de publicación se detectan y registran; eso mejora la observabilidad, pero no asegura reintento durable ni recuperación automática. |
+| Mecanismo pendiente | Implementar outbox transaccional (o mecanismo durable equivalente): guardar el evento en la misma transacción que el mensaje, publicarlo mediante un relay con reintentos, marcarlo confirmado y permitir recuperar eventos pendientes. Mantener consumidores idempotentes. |
+| Garantía objetivo | Entrega al menos una vez con consumidores idempotentes y sin pérdida silenciosa; no declarar entrega exactamente una vez. |
+
+### Criterios y evidencia de aceptación pendiente
+- Simular RabbitMQ caído luego del commit del mensaje y demostrar que el evento queda en outbox y se publica al recuperarse el broker.
+- Comprobar reintentos, recuperación tras reinicio del servicio, estado de eventos fallidos y ausencia de notificaciones duplicadas.
+- En `ms-chat`, el evento `MensajeEnviadoEvent` se publica en `styleradar.exchange` con routing key `styleradar.chat.mensaje.enviado` y sobre estándar `EventEnvelope` enriquecido con campos planos para compatibilidad directa con el consumidor de `ms-notificaciones`.
+
+## Historial de revisiones
+
+| Versión | Fecha | Autor | Cambios y justificación |
+| --- | --- | --- | --- |
+| v1.0 | 29/10/2026 | Equipo DOSW – StyleRadar | Versión inicial generada a partir de plantilla. |
+| v2.0 | 12/11/2026 | Daniel Barrera / Oscar Lasso | Reescrita con el código de ms-notificaciones y ms-chat. Fusión de chat con mensaje inicial, orden de validación C2C y reglas de tiempo real. |
+| v3.0 | 18/11/2026 | Oscar Lasso (Equipo GJ) | Correcciones de la revisión docente: separación estricta de salidas de éxito y error RFC 7807, historiales paginados y eliminación de nombres de clases internas. |
+| v4.0 | 20/11/2026 | Santiago García (Equipo GJ) | Alineación completa con **Adenda v4**: incorporación de SR-RNF-15 (delimitación de publisher confirms vs outbox transaccional), actualización de rutas Feign (`/api/v1/second-hand/publications/{id}` y `/api/v1/donations/{id}`), compatibilidad híbrida en evento hacia ms-notificaciones y estandarización OpenAPI en inglés sin prefijos de código. |
 
 ## Notas y decisiones
 

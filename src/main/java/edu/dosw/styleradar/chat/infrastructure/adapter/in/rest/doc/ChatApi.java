@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 /** OpenAPI contract of the chat REST endpoints across second-hand, ally stores, and donations. */
-@Tag(name = "Servicio de Chat StyleRadar", description = "Mensajería privada para segunda mano (SR-RF-40/41), almacenes aliados (SR-RF-73 / GJ-56) y donaciones (GJ-57)")
+@Tag(name = "StyleRadar Chat Service", description = "Private messaging for second-hand items, partner stores, and donations")
 @SecurityRequirement(name = "bearerAuth")
 public interface ChatApi {
     String PROBLEM_JSON = "application/problem+json";
@@ -40,19 +40,19 @@ public interface ChatApi {
     String EX_409 = "{\"type\":\"https://styleradar.dosw/errores/conflicto\",\"title\":\"Conflicto\",\"status\":409,\"detail\":\"La publicación fue retirada; la conversación está cerrada\",\"instance\":\"/api/v1/conversations/7/messages\"}";
     String EX_503 = "{\"type\":\"https://styleradar.dosw/errores/servicio-no-disponible\",\"title\":\"Servicio no disponible\",\"status\":503,\"detail\":\"El servicio externo no está disponible\",\"instance\":\"/api/v1/second-hand/publications/10/conversations\"}";
 
-    @Operation(summary = "Iniciar chat con el vendedor (SR-RF-40)",
-            description = "Rol COMPRADOR. Recibe y persiste el primer mensaje al crear el chat. Si ya existe una conversación del comprador para la publicación, la devuelve sin exigir que siga disponible.")
+    @Operation(summary = "Start chat with seller",
+            description = "Role BUYER. Receives and persists the first message when creating the chat. If a conversation already exists for the publication, returns it without requiring the listing to remain available.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversación iniciada o existente con el primer mensaje guardado al crearla"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "200", description = "Conversation started or existing conversation returned with the initial message saved"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso",
+            @ApiResponse(responseCode = "403", description = "Role not authorized",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "404", description = "Publicación inexistente",
+            @ApiResponse(responseCode = "404", description = "Publication not found",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404))),
-            @ApiResponse(responseCode = "422", description = "Publicación no disponible o propia",
+            @ApiResponse(responseCode = "422", description = "Publication not available or belongs to the buyer",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_422))),
-            @ApiResponse(responseCode = "503", description = "El servicio de publicaciones no respondió",
+            @ApiResponse(responseCode = "503", description = "Publication service unavailable",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasRole('COMPRADOR')")
@@ -62,17 +62,17 @@ public interface ChatApi {
             @PathVariable Long publicationId,
             @Valid @RequestBody SendMessageRequest request);
 
-    @Operation(summary = "Iniciar chat con almacén aliado (SR-RF-73 / GJ-56)",
-            description = "Rol COMPRADOR. Valida con ms-tiendas que el almacén aliado esté disponible. Crea o reutiliza una conversación por comprador y NIT, guarda el mensaje inicial y lo incluye en el historial.")
+    @Operation(summary = "Start chat with partner store",
+            description = "Role BUYER. Validates store availability with the stores service. Creates or reuses a conversation by buyer and NIT, saving the initial message in the history.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversación creada o reutilizada con el mensaje inicial persistido"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "200", description = "Conversation created or reused with the initial message persisted"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso",
+            @ApiResponse(responseCode = "403", description = "Role not authorized",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "422", description = "El almacén no existe o no está activo para chat",
+            @ApiResponse(responseCode = "422", description = "Store does not exist or is not active for chat",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_422))),
-            @ApiResponse(responseCode = "503", description = "El servicio de tiendas no respondió",
+            @ApiResponse(responseCode = "503", description = "Store service unavailable",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasRole('COMPRADOR')")
@@ -82,17 +82,15 @@ public interface ChatApi {
             @PathVariable String nit,
             @Valid @RequestBody SendMessageRequest request);
 
-    @Operation(summary = "Consultar bandeja de conversaciones del almacén aliado (SR-RF-73 / GJ-56)",
-            description = "Rol STORE_ADMIN (se conserva compatibilidad con ADMIN_ALMACEN/TIENDA). Resuelve el NIT del administrador autenticado. Admite page (base cero) y size (1–100; predeterminado 20).")
+    @Operation(summary = "Get partner store conversation inbox",
+            description = "Role STORE_ADMIN (compatible with ADMIN_ALMACEN/TIENDA). Resolves the NIT of the authenticated administrator. Supports page (zero-based) and size (1-100, default 20).")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversaciones recibidas por el almacén"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "200", description = "Conversations received by the partner store"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso",
+            @ApiResponse(responseCode = "403", description = "Role not authorized or user does not manage a partner store",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "403", description = "El usuario no administra un almacén aliado",
-                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "503", description = "El servicio de tiendas no respondió",
+            @ApiResponse(responseCode = "503", description = "Store service unavailable",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasAnyRole('ADMIN_ALMACEN', 'TIENDA')")
@@ -102,19 +100,19 @@ public interface ChatApi {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
 
-    @Operation(summary = "Iniciar chat sobre solicitud de donación (GJ-57)",
-            description = "Rol COMPRADOR o REPRESENTANTE_FUNDACION. Valida con ms-donaciones que la donación esté activa.")
+    @Operation(summary = "Start chat for donation request",
+            description = "Role BUYER or FOUNDATION_REPRESENTATIVE. Validates with the donations service that the request is active.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversación iniciada o existente para la donación"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "200", description = "Conversation started or existing conversation returned for the donation"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "El usuario no es ni donante ni fundación receptora",
+            @ApiResponse(responseCode = "403", description = "User is neither donor nor recipient foundation",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "404", description = "Solicitud de donación inexistente",
+            @ApiResponse(responseCode = "404", description = "Donation request not found",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404))),
-            @ApiResponse(responseCode = "422", description = "La donación ya finalizó (REJECTED o DELIVERED)",
+            @ApiResponse(responseCode = "422", description = "Donation request has ended (REJECTED or DELIVERED)",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_422))),
-            @ApiResponse(responseCode = "503", description = "El servicio de donaciones no respondió",
+            @ApiResponse(responseCode = "503", description = "Donations service unavailable",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasAnyRole('COMPRADOR', 'REPRESENTANTE_FUNDACION', 'FUNDACION')")
@@ -123,13 +121,13 @@ public interface ChatApi {
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable Long donationId);
 
-    @Operation(summary = "Consultar mis conversaciones (SR-RF-41)",
-            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Incluye conversaciones donde el usuario participa. Admite page (base cero) y size (1–100; predeterminado 20).")
+    @Operation(summary = "Get user conversations",
+            description = "Roles BUYER, STORE_ADMIN, FOUNDATION_REPRESENTATIVE. Includes conversations where the user participates. Supports page (zero-based) and size (1-100, default 20).")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversaciones propias"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "200", description = "User conversations"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso",
+            @ApiResponse(responseCode = "403", description = "Role not authorized",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403)))
     })
     @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
@@ -139,15 +137,15 @@ public interface ChatApi {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
 
-    @Operation(summary = "Consultar mensajes (SR-RF-41)",
-            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes de la conversación. Admite page (base cero) y size (1–100; predeterminado 50); los mensajes se ordenan del más antiguo al más nuevo.")
+    @Operation(summary = "Get messages",
+            description = "Roles BUYER, STORE_ADMIN, FOUNDATION_REPRESENTATIVE. Conversation participants only. Supports page (zero-based) and size (1-100, default 50); messages are ordered chronologically from oldest to newest.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Mensajes de la conversación"),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "200", description = "Conversation messages"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso",
+            @ApiResponse(responseCode = "403", description = "Role not authorized",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "404", description = "Conversación inexistente o ajena",
+            @ApiResponse(responseCode = "404", description = "Conversation not found or access denied",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404)))
     })
     @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
@@ -158,21 +156,21 @@ public interface ChatApi {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size);
 
-    @Operation(summary = "Enviar mensaje (SR-RF-41)",
-            description = "Roles COMPRADOR, ADMIN_ALMACEN, REPRESENTANTE_FUNDACION. Solo participantes; conversación cerrada responde 409.")
+    @Operation(summary = "Send message",
+            description = "Roles BUYER, STORE_ADMIN, FOUNDATION_REPRESENTATIVE. Conversation participants only; returns 409 if the conversation is closed.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Mensaje enviado"),
-            @ApiResponse(responseCode = "400", description = "Mensaje vacío o de más de 1.000 caracteres",
+            @ApiResponse(responseCode = "201", description = "Message sent"),
+            @ApiResponse(responseCode = "400", description = "Message empty or exceeds 1,000 characters",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_400))),
-            @ApiResponse(responseCode = "401", description = "JWT ausente, inválido o expirado",
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
-            @ApiResponse(responseCode = "403", description = "Rol sin permiso",
+            @ApiResponse(responseCode = "403", description = "Role not authorized",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
-            @ApiResponse(responseCode = "404", description = "Conversación inexistente o ajena",
+            @ApiResponse(responseCode = "404", description = "Conversation not found or access denied",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_404))),
-            @ApiResponse(responseCode = "409", description = "La conversación está cerrada; el mensaje no se guarda",
+            @ApiResponse(responseCode = "409", description = "Conversation is closed; message not saved",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_409))),
-            @ApiResponse(responseCode = "503", description = "El servicio externo no respondió",
+            @ApiResponse(responseCode = "503", description = "External service unavailable",
                     content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
     })
     @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")

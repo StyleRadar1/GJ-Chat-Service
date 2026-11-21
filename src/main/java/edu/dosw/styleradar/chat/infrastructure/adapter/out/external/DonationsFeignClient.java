@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 /** Feign client to interact with ms-donaciones. */
 @FeignClient(name = "donations", url = "${styleradar.services.donations.url:http://localhost:8080}")
 public interface DonationsFeignClient {
-    @GetMapping("/donaciones/{id}")
+    @GetMapping("/api/v1/donations/{id}")
     ExternalDonationResponse getDonation(@PathVariable("id") Long id);
 }
