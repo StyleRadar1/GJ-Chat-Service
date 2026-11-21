@@ -8,7 +8,7 @@ ms-chat usa RabbitMQ para eventos asíncronos. El intercambio y routing se descr
 
 | Tipo | Evento | Dirección | Acción |
 | --- | --- | --- | --- |
-| Publica | `MensajeEnviadoEvent` (`styleradar.chat.mensaje.enviado`) | ms-chat → ms-notificaciones | Solicita notificar un mensaje nuevo |
+| Publica | `MensajeEnviadoEvent` (`styleradar.chat.mensaje.enviado`) | ms-chat → ms-notificaciones | Solicita notificar un mensaje nuevo (publica sobre híbrido con `data` y alias planos en la raíz) |
 | Consume | `PrendaSegundaManoVendidaEvent` (`styleradar.segundavida.prenda.vendida`) | Catálogo → ms-chat | Cierra conversaciones de compradores distintos al comprador de la venta |
 | Consume | `PrendaSegundaManoRetiradaEvent` (`segunda-mano.prenda.retirada`, propuesto) | Catálogo → ms-chat | Cierra conversaciones de la publicación retirada |
 

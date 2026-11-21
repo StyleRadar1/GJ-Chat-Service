@@ -32,6 +32,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | v1.0 | 03/11/2026 | Santiago García | Primera versión de los contratos. Se reemplaza el nombre provisional `PublicacionRetirada` por `PrendaSegundaManoVendidaEvent`, según la matriz de eventos del curso, y se propone `PrendaSegundaManoRetiradaEvent`. | Pendiente de aprobación |
 | v1.1 | 20/11/2026 | Equipo ms-chat | Se aclara que publisher confirms/returns detectan ciertos fallos de publicación, pero no garantizan la entrega de la notificación al usuario. | Pendiente de aprobación de los equipos consumidores |
+| v1.2 | 20/11/2026 | Equipo ms-chat | Compatibilidad híbrida en `EventEnvelope`: se exponen los campos planos en la raíz (`destinatarioId`, `conversacionId`, `remitenteId`, `nombreRemitente`, `resumenContenido`, etc.) junto con el objeto estándar `data` para consumo directo en `ms-notificaciones` sin alterar el sobre de eventos StyleRadar. | Aprobado / Implementado |
 
 ---
 
@@ -101,6 +102,10 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
 | `vistaPrevia` | string (máx. 80) | No | Primeros 80 caracteres del mensaje. Se puede omitir si se decide no mostrar el texto en la notificación. |
 | `fechaEnvio` | string (ISO-8601 UTC) | Sí | Momento en que se envió el mensaje. |
 
+### Compatibilidad con consumidores planos (`ms-notificaciones`)
+
+Para garantizar compatibilidad inmediata con `ms-notificaciones` (que en su contrato de consumidor plano espera los campos `destinatarioId`, `conversacionId`, `remitenteId`/`autorId`, `nombreRemitente` y `resumenContenido`/`vistaPrevia` directamente en la raíz del payload JSON), el `EventEnvelope` de `ms-chat` serializa una estructura híbrida que contiene tanto el sobre estándar de eventos con su bloque `data`, como los campos en la raíz:
+
 ```json
 {
   "eventId": "018f2c1a-7b3e-7000-8000-00000000a001",
@@ -109,6 +114,14 @@ Todos los eventos usan el mismo sobre. Lo que cambia entre eventos es `data`.
   "timestamp": "2026-11-10T15:05:00Z",
   "producer": "ms-chat",
   "correlationId": "c0a8012e-5f1d-4a7b-9e21-3b7c9d2f6a10",
+  "eventoId": "018f2c1a-7b3e-7000-8000-00000000a001",
+  "destinatarioId": 2,
+  "conversacionId": 7,
+  "remitenteId": 1,
+  "nombreRemitente": "Comprador",
+  "resumenContenido": "¿Sigue disponible? Podría recogerla el sábado…",
+  "mensajeId": 20,
+  "fechaEnvio": "2026-11-10T15:05:00Z",
   "data": {
     "mensajeId": 20,
     "conversacionId": 7,
