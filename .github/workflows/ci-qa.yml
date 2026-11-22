@@ -28,7 +28,7 @@ jobs:
         run: mvn -B clean verify
 
       - name: Análisis estático (Checkstyle · Google Java Style)
-        run: mvn -B checkstyle:checkstyle
+        run: mvn -B checkstyle:check
 
       - name: Publicar reportes (JaCoCo, pruebas y Checkstyle)
         if: always()
