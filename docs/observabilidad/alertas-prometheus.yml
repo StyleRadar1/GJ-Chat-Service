@@ -1,0 +1,59 @@
+# Reglas de alerta de Prometheus para ms-chat (GJ-Chat-Service).
+#
+# Prometheus debe leer /actuator/prometheus con un JWT, porque esa ruta ya no es pública:
+#
+#   scrape_configs:
+#     - job_name: gj-chat-service
+#       metrics_path: /actuator/prometheus
+#       scheme: https
+#       authorization:
+#         type: Bearer
+#         credentials_file: /etc/prometheus/chat-token
+#       static_configs:
+#         - targets: ['gj-chat-service-prod-santi.azurewebsites.net']
+#
+#   rule_files:
+#     - alertas-prometheus.yml
+
+groups:
+  - name: ms-chat
+    rules:
+      - alert: ChatServicioCaido
+        expr: up{job="gj-chat-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: ms-chat
+        annotations:
+          summary: "ms-chat no responde"
+          description: "Prometheus no puede leer las métricas de ms-chat desde hace 2 minutos."
+
+      - alert: ChatEventosNoPublicados
+        expr: increase(chat_events_publish_failed_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: ms-chat
+        annotations:
+          summary: "RabbitMQ no confirmó eventos del chat"
+          description: "Se perdieron avisos de mensaje enviado (motivo: {{ $labels.reason }}). Revise el broker y las colas de ms-notificaciones."
+
+      - alert: ChatMensajesLimitados
+        expr: increase(chat_messages_rate_limited_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: ms-chat
+        annotations:
+          summary: "Muchos mensajes rechazados por el límite por usuario"
+          description: "Más de 50 mensajes rechazados en 5 minutos; puede ser un abuso o un cliente con un ciclo de reintentos."
+
+      - alert: ChatLatenciaAlta
+        expr: rate(chat_messages_latency_seconds_sum[5m]) / rate(chat_messages_latency_seconds_count[5m]) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: ms-chat
+        annotations:
+          summary: "El envío de mensajes tarda más de 2 segundos"
+          description: "La latencia media de envío superó los 2 segundos durante 10 minutos."

@@ -11,10 +11,14 @@ import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableExcep
 import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.domain.model.PageResult;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.GetStoreConversationsUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.StartConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartDonationConversationUseCase;
+import edu.dosw.styleradar.chat.domain.port.in.StartStoreConversationUseCase;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtTokenAdapter;
 import edu.dosw.styleradar.chat.infrastructure.config.SecurityConfig;
 import edu.dosw.styleradar.chat.infrastructure.exception.GlobalExceptionHandler;
@@ -55,9 +59,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         MessageDtoInMapperImpl.class, ConversationDtoOutMapperImpl.class, MessageDtoOutMapperImpl.class,
         ChatControllerTest.FixedClockConfig.class})
 class ChatControllerTest {
-    private static final String START = "/api/v1/segunda-mano/10/conversaciones";
-    private static final String MESSAGES = "/api/v1/conversaciones/7/mensajes";
-    private static final String MY_CONVERSATIONS = "/api/v1/usuarios/me/conversaciones";
+    private static final String START = "/api/v1/second-hand/publications/10/conversations";
+    private static final String MESSAGES = "/api/v1/conversations/7/messages";
+    private static final String MY_CONVERSATIONS = "/api/v1/users/conversations";
 
     @TestConfiguration
     static class FixedClockConfig {
@@ -72,11 +76,19 @@ class ChatControllerTest {
     @MockBean
     private StartConversationUseCase start;
     @MockBean
+    private StartStoreConversationUseCase startStore;
+    @MockBean
+    private GetStoreConversationsUseCase storeConversations;
+    @MockBean
+    private StartDonationConversationUseCase startDonation;
+    @MockBean
     private GetMyConversationsUseCase myConversations;
     @MockBean
     private GetMessagesUseCase getMessages;
     @MockBean
     private SendMessageUseCase send;
+    @MockBean
+    private edu.dosw.styleradar.chat.infrastructure.adapter.out.metrics.ChatMetrics metrics;
 
     private static String buyer() {
         return Tokens.bearer(Tokens.forUser(BUYER));
@@ -109,9 +121,11 @@ class ChatControllerTest {
 
     @Test
     void startsAConversationWithTheTokenUser() throws Exception {
-        when(start.start(BUYER, LISTING)).thenReturn(conversation(7L, ConversationStatus.OPEN));
+        when(start.start(eq(BUYER), eq(LISTING), any(MessageText.class)))
+                .thenReturn(conversation(7L, ConversationStatus.OPEN));
 
-        mvc.perform(post(START).header("Authorization", buyer()))
+        mvc.perform(post(START).header("Authorization", buyer()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"¿Sigue disponible?\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.publicacionId").value(10))
@@ -124,24 +138,27 @@ class ChatControllerTest {
 
     @Test
     void listsMyConversations() throws Exception {
-        when(myConversations.fetch(BUYER)).thenReturn(List.of(conversation(7L, ConversationStatus.CLOSED)));
+        when(myConversations.fetch(BUYER, 0, 20)).thenReturn(new PageResult<>(
+                List.of(conversation(7L, ConversationStatus.CLOSED)), 0, 20, 1, 1));
 
         mvc.perform(get(MY_CONVERSATIONS).header("Authorization", buyer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(7))
-                .andExpect(jsonPath("$[0].estado").value("CERRADA"));
+                .andExpect(jsonPath("$.content[0].id").value(7))
+                .andExpect(jsonPath("$.content[0].estado").value("CERRADA"))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test
     void listsTheMessages() throws Exception {
-        when(getMessages.fetch(BUYER, 7L)).thenReturn(List.of(message(20L, 7L, BUYER, "Hola")));
+        when(getMessages.fetch(BUYER, 7L, 0, 50)).thenReturn(new PageResult<>(
+                List.of(message(20L, 7L, BUYER, "Hola")), 0, 50, 1, 1));
 
         mvc.perform(get(MESSAGES).header("Authorization", buyer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(20))
-                .andExpect(jsonPath("$[0].conversacionId").value(7))
-                .andExpect(jsonPath("$[0].autorId").value(1))
-                .andExpect(jsonPath("$[0].texto").value("Hola"));
+                .andExpect(jsonPath("$.content[0].id").value(20))
+                .andExpect(jsonPath("$.content[0].conversacionId").value(7))
+                .andExpect(jsonPath("$.content[0].autorId").value(1))
+                .andExpect(jsonPath("$.content[0].texto").value("Hola"));
     }
 
     @Test
@@ -173,7 +190,7 @@ class ChatControllerTest {
 
     @Test
     void aNonNumericIdRespondsWith400() throws Exception {
-        mvc.perform(get("/api/v1/conversaciones/abc/mensajes").header("Authorization", buyer()))
+        mvc.perform(get("/api/v1/conversations/abc/messages").header("Authorization", buyer()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -188,7 +205,7 @@ class ChatControllerTest {
 
     @Test
     void foreignOrMissingConversationRespondsWith404() throws Exception {
-        when(getMessages.fetch(BUYER, 7L)).thenThrow(new ConversationNotFoundException(7L));
+        when(getMessages.fetch(BUYER, 7L, 0, 50)).thenThrow(new ConversationNotFoundException(7L));
 
         mvc.perform(get(MESSAGES).header("Authorization", buyer()))
                 .andExpect(status().isNotFound())
@@ -198,34 +215,42 @@ class ChatControllerTest {
 
     @Test
     void missingListingRespondsWith404() throws Exception {
-        when(start.start(BUYER, LISTING)).thenThrow(new ListingNotFoundException("no existe"));
+        when(start.start(eq(BUYER), eq(LISTING), any(MessageText.class)))
+                .thenThrow(new ListingNotFoundException("no existe"));
 
-        mvc.perform(post(START).header("Authorization", buyer())).andExpect(status().isNotFound());
+        mvc.perform(post(START).header("Authorization", buyer()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"texto\":\"Hola\"}")).andExpect(status().isNotFound());
     }
 
     @Test
     void businessRulesRespondWith422() throws Exception {
-        when(start.start(BUYER, LISTING)).thenThrow(new SelfChatException("propia"));
-        mvc.perform(post(START).header("Authorization", buyer()))
+        when(start.start(eq(BUYER), eq(LISTING), any(MessageText.class)))
+                .thenThrow(new SelfChatException("propia"));
+        mvc.perform(post(START).header("Authorization", buyer()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title").value("Regla de negocio incumplida"));
 
         when(send.send(any(), any(), any())).thenThrow(new ConversationClosedException("cerrada"));
         mvc.perform(post(MESSAGES).header("Authorization", buyer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"Hola\"}"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value("cerrada"));
     }
 
     @Test
     void ifListingServiceFailsRespondsWith503() throws Exception {
-        when(start.start(BUYER, LISTING)).thenThrow(new ExternalServiceUnavailableException("caído"));
+        when(start.start(eq(BUYER), eq(LISTING), any(MessageText.class)))
+                .thenThrow(new ExternalServiceUnavailableException("caído"));
 
-        mvc.perform(post(START).header("Authorization", buyer())).andExpect(status().isServiceUnavailable());
+        mvc.perform(post(START).header("Authorization", buyer()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"texto\":\"Hola\"}")).andExpect(status().isServiceUnavailable());
     }
 
     @Test
     void anUnexpectedErrorRespondsWith500WithoutInternalDetails() throws Exception {
-        when(myConversations.fetch(BUYER)).thenThrow(new IllegalStateException("detalle interno"));
+        when(myConversations.fetch(BUYER, 0, 20)).thenThrow(new IllegalStateException("detalle interno"));
 
         mvc.perform(get(MY_CONVERSATIONS).header("Authorization", buyer()))
                 .andExpect(status().isInternalServerError())

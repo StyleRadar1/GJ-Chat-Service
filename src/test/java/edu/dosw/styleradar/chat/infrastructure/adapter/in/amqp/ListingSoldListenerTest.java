@@ -22,7 +22,8 @@ class ListingSoldListenerTest {
 
     @Test
     void passesTheEventIdAndTheBuyerToTheUseCase() {
-        EventEnvelope<ListingSoldData> envelope = new EventEnvelope<>("evt-9", "segunda-mano.prenda.vendida", 1, NOW,
+        EventEnvelope<ListingSoldData> envelope = new EventEnvelope<>("evt-9",
+                "styleradar.segundavida.prenda.vendida", 1, NOW,
                 "ms-catalogo", "corr-1", new ListingSoldData(10L, 2L, 1L));
 
         listener.onListingSold(envelope);

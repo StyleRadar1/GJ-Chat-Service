@@ -1,15 +1,20 @@
 package edu.dosw.styleradar.chat.application.usecase;
 
 import edu.dosw.styleradar.chat.domain.event.MessageSentEvent;
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.ExternalServiceUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.in.SendMessageUseCase;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.ListingQueryPort;
+import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
 
 import java.time.Clock;
 
@@ -20,14 +25,17 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
     private final ConversationRepositoryPort conversations;
     private final MessageRepositoryPort messages;
     private final ListingQueryPort listings;
+    private final StoreQueryPort stores;
     private final EventPublisherPort events;
     private final Clock clock;
 
     public SendMessageUseCaseImpl(ConversationRepositoryPort conversations, MessageRepositoryPort messages,
-                                    ListingQueryPort listings, EventPublisherPort events, Clock clock) {
+                                  ListingQueryPort listings, StoreQueryPort stores,
+                                  EventPublisherPort events, Clock clock) {
         this.conversations = conversations;
         this.messages = messages;
         this.listings = listings;
+        this.stores = stores;
         this.events = events;
         this.clock = clock;
     }
@@ -39,17 +47,48 @@ public class SendMessageUseCaseImpl implements SendMessageUseCase {
 
     @Override
     public Message send(Long userId, Long conversationId, MessageText text) {
+        return send(userId, conversationId, text, null);
+    }
+
+    @Override
+    public Message send(Long userId, Long conversationId, MessageText text, String authorizedStoreNit) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
-        conversation.verifyParticipant(userId);
-        if (conversation.isOpen() && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
+
+        StoreSummary storeOfAdmin = null;
+        boolean storeAdmin = conversation.getType() == ConversationType.ALMACEN
+                && !conversation.getBuyerId().equals(userId);
+        if (storeAdmin) {
+            if (authorizedStoreNit != null) {
+                storeOfAdmin = new StoreSummary(authorizedStoreNit, null, true);
+            } else {
+                try {
+                    storeOfAdmin = stores.fetchMyStore(userId);
+                } catch (ExternalServiceUnavailableException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new AccessDeniedDomainException("No administra ningún almacén aliado");
+                }
+            }
+            if (storeOfAdmin == null || !storeOfAdmin.isAvailable()
+                    || !conversation.belongsToStore(storeOfAdmin.nit())) {
+                throw new AccessDeniedDomainException("No tiene permisos para responder por este almacén aliado");
+            }
+        } else {
+            conversation.verifyParticipant(userId);
+        }
+        if (conversation.isOpen() && conversation.getListingId() != null
+                && listings.fetch(conversation.getListingId()).wasWithdrawn()) {
             conversation.close();
             conversations.save(conversation);
         }
-        Message message = conversation.write(userId, text, clock.instant());
+        Message message = storeAdmin
+                ? conversation.writeAsStoreAdmin(userId, text, clock.instant())
+                : conversation.write(userId, text, clock.instant());
         Message saved = messages.save(message);
+        Long recipientId = storeAdmin ? conversation.getBuyerId() : conversation.recipientOf(userId);
         events.publish(new MessageSentEvent(saved.getId(), conversationId, conversation.getListingId(),
-                conversation.getGarmentName(), userId, conversation.recipientOf(userId), preview(text),
+                conversation.getGarmentName(), userId, recipientId, conversation.getStoreNit(), preview(text),
                 saved.getSentAt()));
         return saved;
     }

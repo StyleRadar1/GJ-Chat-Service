@@ -2,10 +2,14 @@ package edu.dosw.styleradar.chat.application.usecase;
 
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Message;
+import edu.dosw.styleradar.chat.domain.model.PageResult;
+import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
+import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
 
 import java.util.List;
 
@@ -13,17 +17,52 @@ import java.util.List;
 public class GetMessagesUseCaseImpl implements GetMessagesUseCase {
     private final ConversationRepositoryPort conversations;
     private final MessageRepositoryPort messages;
+    private final StoreQueryPort stores;
 
-    public GetMessagesUseCaseImpl(ConversationRepositoryPort conversations, MessageRepositoryPort messages) {
+    public GetMessagesUseCaseImpl(ConversationRepositoryPort conversations, MessageRepositoryPort messages,
+                                  StoreQueryPort stores) {
         this.conversations = conversations;
         this.messages = messages;
+        this.stores = stores;
     }
 
     @Override
     public List<Message> fetch(Long userId, Long conversationId) {
+        authorize(userId, conversationId);
+        return messages.findByConversation(conversationId);
+    }
+
+    @Override
+    public PageResult<Message> fetch(Long userId, Long conversationId, int page, int size) {
+        validatePage(page, size);
+        authorize(userId, conversationId);
+        return messages.findByConversation(conversationId, page, size);
+    }
+
+    private void authorize(Long userId, Long conversationId) {
         Conversation conversation = conversations.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
-        conversation.verifyParticipant(userId);
-        return messages.findByConversation(conversationId);
+
+        String storeNitOfUser = null;
+        if (conversation.getType() == ConversationType.ALMACEN && !conversation.isParticipant(userId)) {
+            try {
+                StoreSummary myStore = stores.fetchMyStore(userId);
+                if (myStore != null && myStore.isAvailable()) {
+                    storeNitOfUser = myStore.nit();
+                }
+            } catch (Exception ignored) {
+                // Si el usuario no administra tienda o falla el servicio, storeNitOfUser permanece null
+            }
+        }
+
+        if (!conversation.isParticipantOrStoreAdmin(userId, storeNitOfUser)) {
+            throw new ConversationNotFoundException(conversationId);
+        }
+    }
+
+    private static void validatePage(int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("page debe ser >= 0 y size debe estar entre 1 y 100");
+        }
     }
 }

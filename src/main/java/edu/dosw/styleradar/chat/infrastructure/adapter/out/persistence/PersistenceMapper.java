@@ -11,13 +11,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class PersistenceMapper {
     public Conversation toDomain(ConversationJpaEntity entity) {
-        return new Conversation(entity.getId(), entity.getListingId(), entity.getGarmentName(),
-                entity.getBuyerId(), entity.getSellerId(), entity.getStatus(), entity.getCreatedAt());
+        return new Conversation(entity.getId(), entity.getType(), entity.getListingId(), entity.getGarmentName(),
+                entity.getBuyerId(), entity.getSellerId(), entity.getStoreNit(), entity.getStoreName(),
+                entity.getDonationId(), entity.getStatus(), entity.getCreatedAt());
     }
 
     public ConversationJpaEntity toEntity(Conversation conversation) {
-        return new ConversationJpaEntity(conversation.getId(), conversation.getListingId(),
+        return new ConversationJpaEntity(conversation.getId(), conversation.getType(), conversation.getListingId(),
                 conversation.getGarmentName(), conversation.getBuyerId(), conversation.getSellerId(),
+                conversation.getStoreNit(), conversation.getStoreName(), conversation.getDonationId(),
                 conversation.getStatus(), conversation.getCreatedAt());
     }
 

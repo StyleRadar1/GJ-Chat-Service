@@ -5,6 +5,8 @@ import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.entity.Co
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +17,23 @@ public interface SpringDataConversationRepository extends JpaRepository<Conversa
 
     Optional<ConversationJpaEntity> findByListingIdAndBuyerId(Long listingId, Long buyerId);
 
+    Optional<ConversationJpaEntity> findByStoreNitAndBuyerId(String storeNit, Long buyerId);
+
+    Optional<ConversationJpaEntity> findByDonationIdAndBuyerId(Long donationId, Long buyerId);
+
+    Optional<ConversationJpaEntity> findFirstByDonationIdOrderByCreatedAtAsc(Long donationId);
+
+    List<ConversationJpaEntity> findByStoreNitOrderByCreatedAtDesc(String storeNit);
+
+    Page<ConversationJpaEntity> findByStoreNitOrderByCreatedAtDescIdDesc(String storeNit, Pageable pageable);
+
+    List<ConversationJpaEntity> findByDonationIdOrderByCreatedAtDesc(Long donationId);
+
     @Query("select c from ConversationJpaEntity c where c.buyerId = :userId or c.sellerId = :userId "
             + "order by c.createdAt desc, c.id desc")
     List<ConversationJpaEntity> findByParticipant(@Param("userId") Long userId);
+
+    @Query("select c from ConversationJpaEntity c where c.buyerId = :userId or c.sellerId = :userId "
+            + "order by c.createdAt desc, c.id desc")
+    Page<ConversationJpaEntity> findByParticipant(@Param("userId") Long userId, Pageable pageable);
 }

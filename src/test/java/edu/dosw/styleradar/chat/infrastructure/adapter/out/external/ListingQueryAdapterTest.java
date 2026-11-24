@@ -32,7 +32,7 @@ class ListingQueryAdapterTest {
     @Test
     void translatesTheServiceResponse() {
         when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, 2L,
-                new ExternalListingResponse.Garment("Chaqueta de jean"), "DISPONIBLE"));
+                new ExternalListingResponse.Garment("Chaqueta de jean"), "DISPONIBLE", null));
 
         ListingSummary summary = adapter.fetch(10L);
 
@@ -44,7 +44,7 @@ class ListingQueryAdapterTest {
 
     @Test
     void acceptsAListingWithoutGarment() {
-        when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, 2L, null, "VENDIDA"));
+        when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, 2L, null, "VENDIDA", null));
 
         assertThat(adapter.fetch(10L).garmentName()).isNull();
     }
@@ -65,20 +65,20 @@ class ListingQueryAdapterTest {
 
     @Test
     void anIncompleteResponseIsServiceUnavailable() {
-        when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, null, null, "DISPONIBLE"));
+        when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, null, null, "DISPONIBLE", null));
 
         assertThatThrownBy(() -> adapter.fetch(10L)).isInstanceOf(ExternalServiceUnavailableException.class);
     }
 
     @Test
     void anUnknownStatusIsServiceUnavailable() {
-        when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, 2L, null, "OTRO"));
+        when(client.getListing(10L)).thenReturn(new ExternalListingResponse(10L, 2L, null, "OTRO", null));
 
         assertThatThrownBy(() -> adapter.fetch(10L)).isInstanceOf(ExternalServiceUnavailableException.class);
     }
 
     private static FeignException error(int status) {
-        Request request = Request.create(Request.HttpMethod.GET, "http://segunda-mano/api/v1/segunda-mano/10",
+        Request request = Request.create(Request.HttpMethod.GET, "http://segunda-mano/api/v1/second-hand/publications/10",
                 Map.of(), null, StandardCharsets.UTF_8, null);
         Response response = Response.builder().status(status).reason("error").request(request).headers(Map.of()).build();
         return FeignException.errorStatus("SegundaManoFeignClient#obtenerPublicacion", response);

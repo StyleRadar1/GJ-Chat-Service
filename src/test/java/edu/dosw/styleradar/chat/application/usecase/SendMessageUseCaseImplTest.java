@@ -3,11 +3,14 @@ package edu.dosw.styleradar.chat.application.usecase;
 import edu.dosw.styleradar.chat.domain.event.MessageSentEvent;
 import edu.dosw.styleradar.chat.domain.exception.ConversationClosedException;
 import edu.dosw.styleradar.chat.domain.exception.ConversationNotFoundException;
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
+import edu.dosw.styleradar.chat.domain.model.ConversationType;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
 import edu.dosw.styleradar.chat.domain.model.ListingStatus;
 import edu.dosw.styleradar.chat.domain.model.Message;
 import edu.dosw.styleradar.chat.domain.model.MessageText;
+import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.out.ConversationRepositoryPort;
 import edu.dosw.styleradar.chat.domain.port.out.EventPublisherPort;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
@@ -51,12 +54,14 @@ class SendMessageUseCaseImplTest {
     @Mock
     private ListingQueryPort listings;
     @Mock
+    private edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort stores;
+    @Mock
     private EventPublisherPort events;
     private SendMessageUseCaseImpl useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new SendMessageUseCaseImpl(conversations, messages, listings, events, Clock.fixed(NOW, ZoneOffset.UTC));
+        useCase = new SendMessageUseCaseImpl(conversations, messages, listings, stores, events, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -134,5 +139,49 @@ class SendMessageUseCaseImplTest {
 
         assertThatThrownBy(() -> useCase.send(OUTSIDER, 7L, TEXT)).isInstanceOf(ConversationNotFoundException.class);
         verifyNoInteractions(listings, messages);
+    }
+
+    @Test
+    void buyerMessageForStoreIsRoutedByStoreNitInsteadOfFakeRecipientId() {
+        Conversation storeConversation = new Conversation(8L, ConversationType.ALMACEN, null, null, 310L, null,
+                "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, NOW);
+        when(conversations.findById(8L)).thenReturn(Optional.of(storeConversation));
+        when(messages.save(any())).thenReturn(message(30L, 8L, 310L, TEXT.value()));
+
+        useCase.send(310L, 8L, TEXT);
+
+        ArgumentCaptor<MessageSentEvent> published = ArgumentCaptor.forClass(MessageSentEvent.class);
+        verify(events).publish(published.capture());
+        assertThat(published.getValue().recipientId()).isNull();
+        assertThat(published.getValue().storeNit()).isEqualTo("900123456-1");
+    }
+
+    @Test
+    void anyAdminOfTheMatchingStoreCanReplyWithoutBeingBoundAsTheOnlySeller() {
+        Conversation storeConversation = new Conversation(9L, ConversationType.ALMACEN, null, null, 310L, null,
+                "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, NOW);
+        when(conversations.findById(9L)).thenReturn(Optional.of(storeConversation));
+        when(stores.fetchMyStore(410L)).thenReturn(new StoreSummary("900123456-1", "Atelier Urbano", true));
+        when(messages.save(any())).thenReturn(message(31L, 9L, 410L, TEXT.value()));
+
+        useCase.send(410L, 9L, TEXT);
+
+        assertThat(storeConversation.getSellerId()).isNull();
+        verify(conversations, never()).save(any());
+        ArgumentCaptor<MessageSentEvent> published = ArgumentCaptor.forClass(MessageSentEvent.class);
+        verify(events).publish(published.capture());
+        assertThat(published.getValue().recipientId()).isEqualTo(310L);
+        assertThat(published.getValue().storeNit()).isEqualTo("900123456-1");
+    }
+
+    @Test
+    void administratorOfAnotherStoreCannotReply() {
+        Conversation storeConversation = new Conversation(10L, ConversationType.ALMACEN, null, null, 310L, null,
+                "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, NOW);
+        when(conversations.findById(10L)).thenReturn(Optional.of(storeConversation));
+        when(stores.fetchMyStore(411L)).thenReturn(new StoreSummary("900000000-0", "Otro almacén", true));
+
+        assertThatThrownBy(() -> useCase.send(411L, 10L, TEXT)).isInstanceOf(AccessDeniedDomainException.class);
+        verifyNoInteractions(messages, events, listings);
     }
 }

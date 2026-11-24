@@ -1,9 +1,11 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence;
 
 import edu.dosw.styleradar.chat.domain.model.Message;
+import edu.dosw.styleradar.chat.domain.model.PageResult;
 import edu.dosw.styleradar.chat.domain.port.out.MessageRepositoryPort;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.persistence.repository.SpringDataMessageRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 
@@ -28,5 +30,13 @@ public class MessageRepositoryAdapter implements MessageRepositoryPort {
         return repository.findByConversationIdOrderBySentAtAscIdAsc(conversationId).stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public PageResult<Message> findByConversation(Long conversationId, int page, int size) {
+        var result = repository.findByConversationIdOrderBySentAtAscIdAsc(conversationId,
+                PageRequest.of(page, size));
+        return new PageResult<>(result.getContent().stream().map(mapper::toDomain).toList(), page, size,
+                result.getTotalElements(), result.getTotalPages());
     }
 }
