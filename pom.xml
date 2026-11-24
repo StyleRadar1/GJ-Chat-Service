@@ -22,7 +22,7 @@
         <springdoc.version>2.5.0</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <lombok.version>1.18.36</lombok.version>
+        <lombok.version>1.18.48</lombok.version>
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.minimo>0.85</jacoco.minimo>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
