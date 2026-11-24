@@ -7,7 +7,7 @@ COPY src ./src
 RUN mvn -B -q package -DskipTests -Dmaven.test.skip=true
 
 # Etapa 2: imagen liviana solo con el JRE
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 RUN addgroup -S styleradar && adduser -S styleradar -G styleradar
 COPY --from=build /app/target/gj-chat-service.jar app.jar
