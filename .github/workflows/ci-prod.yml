@@ -48,7 +48,7 @@ jobs:
       name: production
       url: ${{ steps.deploy.outputs.webapp-url }}/swagger-ui.html
     steps:
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Configurar variables de entorno del App Service
