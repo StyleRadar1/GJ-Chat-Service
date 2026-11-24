@@ -100,7 +100,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Configurar variables de entorno del App Service
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         env:
           WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME_QA }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}

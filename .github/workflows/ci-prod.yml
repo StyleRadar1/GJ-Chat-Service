@@ -52,7 +52,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Configurar variables de entorno del App Service
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           inlineScript: |
             RG=$(az webapp list --query "[?name=='${{ secrets.AZURE_WEBAPP_NAME_PROD }}'].resourceGroup | [0]" -o tsv)
