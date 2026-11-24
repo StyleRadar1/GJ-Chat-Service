@@ -2,7 +2,6 @@ package edu.dosw.styleradar.chat.infrastructure.config;
 
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.security.JwtAuthenticationFilter;
 import edu.dosw.styleradar.chat.infrastructure.exception.SecurityProblemHandler;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,14 +11,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
-/** Stateless security: public health and docs endpoints, JWT everywhere else, CORS from configuration. */
+/** Stateless security: public health and docs endpoints, JWT everywhere else, CORS handled by API Gateway. */
 @Configuration
 @EnableMethodSecurity(proxyTargetClass = true)
 public class SecurityConfig {
@@ -35,8 +28,7 @@ public class SecurityConfig {
                                                    SecurityProblemHandler problems) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
+                .cors(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -53,18 +45,5 @@ public class SecurityConfig {
         FilterRegistrationBean<JwtAuthenticationFilter> registry = new FilterRegistrationBean<>(filter);
         registry.setEnabled(false);
         return registry;
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource(
-            @Value("${styleradar.cors.allowed-origins:}") String origins) {
-        CorsConfiguration config = new CorsConfiguration();
-        List<String> allowed = Arrays.stream(origins.split(",")).map(String::trim).filter(o -> !o.isEmpty()).toList();
-        config.setAllowedOrigins(allowed);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }
