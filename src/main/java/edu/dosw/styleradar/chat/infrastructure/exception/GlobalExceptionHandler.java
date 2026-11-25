@@ -14,6 +14,7 @@ import edu.dosw.styleradar.chat.domain.exception.InvalidMessageTextException;
 import edu.dosw.styleradar.chat.domain.exception.TooManyMessagesException;
 import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -84,6 +86,27 @@ public class GlobalExceptionHandler {
     public ProblemDetail malformed(Exception e, HttpServletRequest request) {
         return ProblemDetails.of(HttpStatus.BAD_REQUEST, "solicitud-invalida", "Solicitud inválida",
                 "La solicitud está mal formada", request.getRequestURI());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail constraintViolation(ConstraintViolationException e, HttpServletRequest request) {
+        String detail = e.getConstraintViolations().stream()
+                .map(v -> v.getMessage())
+                .collect(Collectors.joining("; "));
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST, "solicitud-invalida", "Solicitud inválida",
+                detail.isBlank() ? "Parámetros inválidos" : detail, request.getRequestURI());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail illegalArgument(IllegalArgumentException e, HttpServletRequest request) {
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST, "solicitud-invalida", "Solicitud inválida",
+                e.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ProblemDetail methodNotSupported(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        return ProblemDetails.of(HttpStatus.METHOD_NOT_ALLOWED, "metodo-no-permitido", "Método HTTP no permitido",
+                e.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler({AccessDeniedException.class, AccessDeniedDomainException.class})
