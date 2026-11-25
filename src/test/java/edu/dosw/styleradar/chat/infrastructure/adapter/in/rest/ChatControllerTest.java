@@ -274,6 +274,6 @@ class ChatControllerTest {
     void userConversationsWithNonMatchingPathUserIdRespondsWith403() throws Exception {
         mvc.perform(get("/api/v1/users/999/conversations").header("Authorization", buyer()))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("Solo puede consultar sus propias conversaciones"));
+                .andExpect(jsonPath("$.detail").value("No tiene permiso para realizar esta acción"));
     }
 }
