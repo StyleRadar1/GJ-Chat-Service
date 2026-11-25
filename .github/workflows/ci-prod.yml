@@ -69,6 +69,8 @@ jobs:
                 DB_PASSWORD="${{ secrets.DB_PASSWORD_PROD }}" \
                 JWT_SECRET_BASE64="${{ secrets.JWT_SECRET_PROD }}" \
                 SEGUNDA_MANO_URL="${{ secrets.SEGUNDA_MANO_URL_PROD }}"
+            az webapp config set --name "${{ secrets.AZURE_WEBAPP_NAME_PROD }}" --resource-group "$RG" \
+              --web-sockets-enabled true --output none
       - uses: azure/webapps-deploy@v3
         id: deploy
         with:

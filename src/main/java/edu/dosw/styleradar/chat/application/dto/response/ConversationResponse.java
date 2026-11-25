@@ -31,12 +31,24 @@ public record ConversationResponse(
         @Schema(example = "OPEN", description = "Conversation status: OPEN / ABIERTA, or CLOSED / CERRADA")
         @JsonProperty("status") String status,
         @Schema(example = "2026-11-01T15:00:00Z")
-        @JsonProperty("createdAt") Instant createdAt) {
+        @JsonProperty("createdAt") Instant createdAt,
+        @Schema(example = "Atelier Urbano Chapinero",
+                description = "Human-readable display name for the conversation counterpart")
+        @JsonProperty("participantDisplayName") String participantDisplayName) {
+
+    /** Backwards-compatible 11-argument constructor. */
+    public ConversationResponse(Long id, String type, Long listingId, String garmentName, Long buyerId, Long sellerId,
+                                String storeNit, String storeName, Long donationId,
+                                String status, Instant createdAt) {
+        this(id, type, listingId, garmentName, buyerId, sellerId, storeNit, storeName, donationId,
+                status, createdAt, null);
+    }
 
     /** Backwards-compatible 7-argument constructor. */
     public ConversationResponse(Long id, Long listingId, String garmentName, Long buyerId, Long sellerId,
                                 String status, Instant createdAt) {
-        this(id, "SEGUNDA_MANO", listingId, garmentName, buyerId, sellerId, null, null, null, status, createdAt);
+        this(id, "SEGUNDA_MANO", listingId, garmentName, buyerId, sellerId, null, null, null,
+                status, createdAt, null);
     }
 
     // --- English alias ---

@@ -6,6 +6,7 @@ import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapperI
 import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapperImpl;
 import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;
@@ -128,6 +129,21 @@ class StoreAndDonationChatControllerTest {
                         .content("{\"texto\":\"Hola\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title", is("Regla de negocio incumplida")));
+    }
+
+    @Test
+    @DisplayName("BUG-032: Iniciar chat con almacén inexistente (404 en ms-tiendas) devuelve 404")
+    void startStoreConversationWhenStoreNotFoundReturns404() throws Exception {
+        String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
+        when(startStoreConversation.start(100L, "999999-9", new MessageText("Hola")))
+                .thenThrow(new StoreNotFoundException("El almacén no existe o no está habilitado para chat"));
+
+        mvc.perform(post("/api/v1/stores/999999-9/conversations")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"texto\":\"Hola\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title", is("Recurso no encontrado")));
     }
 
     @Test

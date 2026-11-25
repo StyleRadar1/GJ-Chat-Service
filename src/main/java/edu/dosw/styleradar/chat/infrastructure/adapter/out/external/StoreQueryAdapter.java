@@ -27,7 +27,7 @@ public class StoreQueryAdapter implements StoreQueryPort {
         try {
             response = client.getStore(nit);
         } catch (FeignException.NotFound e) {
-            throw new StoreUnavailableException("El almacén no existe o no está habilitado para chat");
+            throw new StoreNotFoundException("El almacén no existe o no está habilitado para chat");
         } catch (FeignException e) {
             log.error("El servicio de tiendas respondió {} para el NIT {}", e.status(), nit);
             throw new ExternalServiceUnavailableException("El servicio de tiendas no está disponible");
