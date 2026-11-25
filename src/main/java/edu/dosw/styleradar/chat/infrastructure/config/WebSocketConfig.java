@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public WebSocketConfig(JwtStompChannelInterceptor jwtInterceptor,
                            @Value("${styleradar.websocket.allowed-origins:}") String origins) {
         this.jwtInterceptor = jwtInterceptor;
-        this.allowedOrigins = Arrays.stream(origins.split(","))
+        this.allowedOrigins = Arrays.stream(StringUtils.commaDelimitedListToStringArray(origins))
                 .map(String::trim).filter(StringUtils::hasText).toList();
     }
 
@@ -37,7 +37,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws", "/api/v1/ws").setAllowedOrigins(allowedOrigins.toArray(String[]::new));
+        var registration = registry.addEndpoint("/ws", "/api/v1/ws");
+        if (allowedOrigins.isEmpty()) {
+            registration.setAllowedOriginPatterns("*");
+        } else {
+            registration.setAllowedOrigins(allowedOrigins.toArray(String[]::new));
+        }
     }
 
     @Override

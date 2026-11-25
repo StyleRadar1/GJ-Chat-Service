@@ -2,7 +2,7 @@
 
 ---
 
-## 3. Endpoints y Swagger
+## 3. Endpoints y enlace a Swagger
 
 ### Enlaces de entorno
 

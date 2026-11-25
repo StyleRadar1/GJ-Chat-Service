@@ -6,6 +6,7 @@ import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapperI
 import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapperImpl;
 import edu.dosw.styleradar.chat.domain.exception.DonationNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.DonationUnavailableException;
+import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.Conversation;
 import edu.dosw.styleradar.chat.domain.model.ConversationStatus;

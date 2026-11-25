@@ -2,7 +2,7 @@
 
 ---
 
-## 1. Nombre del servicio y bounded context
+## 1. Nombre del servicio y su bounded context
 
 - **Servicio:** `ms-chat` (`GJ-Chat-Service`; artefacto `gj-chat-service`).
 - **Squad:** Guatoque Jiraguas (`GJ`), Paquete 3.

@@ -61,7 +61,7 @@ public class JwtTokenAdapter {
     private Long userId(Claims claims) {
         Object idClaim = claims.get("userId");
         String candidate = idClaim == null ? claims.getSubject() : idClaim.toString();
-        if (candidate == null || !candidate.matches("[1-9]\\d{0,18}")) {
+        if (!isValidNumericUserId(candidate)) {
             throw new JwtException("El JWT debe incluir userId numérico o un sub numérico heredado");
         }
         try {
@@ -69,6 +69,22 @@ public class JwtTokenAdapter {
         } catch (NumberFormatException exception) {
             throw new JwtException("userId JWT inválido", exception);
         }
+    }
+
+    private boolean isValidNumericUserId(String candidate) {
+        if (candidate == null || candidate.isEmpty() || candidate.length() > 19) {
+            return false;
+        }
+        for (int i = 0; i < candidate.length(); i++) {
+            char c = candidate.charAt(i);
+            if (i == 0 && (c < '1' || c > '9')) {
+                return false;
+            }
+            if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private Set<String> roles(Claims claims) {

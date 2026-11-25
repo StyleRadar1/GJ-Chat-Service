@@ -46,13 +46,14 @@ class WebSocketConfigTest {
 
     @Test
     void handlesEmptyOrigins() {
-        WebSocketConfig config = new WebSocketConfig(jwtInterceptor, "");
+        WebSocketConfig config = new WebSocketConfig(jwtInterceptor, "   ");
         StompEndpointRegistry endpointRegistry = mock(StompEndpointRegistry.class);
         StompWebSocketEndpointRegistration endpointRegistration = mock(StompWebSocketEndpointRegistration.class);
         when(endpointRegistry.addEndpoint("/ws", "/api/v1/ws")).thenReturn(endpointRegistration);
-        when(endpointRegistration.setAllowedOrigins(any(String[].class))).thenReturn(endpointRegistration);
+        when(endpointRegistration.setAllowedOriginPatterns("*")).thenReturn(endpointRegistration);
 
         config.registerStompEndpoints(endpointRegistry);
         verify(endpointRegistry).addEndpoint("/ws", "/api/v1/ws");
+        verify(endpointRegistration).setAllowedOriginPatterns("*");
     }
 }

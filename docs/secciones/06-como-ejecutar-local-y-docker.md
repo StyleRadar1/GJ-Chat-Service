@@ -2,7 +2,7 @@
 
 ---
 
-## 6. Ejecución local y Docker
+## 6. Cómo ejecutar local y con Docker
 
 ### Requisitos
 
