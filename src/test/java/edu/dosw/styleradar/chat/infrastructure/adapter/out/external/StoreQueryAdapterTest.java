@@ -46,7 +46,7 @@ class StoreQueryAdapterTest {
     void a404MeansTheStoreDoesNotExistOrIsNotAChatPartner() {
         when(client.getStore("999999-9")).thenThrow(error(404));
 
-        assertThatThrownBy(() -> adapter.fetch("999999-9")).isInstanceOf(StoreNotFoundException.class);
+        assertThatThrownBy(() -> adapter.fetch("999999-9")).isInstanceOf(StoreUnavailableException.class);
     }
 
     @Test

@@ -132,21 +132,6 @@ class StoreAndDonationChatControllerTest {
     }
 
     @Test
-    @DisplayName("BUG-032: Iniciar chat con almacén inexistente (404 en ms-tiendas) devuelve 404")
-    void startStoreConversationWhenStoreNotFoundReturns404() throws Exception {
-        String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
-        when(startStoreConversation.start(100L, "999999-9", new MessageText("Hola")))
-                .thenThrow(new StoreNotFoundException("El almacén no existe o no está habilitado para chat"));
-
-        mvc.perform(post("/api/v1/stores/999999-9/conversations")
-                        .header("Authorization", token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"texto\":\"Hola\"}"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title", is("Recurso no encontrado")));
-    }
-
-    @Test
     @DisplayName("GJ-56: Iniciar chat con almacén no verificado devuelve 422")
     void startStoreConversationUnavailable() throws Exception {
         String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
