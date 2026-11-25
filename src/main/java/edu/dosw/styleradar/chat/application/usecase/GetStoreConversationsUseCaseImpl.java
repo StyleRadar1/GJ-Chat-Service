@@ -49,4 +49,22 @@ public class GetStoreConversationsUseCaseImpl implements GetStoreConversationsUs
         }
         return conversations.findByStore(myStore.nit(), page, size);
     }
+
+    @Override
+    public PageResult<Conversation> fetchForStore(Long adminUserId, String nit, int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("page debe ser >= 0 y size debe estar entre 1 y 100");
+        }
+        Objects.requireNonNull(adminUserId, "El identificador del administrador es obligatorio");
+        StoreSummary myStore;
+        try {
+            myStore = stores.fetchMyStore(adminUserId);
+        } catch (StoreNotFoundException | StoreUnavailableException e) {
+            throw new AccessDeniedDomainException("El usuario autenticado no administra un almacén aliado");
+        }
+        if (nit != null && !nit.isBlank() && !nit.trim().equalsIgnoreCase(myStore.nit().trim())) {
+            throw new AccessDeniedDomainException("El usuario autenticado no administra el almacén con NIT " + nit);
+        }
+        return conversations.findByStore(myStore.nit(), page, size);
+    }
 }

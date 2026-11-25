@@ -11,3 +11,7 @@ spring:
       trust-store-password: ${RABBITMQ_TRUSTSTORE_PASSWORD:changeit}
       trust-store-type: PKCS12
       verify-hostname: true
+
+styleradar:
+  cors:
+    allowed-origins: ""

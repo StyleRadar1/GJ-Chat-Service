@@ -10,4 +10,6 @@ public interface GetStoreConversationsUseCase {
     List<Conversation> fetchForStoreAdmin(Long adminUserId);
 
     PageResult<Conversation> fetchForStoreAdmin(Long adminUserId, int page, int size);
+
+    PageResult<Conversation> fetchForStore(Long adminUserId, String nit, int page, int size);
 }

@@ -7,6 +7,7 @@ import edu.dosw.styleradar.chat.application.dto.response.PageResponse;
 import edu.dosw.styleradar.chat.application.mapper.in.MessageDtoInMapper;
 import edu.dosw.styleradar.chat.application.mapper.out.ConversationDtoOutMapper;
 import edu.dosw.styleradar.chat.application.mapper.out.MessageDtoOutMapper;
+import edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException;
 import edu.dosw.styleradar.chat.domain.port.in.GetMessagesUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetMyConversationsUseCase;
 import edu.dosw.styleradar.chat.domain.port.in.GetStoreConversationsUseCase;
@@ -93,6 +94,14 @@ public class ChatController implements ChatApi {
         return ResponseEntity.ok(PageResponse.map(result, conversationOut::toResponse));
     }
 
+    @Override
+    public ResponseEntity<PageResponse<ConversationResponse>> getStoreConversationsByNit(AuthenticatedUser user,
+                                                                                          String nit,
+                                                                                          int page, int size) {
+        var result = getStoreConversations.fetchForStore(user.userId(), nit, page, size);
+        return ResponseEntity.ok(PageResponse.map(result, conversationOut::toResponse));
+    }
+
     /** Compatibility overload for unit callers; the REST route uses paged results. */
     public ResponseEntity<List<ConversationResponse>> getStoreConversations(AuthenticatedUser user) {
         return ResponseEntity.ok(conversationOut.toResponse(
@@ -111,6 +120,16 @@ public class ChatController implements ChatApi {
                                                                                   int page, int size) {
         var result = getMyConversations.fetch(user.userId(), page, size);
         return ResponseEntity.ok(PageResponse.map(result, conversationOut::toResponse));
+    }
+
+    @Override
+    public ResponseEntity<PageResponse<ConversationResponse>> getUserConversations(AuthenticatedUser user,
+                                                                                    Long userId,
+                                                                                    int page, int size) {
+        if (userId != null && !userId.equals(user.userId())) {
+            throw new AccessDeniedDomainException("Solo puede consultar sus propias conversaciones");
+        }
+        return getMyConversations(user, page, size);
     }
 
     /** Compatibility overload for unit callers; the REST route uses paged results. */
