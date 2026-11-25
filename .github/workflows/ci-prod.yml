@@ -2,7 +2,9 @@ name: CI PROD
 
 on:
   push:
+    branches: [master]
     tags: ['v*.*.*']
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: gj-chat-service
