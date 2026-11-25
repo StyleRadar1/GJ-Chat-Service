@@ -25,7 +25,7 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
           build-mode: manual
@@ -33,6 +33,6 @@ jobs:
       - name: Compilar para el análisis
         run: mvn -B -DskipTests compile
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java-kotlin"
