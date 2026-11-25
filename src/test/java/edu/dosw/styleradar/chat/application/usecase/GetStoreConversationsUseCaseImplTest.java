@@ -53,4 +53,26 @@ class GetStoreConversationsUseCaseImplTest {
         assertThatThrownBy(() -> useCase.fetchForStoreAdmin(null))
                 .isInstanceOf(NullPointerException.class);
     }
+
+    @Test
+    void fetchesConversationsForStoreWithMatchingNit() {
+        when(stores.fetchMyStore(2L)).thenReturn(STORE);
+        Conversation conv = new Conversation(1L, ConversationType.ALMACEN, null, null, 5L,
+                2L, "900123456-1", "Almacén Moda", null, ConversationStatus.OPEN, Instant.now());
+        when(conversations.findByStore("900123456-1", 0, 20))
+                .thenReturn(new edu.dosw.styleradar.chat.domain.model.PageResult<>(List.of(conv), 0, 20, 1, 1));
+
+        var result = useCase.fetchForStore(2L, "900123456-1", 0, 20);
+
+        assertThat(result.content()).hasSize(1);
+    }
+
+    @Test
+    void rejectsFetchForStoreWithDifferentNit() {
+        when(stores.fetchMyStore(2L)).thenReturn(STORE);
+
+        assertThatThrownBy(() -> useCase.fetchForStore(2L, "999999999-9", 0, 20))
+                .isInstanceOf(edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException.class)
+                .hasMessageContaining("999999999-9");
+    }
 }

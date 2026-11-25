@@ -15,6 +15,7 @@ class SecurityConfigPublicPathsTest {
     @Test
     void healthAndDocumentationStayPublic() {
         assertThat(SecurityConfig.PUBLIC_PATHS)
-                .contains("/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html");
+                .contains("/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+                        "/ws", "/api/v1/ws");
     }
 }

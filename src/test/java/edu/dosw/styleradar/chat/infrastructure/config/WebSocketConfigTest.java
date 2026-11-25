@@ -33,11 +33,11 @@ class WebSocketConfigTest {
 
         StompEndpointRegistry endpointRegistry = mock(StompEndpointRegistry.class);
         StompWebSocketEndpointRegistration endpointRegistration = mock(StompWebSocketEndpointRegistration.class);
-        when(endpointRegistry.addEndpoint("/ws")).thenReturn(endpointRegistration);
+        when(endpointRegistry.addEndpoint("/ws", "/api/v1/ws")).thenReturn(endpointRegistration);
         when(endpointRegistration.setAllowedOrigins(any(String[].class))).thenReturn(endpointRegistration);
 
         config.registerStompEndpoints(endpointRegistry);
-        verify(endpointRegistry).addEndpoint("/ws");
+        verify(endpointRegistry).addEndpoint("/ws", "/api/v1/ws");
 
         ChannelRegistration channelRegistration = mock(ChannelRegistration.class);
         config.configureClientInboundChannel(channelRegistration);
@@ -49,10 +49,10 @@ class WebSocketConfigTest {
         WebSocketConfig config = new WebSocketConfig(jwtInterceptor, "");
         StompEndpointRegistry endpointRegistry = mock(StompEndpointRegistry.class);
         StompWebSocketEndpointRegistration endpointRegistration = mock(StompWebSocketEndpointRegistration.class);
-        when(endpointRegistry.addEndpoint("/ws")).thenReturn(endpointRegistration);
+        when(endpointRegistry.addEndpoint("/ws", "/api/v1/ws")).thenReturn(endpointRegistration);
         when(endpointRegistration.setAllowedOrigins(any(String[].class))).thenReturn(endpointRegistration);
 
         config.registerStompEndpoints(endpointRegistry);
-        verify(endpointRegistry).addEndpoint("/ws");
+        verify(endpointRegistry).addEndpoint("/ws", "/api/v1/ws");
     }
 }

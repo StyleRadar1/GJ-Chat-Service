@@ -261,4 +261,19 @@ class ChatControllerTest {
     void aMissingRouteRespondsWith404() throws Exception {
         mvc.perform(get("/api/v1/no-existe").header("Authorization", buyer())).andExpect(status().isNotFound());
     }
+
+    @Test
+    void userConversationsWithMatchingPathUserIdSucceeds() throws Exception {
+        when(myConversations.fetch(BUYER, 0, 20)).thenReturn(new PageResult<>(List.of(), 0, 20, 0, 0));
+
+        mvc.perform(get("/api/v1/users/" + BUYER + "/conversations").header("Authorization", buyer()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void userConversationsWithNonMatchingPathUserIdRespondsWith403() throws Exception {
+        mvc.perform(get("/api/v1/users/999/conversations").header("Authorization", buyer()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Solo puede consultar sus propias conversaciones"));
+    }
 }

@@ -100,6 +100,26 @@ public interface ChatApi {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
 
+    @Operation(summary = "Get partner store conversation inbox by NIT",
+            description = "Role STORE_ADMIN (compatible with ADMIN_ALMACEN/TIENDA). Symmetrical REST endpoint "
+                    + "with store NIT. Validates that the administrator manages the store.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Conversations received by the partner store"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
+            @ApiResponse(responseCode = "403", description = "Role not authorized or user does not manage this store",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403))),
+            @ApiResponse(responseCode = "503", description = "Store service unavailable",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_503)))
+    })
+    @PreAuthorize("hasAnyRole('ADMIN_ALMACEN', 'TIENDA')")
+    @GetMapping("/api/v1/stores/{nit}/conversations")
+    ResponseEntity<PageResponse<ConversationResponse>> getStoreConversationsByNit(
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable String nit,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
+
     @Operation(summary = "Start chat for donation request",
             description = "Role BUYER or FOUNDATION_REPRESENTATIVE. Validates with the donations service that the request is active.")
     @ApiResponses({
@@ -134,6 +154,24 @@ public interface ChatApi {
     @GetMapping("/api/v1/users/conversations")
     ResponseEntity<PageResponse<ConversationResponse>> getMyConversations(
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
+
+    @Operation(summary = "Get user conversations by user ID",
+            description = "Roles BUYER, STORE_ADMIN, FOUNDATION_REPRESENTATIVE. Symmetrical REST endpoint "
+                    + "with user ID. Validates that the authenticated user matches the path identifier.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User conversations"),
+            @ApiResponse(responseCode = "401", description = "Missing, invalid, or expired JWT",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_401))),
+            @ApiResponse(responseCode = "403", description = "Role not authorized or user does not match path ID",
+                    content = @Content(mediaType = PROBLEM_JSON, examples = @ExampleObject(value = EX_403)))
+    })
+    @PreAuthorize("hasAnyRole('COMPRADOR', 'ADMIN_ALMACEN', 'REPRESENTANTE_FUNDACION', 'TIENDA', 'FUNDACION')")
+    @GetMapping("/api/v1/users/{userId}/conversations")
+    ResponseEntity<PageResponse<ConversationResponse>> getUserConversations(
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long userId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size);
 
