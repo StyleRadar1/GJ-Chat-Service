@@ -68,7 +68,17 @@ jobs:
                 DB_USERNAME="${{ secrets.DB_USERNAME_PROD }}" \
                 DB_PASSWORD="${{ secrets.DB_PASSWORD_PROD }}" \
                 JWT_SECRET_BASE64="${{ secrets.JWT_SECRET_PROD }}" \
-                SEGUNDA_MANO_URL="${{ secrets.SEGUNDA_MANO_URL_PROD }}"
+                SEGUNDA_MANO_URL="${{ secrets.SEGUNDA_MANO_URL_PROD }}" \
+                TIENDAS_URL="${{ secrets.TIENDAS_URL_PROD }}" \
+                DONACIONES_URL="${{ secrets.DONACIONES_URL_PROD }}" \
+                RABBITMQ_HOST="${{ secrets.RABBITMQ_HOST_PROD }}" \
+                RABBITMQ_PORT="${{ secrets.RABBITMQ_PORT_PROD }}" \
+                RABBITMQ_VHOST="${{ secrets.RABBITMQ_VHOST_PROD }}" \
+                RABBITMQ_USER="${{ secrets.RABBITMQ_USER_PROD }}" \
+                RABBITMQ_PASSWORD="${{ secrets.RABBITMQ_PASSWORD_PROD }}" \
+                RABBITMQ_SSL_ENABLED=true \
+                RABBITMQ_TRUSTSTORE_BASE64="${{ secrets.RABBITMQ_TRUSTSTORE_BASE64_PROD }}" \
+                RABBITMQ_TRUSTSTORE_PASSWORD="${{ secrets.RABBITMQ_TRUSTSTORE_PASSWORD_PROD }}"
             az webapp config set --name "${{ secrets.AZURE_WEBAPP_NAME_PROD }}" --resource-group "$RG" \
               --web-sockets-enabled true --output none
       - uses: azure/webapps-deploy@v3
