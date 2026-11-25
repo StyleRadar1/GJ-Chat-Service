@@ -1,7 +1,7 @@
 # Ambiente local de GJ-Chat-Service: PostgreSQL y RabbitMQ propios; Redis se habilita en el perfil realtime.
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-chat_db}
       POSTGRES_USER: ${DB_USERNAME:-chat}

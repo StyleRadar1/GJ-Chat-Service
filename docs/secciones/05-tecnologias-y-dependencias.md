@@ -8,7 +8,7 @@
 | --- | --- |
 | Lenguaje / framework | Java 21, Spring Boot 3.2.12, Spring Cloud OpenFeign |
 | REST y tiempo real | Spring MVC, OpenAPI 3, WebSocket/STOMP |
-| Datos | PostgreSQL, Spring Data JPA, Flyway |
+| Datos | PostgreSQL 16, Spring Data JPA, Flyway |
 | Mensajería | RabbitMQ 3.13, Spring AMQP |
 | Relay entre instancias | Redis 7, opcional por configuración |
 | Seguridad | Spring Security, JWT HS256, clave compartida con ms-auth |

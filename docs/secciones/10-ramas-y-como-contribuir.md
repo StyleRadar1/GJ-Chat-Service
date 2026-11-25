@@ -2,7 +2,7 @@
 
 ---
 
-## 10. Ramas y contribución
+## 10. Ramas y cómo contribuir
 
 El flujo del equipo integra funcionalidades mediante ramas de trabajo y Pull Requests hacia `develop`; los cambios destinados a producción pasan por el flujo de revisión de `main` y el workflow de release configurado. Confirme las reglas de protección en GitHub, porque pueden cambiar por configuración del repositorio.
 

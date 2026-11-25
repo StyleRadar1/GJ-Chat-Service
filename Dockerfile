@@ -17,4 +17,6 @@ RUN chown styleradar:styleradar app.jar
 USER styleradar
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
 EXPOSE 8320
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:8320/actuator/health | grep -q '"status":"UP"' || exit 1
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

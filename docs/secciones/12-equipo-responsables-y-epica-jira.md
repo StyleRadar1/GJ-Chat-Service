@@ -2,7 +2,7 @@
 
 ---
 
-## 12. Equipo, responsables y Jira
+## 12. Equipo, responsables y enlace a la épica en Jira
 
 - **Equipo:** Guatoque Jiraguas (`GJ`), Paquete 3.
 - **Responsable del repositorio ms-chat:** Santiago Andrés García Almario.

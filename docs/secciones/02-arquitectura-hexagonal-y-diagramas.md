@@ -2,7 +2,7 @@
 
 ---
 
-## 2. Arquitectura hexagonal y diagramas
+## 2. Arquitectura hexagonal con sus diagramas
 
 El dominio y los casos de uso están aislados de Spring, JPA, HTTP, RabbitMQ y STOMP. Los adaptadores de infraestructura implementan puertos de entrada y salida.
 
