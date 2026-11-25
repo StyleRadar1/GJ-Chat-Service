@@ -2,14 +2,27 @@
 
 ---
 
-## 9. CI/CD
+## 9. CI/CD con el badge del pipeline
 
-Workflows del repositorio:
+### Badges de Estado en Tiempo Real
 
-| Archivo | Función |
-| --- | --- |
-| `.github/workflows/ci-qa.yml` | Validación, construcción/publicación de imagen y despliegue QA según configuración del workflow |
-| `.github/workflows/ci-prod.yml` | Pipeline de producción, activado por tags de versión y controles definidos en Actions |
-| `.github/workflows/codeql.yml` | Análisis de seguridad de código |
+[![CI QA](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml/badge.svg)](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-qa.yml)
+[![CI PROD](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-prod.yml/badge.svg)](https://github.com/StyleRadar1/GJ-Chat-Service/actions/workflows/ci-prod.yml)
 
-La ejecución en verde acredita los jobs incluidos en ese run, no la compatibilidad funcional de todos los servicios ni el uso de Redis en producción. Verifique los resultados, aprobaciones y URL del ambiente directamente en Actions antes de publicar evidencia. El diagrama de [pipeline](../diagramas/pipeline-ci-cd.png) muestra el flujo general.
+---
+
+### Workflows del Repositorio
+
+| Archivo | Activación | Responsabilidad |
+|---|---|---|
+| `.github/workflows/ci-qa.yml` | Push y PR a `develop` / tags QA | Validación Maven (test + cobertura JaCoCo 85%), auditoría Checkstyle, construcción de imagen multi-stage Docker Hub y despliegue continuo en Azure App Service QA. |
+| `.github/workflows/ci-prod.yml` | Push a `master` / tags `v*.*.*` | Validación completa, empaquetado Docker Hub (`latest` y versión), configuración de variables de entorno y despliegue automatizado a Azure App Service PROD con Smoke Test. |
+| `.github/workflows/codeql.yml` | Semanal y en PRs críticos | Análisis estático de vulnerabilidades de seguridad de código (SAST) con GitHub CodeQL. |
+
+### Flujo de Validación y Despliegue
+
+1. **Test & Cobertura:** Compilación con Java 21 Temurin, ejecución de 206+ pruebas y validación estricta del gate de JaCoCo.
+2. **Build de Contenedores:** Creación de imagen Docker multi-etapa basada en `eclipse-temurin:21-jre-alpine` con usuario no-root (`styleradar`).
+3. **Despliegue en Azure:** Despliegue en Azure Web App para Linux y ejecución de **Smoke Test** posdespliegue consultando activamente `/actuator/health` hasta confirmar estado `UP` (200 OK).
+
+El diagrama completo de arquitectura del pipeline se encuentra disponible en [pipeline-ci-cd.png](../diagramas/pipeline-ci-cd.png).

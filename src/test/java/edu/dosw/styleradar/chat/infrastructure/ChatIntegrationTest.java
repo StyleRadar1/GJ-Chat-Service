@@ -52,6 +52,8 @@ class ChatIntegrationTest {
     @Autowired
     private MockMvc mvc;
     @Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    @Autowired
     private ConversationRepositoryAdapter conversations;
     @Autowired
     private MessageRepositoryAdapter messages;
@@ -79,7 +81,7 @@ class ChatIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vendedorId").value(200))
                 .andReturn().getResponse().getContentAsString();
-        long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        long id = objectMapper.readTree(response).path("id").asLong();
 
         mvc.perform(post("/api/v1/second-hand/publications/100/conversations")
                         .header("Authorization", buyer).contentType(MediaType.APPLICATION_JSON)
@@ -115,7 +117,7 @@ class ChatIntegrationTest {
                         .header("Authorization", buyer).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"texto\":\"Hola, coordinemos la entrega\"}"))
                 .andReturn().getResponse().getContentAsString();
-        long id = Long.parseLong(response.replaceAll(".*\"id\":(\\d+).*", "$1"));
+        long id = objectMapper.readTree(response).path("id").asLong();
 
         when(secondHand.getListing(101L)).thenReturn(listing(101L, 201L, "RETIRADA"));
         mvc.perform(post("/api/v1/conversations/" + id + "/messages").header("Authorization", buyer)
