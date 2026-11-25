@@ -29,6 +29,10 @@ jobs:
         with:
           languages: java-kotlin
           build-mode: manual
+          config: |
+            paths-ignore:
+              - 'src/test/**'
+              - '**/*Test.java'
 
       - name: Compilar para el análisis
         run: mvn -B -DskipTests compile

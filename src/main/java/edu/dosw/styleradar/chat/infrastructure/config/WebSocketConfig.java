@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public WebSocketConfig(JwtStompChannelInterceptor jwtInterceptor,
                            @Value("${styleradar.websocket.allowed-origins:}") String origins) {
         this.jwtInterceptor = jwtInterceptor;
-        this.allowedOrigins = Arrays.stream(origins.split(","))
+        this.allowedOrigins = Arrays.stream(StringUtils.commaDelimitedListToStringArray(origins))
                 .map(String::trim).filter(StringUtils::hasText).toList();
     }
 
