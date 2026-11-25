@@ -163,6 +163,23 @@ class StoreAndDonationChatControllerTest {
     }
 
     @Test
+    @DisplayName("Symmetrical REST: Admin almacén consulta por NIT /api/v1/stores/{nit}/conversations")
+    void getStoreConversationsByNitSuccess() throws Exception {
+        String token = Tokens.bearer(Tokens.withRoles(200L, List.of("STORE_ADMIN")));
+        Conversation conv = new Conversation(1L, ConversationType.ALMACEN, null, null, 100L, 200L,
+                "900123456-1", "Atelier Urbano", null, ConversationStatus.OPEN, Instant.now());
+
+        when(getStoreConversations.fetchForStore(200L, "900123456-1", 0, 20)).thenReturn(
+                new PageResult<>(List.of(conv), 0, 20, 1, 1));
+
+        mvc.perform(get("/api/v1/stores/900123456-1/conversations")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].almacenNit", is("900123456-1")));
+    }
+
+    @Test
     @DisplayName("GJ-56: Usuario sin rol de tienda no puede consultar bandeja de almacén (403)")
     void getStoreConversationsForbidden() throws Exception {
         String token = Tokens.bearer(Tokens.withRoles(100L, List.of("COMPRADOR")));
