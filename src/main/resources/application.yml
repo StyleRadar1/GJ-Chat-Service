@@ -65,6 +65,10 @@ styleradar:
       url: ${TIENDAS_URL:http://localhost:8330}
     donations:
       url: ${DONACIONES_URL:http://localhost:8080}
+    users:
+      url: ${USUARIOS_URL:http://localhost:8080}
+      username: ${USUARIOS_SERVICE_USERNAME:service-chat}
+      password: ${USUARIOS_SERVICE_PASSWORD:service-secret}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   rate-limit:

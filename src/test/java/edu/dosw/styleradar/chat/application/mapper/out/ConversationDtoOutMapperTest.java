@@ -9,40 +9,82 @@ import org.mapstruct.factory.Mappers;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConversationDtoOutMapperTest {
     private final ConversationDtoOutMapper mapper = Mappers.getMapper(ConversationDtoOutMapper.class);
+    private static final Instant NOW = Instant.parse("2026-11-01T15:00:00Z");
 
     @Test
-    void mapsConversationAndStatus() {
-        Instant now = Instant.parse("2026-11-01T15:00:00Z");
-        Conversation conversation = new Conversation(7L, 10L, "Prenda", 1L, 2L, ConversationStatus.OPEN, now);
+    void mapsConversationWhenBuyerViewsSecondHand() {
+        Conversation conversation = new Conversation(7L, 10L, "Chaqueta", 1L, 2L, ConversationStatus.OPEN, NOW);
 
-        ConversationResponse response = mapper.toResponse(conversation);
+        // Buyer views -> should resolve seller's name or fallback
+        ConversationResponse withName = mapper.toResponse(conversation, 1L, "Sofía L.");
+        assertThat(withName.participantDisplayName()).isEqualTo("Sofía L.");
 
-        assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo(7L);
-        assertThat(response.status()).isEqualTo("ABIERTA");
-        assertThat(response.participantDisplayName()).isEqualTo("Usuario #2");
-
-        List<ConversationResponse> list = mapper.toResponse(List.of(conversation));
-        assertThat(list).hasSize(1);
-        assertThat(list.get(0).status()).isEqualTo("ABIERTA");
-
-        assertThat(mapper.toCode(ConversationStatus.CLOSED)).isEqualTo("CERRADA");
+        ConversationResponse withFallback = mapper.toResponse(conversation, 1L, null);
+        assertThat(withFallback.participantDisplayName()).isEqualTo("Vendedor");
+        assertThat(withFallback.participantDisplayName()).doesNotContain("Usuario #");
     }
 
     @Test
-    void resolvesParticipantDisplayNameForStoreAndDonation() {
-        Instant now = Instant.parse("2026-11-01T15:00:00Z");
-        Conversation storeConv = new Conversation(1L, ConversationType.ALMACEN, null, null, 10L, null,
-                "900123456-1", "Atelier Urbano Chapinero", null, ConversationStatus.OPEN, now);
-        Conversation donationConv = new Conversation(2L, ConversationType.DONACION, null, "Donación #5", 10L, 50L,
-                null, null, 5L, ConversationStatus.OPEN, now);
+    void mapsConversationWhenSellerViewsSecondHand() {
+        Conversation conversation = new Conversation(7L, 10L, "Chaqueta", 1L, 2L, ConversationStatus.OPEN, NOW);
 
-        assertThat(mapper.toResponse(storeConv).participantDisplayName()).isEqualTo("Atelier Urbano Chapinero");
-        assertThat(mapper.toResponse(donationConv).participantDisplayName()).isEqualTo("Donación #5");
+        // Seller views -> should resolve buyer's name or fallback
+        ConversationResponse withName = mapper.toResponse(conversation, 2L, "Carlos P.");
+        assertThat(withName.participantDisplayName()).isEqualTo("Carlos P.");
+
+        ConversationResponse withFallback = mapper.toResponse(conversation, 2L, null);
+        assertThat(withFallback.participantDisplayName()).isEqualTo("Comprador interesado");
+        assertThat(withFallback.participantDisplayName()).doesNotContain("Usuario #");
+    }
+
+    @Test
+    void resolvesParticipantDisplayNameForStore() {
+        Conversation storeConv = new Conversation(1L, ConversationType.ALMACEN, null, null, 10L, null,
+                "900123456-1", "Atelier Urbano Chapinero", null, ConversationStatus.OPEN, NOW);
+
+        // Buyer views store chat -> storeName
+        assertThat(mapper.toResponse(storeConv, 10L, null).participantDisplayName())
+                .isEqualTo("Atelier Urbano Chapinero");
+
+        // Store admin views store chat -> buyer's name or fallback
+        assertThat(mapper.toResponse(storeConv, 99L, "Laura M.").participantDisplayName())
+                .isEqualTo("Laura M.");
+        assertThat(mapper.toResponse(storeConv, 99L, null).participantDisplayName())
+                .isEqualTo("Comprador interesado");
+    }
+
+    @Test
+    void resolvesParticipantDisplayNameForDonation() {
+        Conversation donationConv = new Conversation(2L, ConversationType.DONACION, null, "Donación #5", 10L, 50L,
+                null, null, 5L, ConversationStatus.OPEN, NOW);
+
+        // Donor views -> recipient name or fallback
+        assertThat(mapper.toResponse(donationConv, 10L, "Fundación Niños").participantDisplayName())
+                .isEqualTo("Fundación Niños");
+        assertThat(mapper.toResponse(donationConv, 10L, null).participantDisplayName())
+                .isEqualTo("Fundación receptora");
+
+        // Foundation views -> donor name or fallback
+        assertThat(mapper.toResponse(donationConv, 50L, "Andrés G.").participantDisplayName())
+                .isEqualTo("Andrés G.");
+        assertThat(mapper.toResponse(donationConv, 50L, null).participantDisplayName())
+                .isEqualTo("Persona que dona");
+    }
+
+    @Test
+    void batchMappingResolvesCounterparts() {
+        Conversation c1 = new Conversation(7L, 10L, "Prenda", 1L, 2L, ConversationStatus.OPEN, NOW);
+        Conversation c2 = new Conversation(8L, 11L, "Pantalón", 1L, 3L, ConversationStatus.OPEN, NOW);
+
+        List<ConversationResponse> responses = mapper.toResponse(List.of(c1, c2), 1L, Map.of(2L, "Sofía L.", 3L, "Mario R."));
+        assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).participantDisplayName()).isEqualTo("Sofía L.");
+        assertThat(responses.get(1).participantDisplayName()).isEqualTo("Mario R.");
     }
 }

@@ -14,6 +14,10 @@ public class FeignConfig {
     @Bean
     public RequestInterceptor forwardAuthorization() {
         return template -> {
+            // Do not forward user bearer token to internal users directory which expects service basic auth
+            if (template.feignTarget() != null && "users-directory".equals(template.feignTarget().name())) {
+                return;
+            }
             if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
                 String authorization = attributes.getRequest().getHeader("Authorization");
                 if (authorization != null) {
