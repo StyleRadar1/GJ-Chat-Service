@@ -30,6 +30,8 @@ class BeanConfigTest {
     private ProcessedEventPort processedEvents;
     @Mock
     private edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort stores;
+    @Mock
+    private edu.dosw.styleradar.chat.domain.port.out.DonationQueryPort donations;
 
     @Test
     void wiresAllUseCasesAndClock() {
@@ -37,6 +39,8 @@ class BeanConfigTest {
         assertThat(clock).isNotNull();
 
         assertThat(config.startConversationUseCase(conversations, listings, clock)).isNotNull();
+        assertThat(config.startDonationConversationUseCase(conversations, donations, stores, clock)).isNotNull();
+        assertThat(config.startDonationConversationUseCase(conversations, donations, clock)).isNotNull();
         assertThat(config.getMyConversationsUseCase(conversations)).isNotNull();
         assertThat(config.getMessagesUseCase(conversations, messages, stores)).isNotNull();
         assertThat(config.sendMessageUseCase(conversations, messages, listings, stores, events, clock)).isNotNull();

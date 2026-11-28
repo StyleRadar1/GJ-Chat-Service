@@ -73,19 +73,32 @@ public final class Conversation {
                 storeAdminId, store.nit(), store.tradeName(), null, ConversationStatus.OPEN, now);
     }
 
-    public static Conversation startDonation(DonationSummary donation, Long callerId, Instant now) {
+    public static Conversation startDonation(DonationSummary donation, Long representativeId, Long callerId, Instant now) {
         Objects.requireNonNull(donation, "La donación es obligatoria");
         Objects.requireNonNull(callerId, "El usuario es obligatorio");
         if (!donation.isAvailable()) {
             throw new DonationUnavailableException("La donación ya finalizó; no se puede iniciar un chat");
         }
         Long donorId = donation.donorId();
-        Long foundationId = donation.foundationId();
-        if (!callerId.equals(donorId) && (foundationId == null || !callerId.equals(foundationId))) {
-            throw new edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException("Solo el donante o la fundación receptora pueden participar en este chat");
+        Long foundationEntityId = donation.foundationId();
+
+        boolean isDonor = callerId.equals(donorId);
+        boolean isRepresentative = (representativeId != null && callerId.equals(representativeId))
+                || (foundationEntityId != null && callerId.equals(foundationEntityId));
+
+        if (!isDonor && !isRepresentative) {
+            throw new edu.dosw.styleradar.chat.domain.exception.AccessDeniedDomainException(
+                    "Solo el donante o la fundación receptora pueden participar en este chat");
         }
+
+        Long targetSellerId = representativeId != null ? representativeId : (!isDonor ? callerId : foundationEntityId);
+
         return new Conversation(null, ConversationType.DONACION, null, "Donación #" + donation.id(),
-                donorId, foundationId, null, null, donation.id(), ConversationStatus.OPEN, now);
+                donorId, targetSellerId, null, null, donation.id(), ConversationStatus.OPEN, now);
+    }
+
+    public static Conversation startDonation(DonationSummary donation, Long callerId, Instant now) {
+        return startDonation(donation, null, callerId, now);
     }
 
     public boolean isParticipant(Long userId) {

@@ -116,6 +116,31 @@ class StoreQueryAdapterTest {
                 .isInstanceOf(ExternalServiceUnavailableException.class);
     }
 
+    @Test
+    void resolvesFoundationRepresentativeIdSuccessfully() {
+        when(client.getFoundation(1L, "ROLE_ADMIN_STYLERADAR"))
+                .thenReturn(new edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalFoundationResponse(
+                        1L, "Fundacion Esperanza", 5L));
+
+        Long repId = adapter.fetchFoundationRepresentativeId(1L);
+
+        assertThat(repId).isEqualTo(5L);
+    }
+
+    @Test
+    void returnsNullWhenFoundationIdIsNull() {
+        assertThat(adapter.fetchFoundationRepresentativeId(null)).isNull();
+    }
+
+    @Test
+    void returnsNullWhenStoresFailsToFindFoundation() {
+        when(client.getFoundation(99L, "ROLE_ADMIN_STYLERADAR")).thenThrow(error(404));
+
+        Long repId = adapter.fetchFoundationRepresentativeId(99L);
+
+        assertThat(repId).isNull();
+    }
+
     private static FeignException error(int status) {
         Request request = Request.create(Request.HttpMethod.GET, "http://tiendas/api/v1/almacenes/900",
                 Map.of(), null, StandardCharsets.UTF_8, null);

@@ -33,12 +33,14 @@ class StartDonationConversationUseCaseImplTest {
     private ConversationRepositoryPort conversations;
     @Mock
     private DonationQueryPort donations;
+    @Mock
+    private edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort stores;
 
     private StartDonationConversationUseCaseImpl useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new StartDonationConversationUseCaseImpl(conversations, donations, CLOCK);
+        useCase = new StartDonationConversationUseCaseImpl(conversations, donations, stores, CLOCK);
     }
 
     @Test
@@ -64,6 +66,26 @@ class StartDonationConversationUseCaseImplTest {
         assertThat(result.getDonationId()).isEqualTo(20L);
         assertThat(result.getBuyerId()).isEqualTo(1L);
         verify(conversations).save(any());
+    }
+
+    @Test
+    void resolvesRepresentativeIdFromStoresWhenOpeningDonationChat() {
+        DonationSummary donation = new DonationSummary(6L, 2L, 1L, "APPROVED");
+        when(conversations.findFirstByDonation(6L)).thenReturn(Optional.empty());
+        when(donations.fetch(6L)).thenReturn(donation);
+        when(stores.fetchFoundationRepresentativeId(1L)).thenReturn(5L);
+        when(conversations.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // When donor (2) starts chat
+        Conversation result = useCase.start(2L, 6L);
+
+        assertThat(result.getBuyerId()).isEqualTo(2L);
+        assertThat(result.getSellerId()).isEqualTo(5L);
+
+        // When foundation representative (5) starts chat (fixes 403 where callerId 5 != foundationId 1)
+        Conversation repResult = useCase.start(5L, 6L);
+        assertThat(repResult.getBuyerId()).isEqualTo(2L);
+        assertThat(repResult.getSellerId()).isEqualTo(5L);
     }
 
     @Test
