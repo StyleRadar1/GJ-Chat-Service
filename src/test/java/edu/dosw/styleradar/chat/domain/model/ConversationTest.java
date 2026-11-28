@@ -165,6 +165,24 @@ class ConversationTest {
     }
 
     @Test
+    void startsDonationConversationWithFoundationRepresentativeUserId() {
+        // Donation #6: donor is 2, foundation entity is 1, representative user is 5
+        DonationSummary donation = new DonationSummary(6L, 2L, 1L, "APPROVED");
+
+        // When foundation representative (5) starts chat (previously threw 403 because 5 != foundation 1)
+        Conversation c1 = Conversation.startDonation(donation, 5L, 5L, NOW);
+        assertThat(c1.getBuyerId()).isEqualTo(2L);
+        assertThat(c1.getSellerId()).isEqualTo(5L);
+        assertThat(c1.isParticipant(5L)).isTrue();
+        assertThat(c1.isParticipant(2L)).isTrue();
+
+        // When donor (2) starts chat, sellerId is representative (5)
+        Conversation c2 = Conversation.startDonation(donation, 5L, 2L, NOW);
+        assertThat(c2.getBuyerId()).isEqualTo(2L);
+        assertThat(c2.getSellerId()).isEqualTo(5L);
+    }
+
+    @Test
     void isParticipantReturnsFalseForNull() {
         Conversation c = conversation(7L, ConversationStatus.OPEN);
         assertThat(c.isParticipant(null)).isFalse();

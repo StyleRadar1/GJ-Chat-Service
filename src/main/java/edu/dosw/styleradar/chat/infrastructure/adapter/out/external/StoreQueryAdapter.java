@@ -5,6 +5,7 @@ import edu.dosw.styleradar.chat.domain.exception.StoreNotFoundException;
 import edu.dosw.styleradar.chat.domain.exception.StoreUnavailableException;
 import edu.dosw.styleradar.chat.domain.model.StoreSummary;
 import edu.dosw.styleradar.chat.domain.port.out.StoreQueryPort;
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalFoundationResponse;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalMyStoreResponse;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalStoreResponse;
 import feign.FeignException;
@@ -64,5 +65,23 @@ public class StoreQueryAdapter implements StoreQueryPort {
             throw new StoreUnavailableException("El almacén del usuario no está aprobado para operar como aliado");
         }
         return new StoreSummary(response.nit(), response.nombreComercial(), true);
+    }
+
+    @Override
+    public Long fetchFoundationRepresentativeId(Long foundationId) {
+        if (foundationId == null) {
+            return null;
+        }
+        try {
+            ExternalFoundationResponse response = client.getFoundation(foundationId, "ROLE_ADMIN_STYLERADAR");
+            return response != null ? response.representanteId() : null;
+        } catch (FeignException e) {
+            log.warn("No se pudo obtener el representante de la fundacion {} desde ms-tiendas: {}",
+                    foundationId, e.getMessage());
+            return null;
+        } catch (Exception e) {
+            log.warn("Error inesperado consultando fundacion {}: {}", foundationId, e.getMessage());
+            return null;
+        }
     }
 }

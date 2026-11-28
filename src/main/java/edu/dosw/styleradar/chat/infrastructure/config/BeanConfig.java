@@ -63,7 +63,16 @@ public class BeanConfig {
 
     @Bean
     public StartDonationConversationUseCase startDonationConversationUseCase(ConversationRepositoryPort conversations,
-                                                                             DonationQueryPort donations, Clock clock) {
+                                                                             DonationQueryPort donations,
+                                                                             StoreQueryPort stores,
+                                                                             Clock clock) {
+        return new StartDonationConversationUseCaseImpl(conversations, donations, stores, clock);
+    }
+
+    /** Backwards-compatible factory used by existing configuration tests. */
+    public StartDonationConversationUseCase startDonationConversationUseCase(ConversationRepositoryPort conversations,
+                                                                             DonationQueryPort donations,
+                                                                             Clock clock) {
         return new StartDonationConversationUseCaseImpl(conversations, donations, clock);
     }
 

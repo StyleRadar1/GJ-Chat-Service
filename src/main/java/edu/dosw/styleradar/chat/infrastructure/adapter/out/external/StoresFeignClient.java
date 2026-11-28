@@ -1,5 +1,6 @@
 package edu.dosw.styleradar.chat.infrastructure.adapter.out.external;
 
+import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalFoundationResponse;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalMyStoreResponse;
 import edu.dosw.styleradar.chat.infrastructure.adapter.out.external.dto.ExternalStoreResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -21,4 +22,8 @@ public interface StoresFeignClient {
     ExternalMyStoreResponse getMyStoreWithAuthorization(@PathVariable("userId") Long userId,
                                                         @RequestHeader("X-User-Id") Long authenticatedUserId,
                                                         @RequestHeader("Authorization") String authorizationHeader);
+
+    @GetMapping("/api/v1/admin/fundaciones/{id}")
+    ExternalFoundationResponse getFoundation(@PathVariable("id") Long id,
+                                            @RequestHeader(value = "X-User-Roles", defaultValue = "ROLE_ADMIN_STYLERADAR") String userRoles);
 }
